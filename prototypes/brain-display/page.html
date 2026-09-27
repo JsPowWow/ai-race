@@ -1,6 +1,6 @@
 <title>Табло мозга</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400..800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>/* шрифты сайта (app/fonts), вшиты при сборке */
+__FONTS__</style>
 <style>
   /* Прототип всегда тёмный: табло мозга — тёмный экранчик игрушки в обеих темах сайта */
   :root {
@@ -37,10 +37,12 @@
   .variant h2 { font: 700 19px/1.25 Rubik, system-ui, sans-serif; margin: 0; }
   .variant h2 span { color: var(--muted); font-weight: 500; margin-inline-end: 8px; font-variant-numeric: tabular-nums; }
   .variant header p { color: var(--muted); margin: 0; max-width: 70ch; }
-  .board { position: relative; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+  /* доска — корпус тёмного экранчика игрушки: экран утоплен в пластик */
+  .board { position: relative; border: 1px solid #2a292c; border-radius: 16px; overflow: hidden; box-shadow: 0 1px 0 rgb(255 255 255 / 0.05); }
+  .board::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; box-shadow: inset 0 2px 14px rgb(0 0 0 / 0.75); }
   .board canvas { width: 100%; display: block; cursor: crosshair; }
   .formula {
-    position: absolute; z-index: 2; width: 250px; max-width: calc(100% - 16px); display: flex; flex-direction: column; gap: 3px; pointer-events: none;
+    position: absolute; z-index: 2; width: 310px; max-width: calc(100% - 16px); display: flex; flex-direction: column; gap: 3px; pointer-events: none;
     background: #1d1d20; border: 1px solid #4a494d; border-radius: 10px; padding: 10px 12px; box-shadow: 0 6px 18px rgb(0 0 0 / 0.5);
     font: 13px/1.45 "JetBrains Mono", monospace; color: #d2d1ce; font-variant-numeric: tabular-nums;
   }
@@ -48,19 +50,23 @@
   .formula b { font: 600 14px Rubik, sans-serif; color: var(--ink); margin-block-end: 2px; }
   .formula em { font-style: normal; color: #ffd23f; font-weight: 600; }
   .formula .more { color: #8a8985; }
+  .formula .src { color: #8a8985; white-space: pre; }
   .formula .sep { border-block-start: 1px solid #3a393d; padding-block-start: 4px; margin-block-start: 2px; }
   .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--muted); margin: 0; }
   .legend i { display: inline-block; width: 16px; height: 4px; border-radius: 2px; vertical-align: middle; margin-inline-end: 6px; }
   @media (max-width: 600px) {
-    .top { grid-template-columns: 1fr; }
-    .top .row { flex-direction: row; }
-    #mini { height: 80px; }
-    .variant { scroll-margin-top: 190px; }
+    /* полоска сверху — не выше 84px, чтобы табло целиком влезало в экран */
+    .top { grid-template-columns: minmax(0, 1fr) 118px; gap: 8px; padding-block: 6px; }
+    #mini { height: 64px; }
+    .top select, .top button { min-height: 30px; padding: 4px 10px; font-size: 13px; }
+    .jump { display: grid; grid-template-columns: 1fr 1fr; }
+    .jump a { text-align: center; }
+    .variant { scroll-margin-top: 92px; }
   }
 </style>
 <div class="wrap">
   <h1>Табло мозга: четыре варианта</h1>
-  <p class="lead">Прототип для AI Race. Настоящий мозг бота едет по «Разминке» и думает прямо сейчас — все четыре табло показывают одну и ту же сеть в один и тот же миг. Наведи на нейрон — появится его формула с настоящими числами. Выбери, какое табло поставить в «Я учу».</p>
+  <p class="lead">Прототип для AI Race. Настоящий мозг бота едет по «Разминке» и думает прямо сейчас — все четыре табло показывают одну и ту же сеть в один и тот же миг. Наведи на нейрон или нажми на него — появится его формула с настоящими числами. Выбери, какое табло поставить в «Я учу».</p>
   <nav class="jump" aria-label="Варианты"><a href="#board-two">1 · Два цвета</a><a href="#board-fire">2 · Огонь</a><a href="#board-chalk">3 · Мел</a><a href="#board-stars">4 · Созвездие</a></nav>
   <div class="top">
     <canvas id="mini" aria-label="Машина бота на трассе «Разминка»"></canvas>
