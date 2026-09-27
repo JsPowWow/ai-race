@@ -419,7 +419,7 @@ body:not([data-tab="garage"]):not([data-tab="teach"]) .pad { display: none; }
 /* На телефоне кнопки не закрывают дорогу: отдельная полоса под трассой, педали рядом */
 @media (max-width: 700px) {
   :is(body[data-tab="garage"], body[data-tab="teach"]) .viewport { aspect-ratio: 4 / 4.5; max-height: 74vh; }
-  :is(body[data-tab="garage"], body[data-tab="teach"]) .viewport canvas { bottom: 96px; height: auto; }
+  :is(body[data-tab="garage"], body[data-tab="teach"]) .viewport canvas { bottom: 96px; height: calc(100% - 96px); }
   :is(body[data-tab="garage"], body[data-tab="teach"]) .viewport::after { bottom: 104px; }
   .pad {
     left: 0; right: 0; bottom: 0; height: 96px; padding-inline: 12px;
