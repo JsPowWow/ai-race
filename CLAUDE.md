@@ -29,3 +29,19 @@
 ## Проверка
 - Логику `engine/` — скриптами в Node (см. `tools/sim.mjs`).
 - Интерфейс — Playwright (`npm i --no-save playwright`), десктоп 1440 и телефон 390: без горизонтальной прокрутки, без ошибок в консоли.
+
+## Agent skills
+
+Скиллы лежат в `.claude/skills/` (источники и лицензии — `.claude/skills/README.md`).
+
+### Issue tracker
+
+Задачи — GitHub Issues в `JsPowWow/ai-race`. См. `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Стандартные метки: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. См. `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Один контекст: `CONTEXT.md` в корне и `docs/adr/`, по-русски. См. `docs/agents/domain.md`.
