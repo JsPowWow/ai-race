@@ -219,6 +219,11 @@ button, input, select, textarea { font: inherit; color: inherit; }
 }
 .intro-title span { color: var(--accent); display: block; text-shadow: 5px 5px 0 color-mix(in srgb, var(--ai) 70%, transparent); }
 .intro-lead { font-size: 18px; line-height: 1.55; max-width: 56ch; color: #d9dde6; }
+.intro-promise { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; max-width: 58ch; }
+.intro-promise li { display: flex; align-items: baseline; gap: 2px; line-height: 1.5; color: #d9dde6; }
+.intro-promise .tag { flex: none; min-width: 30px; text-align: center; }
+.intro-promise .tag.race { background: var(--bg-2); border: 1px solid var(--line); }
+.intro-promise b { color: var(--ink); }
 .intro-actions, .intro-cta { display: flex; align-items: center; gap: 14px 18px; flex-wrap: wrap; }
 .btn.primary.big { font-size: 17px; padding: 16px 34px; clip-path: polygon(14px 0, 100% 0, calc(100% - 14px) 100%, 0 100%); }
 .intro-demo { margin: 0; display: flex; flex-direction: column; gap: 8px; }

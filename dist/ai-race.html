@@ -222,6 +222,11 @@ button, input, select, textarea { font: inherit; color: inherit; }
 }
 .intro-title span { color: var(--accent); display: block; text-shadow: 5px 5px 0 color-mix(in srgb, var(--ai) 70%, transparent); }
 .intro-lead { font-size: 18px; line-height: 1.55; max-width: 56ch; color: #d9dde6; }
+.intro-promise { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; max-width: 58ch; }
+.intro-promise li { display: flex; align-items: baseline; gap: 2px; line-height: 1.5; color: #d9dde6; }
+.intro-promise .tag { flex: none; min-width: 30px; text-align: center; }
+.intro-promise .tag.race { background: var(--bg-2); border: 1px solid var(--line); }
+.intro-promise b { color: var(--ink); }
 .intro-actions, .intro-cta { display: flex; align-items: center; gap: 14px 18px; flex-wrap: wrap; }
 .btn.primary.big { font-size: 17px; padding: 16px 34px; clip-path: polygon(14px 0, 100% 0, calc(100% - 14px) 100%, 0 100%); }
 .intro-demo { margin: 0; display: flex; flex-direction: column; gap: 8px; }
@@ -651,6 +656,11 @@ details .btn { margin-top: 6px; }
       <p class="intro-kicker">Курс JavaScript · 5 уроков и гонка</p>
       <h1 class="intro-title">Научи машину <span>ездить без водителя</span></h1>
       <p class="intro-lead">Маленькая нейросеть смотрит на дорогу лучами-сенсорами и каждую долю секунды решает: газ, тормоз, влево или вправо. Ты пишешь код на JavaScript, эволюция подбирает машине «мозг», а в конце — гонка на трассе, которую никто не видел.</p>
+      <ul class="intro-promise">
+        <li><span class="tag ai">ИИ</span><span>Поймёшь, <b>как учится нейросеть</b>: на твоих примерах и сама, через эволюцию.</span></li>
+        <li><span class="tag js">JS</span><span>Получишь <b>базовые навыки JavaScript</b>: функции, массивы, объекты, JSON.</span></li>
+        <li><span class="tag race">🏁</span><span>Соберёшь <b>своего бота</b> и выйдешь с ним на гонку против одногруппников.</span></li>
+      </ul>
       <div class="intro-actions">
         <button class="btn primary big" data-start>Get started →</button>
         <span class="note">Ничего устанавливать не нужно — всё работает в браузере</span>
