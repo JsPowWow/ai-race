@@ -76,3 +76,26 @@ test('финал не грузится, пока его не открыли', as
   assert.ok(!loaded.some((url) => url.includes('/chunks/final-')), 'код финала скачался заранее');
   await close();
 });
+
+test('переключатель темы: авто → светлая → тёмная, выбор помнится после перезагрузки', async () => {
+  const { page, problems, close } = await openPage({ ...SCREENS[0], colorScheme: 'dark' });
+  await page.goto(`${base}#intro`);
+  const theme = () => page.evaluate(() => document.documentElement.dataset.theme ?? 'system');
+  const background = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+  assert.equal(await theme(), 'system');
+  const dark = await background();
+
+  await page.click('#themeToggle');
+  assert.equal(await theme(), 'light');
+  assert.notEqual(await background(), dark, 'светлая тема меняет фон');
+
+  await page.reload();
+  assert.equal(await theme(), 'light', 'после перезагрузки — та же тема');
+
+  await page.click('#themeToggle');
+  assert.equal(await theme(), 'dark');
+  await page.click('#themeToggle');
+  assert.equal(await theme(), 'system');
+  await close();
+  assert.deepEqual(problems, []);
+});

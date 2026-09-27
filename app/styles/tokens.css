@@ -1,0 +1,73 @@
+/* Токены: все цвета сайта и холста. У каждого — значение для светлой и тёмной темы: light-dark(светлая, тёмная).
+   Тёмная — «ночная гонка»: асфальт, гоночный жёлтый и «нейронный» розовый.
+   Светлая — «дневная трасса»: бетон паддока, светлая трава; жёлтый и розовый те же, но для текста — темнее,
+   чтобы читалось на светлом (контраст WCAG AA ≥ 4,5).
+   Тему выбирает переключатель в шапке: data-theme="light" | "dark" на <html>; без него — как в системе. */
+:root {
+  color-scheme: light dark;
+
+  /* фон и поверхности */
+  --bg: light-dark(#eef0f3, #0b0d12);
+  --bg-2: light-dark(#e3e6eb, #10131a);
+  --surface: light-dark(#ffffff, #151922);
+  --surface-2: light-dark(#f3f4f7, #1c212c);
+  --line: light-dark(#c9ced7, #2a3140);
+  --grid-line: light-dark(rgb(20 30 50 / 0.04), rgb(255 255 255 / 0.025));
+
+  /* текст */
+  --ink: light-dark(#12151b, #f1f3f8);
+  --ink-2: light-dark(#2c323c, #d9dde6);    /* основной текст абзацев — чуть мягче заголовков */
+  --muted: light-dark(#596170, #8d96aa);
+
+  /* фирменные цвета: заливка, текст на заливке, текст на фоне */
+  --accent: #ffd60a;                         /* гоночный жёлтый */
+  --accent-hover: light-dark(#ffca00, #ffe24d);
+  --on-accent: #14110a;
+  --accent-text: light-dark(#8a5a00, #ffd60a);
+  --ai: #ff3d7f;                             /* «нейронный» розовый */
+  --on-ai: #1a0610;
+  --ai-text: light-dark(#c2185b, #ff3d7f);
+  --brand-ink: #ffffff;                      /* «AI» на логотипе */
+  /* Крупный жёлтый текст (логотип, заголовок титульной): на светлом жёлтые буквы не читаются —
+     там буквы тёмные, а жёлтый уходит в тень, как на гоночном постере */
+  --headline: light-dark(var(--ink), var(--accent));
+  --headline-shadow: light-dark(var(--accent), color-mix(in srgb, var(--ai) 70%, transparent));
+
+  /* состояния */
+  --good: light-dark(#146a39, #3ddc84);
+  --bad: light-dark(#c62828, #ff5a5a);
+  --warn: light-dark(#9a5800, #ff9f1c);
+  --on-bad: #ffffff;
+  --silver: light-dark(#5f6775, #d7dce6);    /* 2-е место */
+  --bronze: light-dark(#a0522d, #e0975a);    /* 3-е место */
+
+  /* веса на схеме сети */
+  --pos: light-dark(#d6336c, #ff3d7f);
+  --neg: light-dark(#0e7490, #22d3ee);
+
+  /* трасса (холст) */
+  --grass: light-dark(#cfe0c6, #0e1613);
+  --road: light-dark(#4b515a, #2a2f37);
+  --road-edge: light-dark(#3b4048, #1e2229);
+  --kerb: #ff3b30;
+  --ray: light-dark(rgb(255 200 0 / 0.95), rgb(255 214 10 / 0.9));
+  --ray-hit: light-dark(rgb(20 20 20 / 0.6), rgb(255 255 255 / 0.55));
+  --check-light: #f4f4f0;                    /* шашечки старта и бордюр под шапкой */
+  --check-dark: #111111;
+
+  /* поверх трассы (подсказки, пульт) — всегда тёмные: трасса бывает любой */
+  --hud-bg: rgb(8 10 14 / 0.82);
+  --hud-ink: #e9ecf2;
+
+  /* код */
+  --code-bg: light-dark(#f7f8fa, #07090c);
+  --code-ink: light-dark(#1f2430, #e6e9ef);
+  --code-ink-2: light-dark(#0b4f8a, #cfe7ff);
+
+  --skew: -12deg;
+  --display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --body: "Golos Text", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }

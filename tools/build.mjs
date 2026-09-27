@@ -20,7 +20,8 @@ const watch = process.argv.includes('--watch');
 
 const TITLE = 'AI Race — научи машину ездить без водителя';
 const DESCRIPTION = 'Курс JavaScript: машинка с лучами-сенсорами и маленькой нейросетью учится ездить — на твоих примерах и сама, эволюцией. В конце — гонка на секретной трассе.';
-const THEME_COLOR = '#0b0d12';
+/** Цвет шапки браузера на телефоне — фон страницы в светлой и тёмной теме (как --bg в app/styles/tokens.css) */
+const THEME_COLOR = { light: '#eef0f3', dark: '#0b0d12' };
 /** Шрифты первого экрана: заголовок и основной текст — качаем сразу, не дожидаясь CSS */
 const PRELOAD_FONTS = ['unbounded-cyrillic', 'golos-text-cyrillic'];
 
@@ -62,7 +63,8 @@ function pageHead(links) {
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>${TITLE}</title>
 <meta name="description" content="${DESCRIPTION}">
-<meta name="theme-color" content="${THEME_COLOR}">
+<meta name="theme-color" content="${THEME_COLOR.light}" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="${THEME_COLOR.dark}" media="(prefers-color-scheme: dark)">
 <meta property="og:title" content="${TITLE}">
 <meta property="og:description" content="${DESCRIPTION}">
 <meta property="og:type" content="website">
@@ -83,12 +85,19 @@ ${body}
 /** Куски кода, которые app.js импортирует сразу: браузер начнёт качать их вместе с ним */
 const eagerChunks = (metafile) => metafile.outputs['app/generated/app.js'].imports.filter((i) => i.kind === 'import-statement').map((i) => i.path);
 
+/**
+ * Применить сохранённую тему до первой отрисовки — иначе при светлой теме страница на миг мигнёт тёмной.
+ * Ключ — как в app/storage.js (префикс ai-race:), значения — как в app/theme.js.
+ */
+const THEME_SCRIPT = `<script>try{const t=JSON.parse(localStorage.getItem('ai-race:theme'));if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch{}</script>`;
+
 function writeIndex(metafile) {
   const preload = [
     ...PRELOAD_FONTS.map((f) => `<link rel="preload" href="app/fonts/${f}.woff2" as="font" type="font/woff2" crossorigin>`),
     ...eagerChunks(metafile).map((path) => `<link rel="modulepreload" href="${path}">`),
   ];
   w('index.html', page(pageHead([
+    THEME_SCRIPT,
     '<link rel="icon" href="app/icon.svg" type="image/svg+xml">',
     ...preload,
     '<link rel="stylesheet" href="app/generated/app.css">',
@@ -106,6 +115,7 @@ async function writeSingleFile() {
   const icon = `data:image/svg+xml,${encodeURIComponent(r('app/icon.svg'))}`;
   mkdirSync(new URL('../dist', import.meta.url), { recursive: true });
   w('dist/ai-race.html', page(pageHead([
+    THEME_SCRIPT,
     `<link rel="icon" href="${icon}">`,
     `<style>\n${css.outputFiles[0].text}</style>`,
   ]), `${r('app/markup.html')}\n<script>\n${script}</script>`));

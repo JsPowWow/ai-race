@@ -10,6 +10,7 @@
     <button role="tab" id="tab-race" data-tab="race" aria-selected="false"><span class="t"><span class="n">04</span>Гонка</span></button>
   </nav>
   <div class="champ" id="champChip">Мозг не обучен</div>
+  <button class="theme-toggle" id="themeToggle" type="button"><span class="theme-icon" aria-hidden="true"></span><span class="theme-label">Авто</span></button>
 </header>
 <div class="kerb" aria-hidden="true"></div>
 <div id="content" tabindex="-1"></div>
@@ -81,7 +82,7 @@
       </div>
       <div class="brain-file">
         <p>Весь «мозг» машины — это маленький файл: <b id="brainSize">—</b>, в нём <b id="brainCount">—</b>. Обучение — это поиск правильных чисел. Этот файл вы и приносите на гонку.</p>
-        <pre id="brainJson" aria-label="Фрагмент файла с весами"></pre>
+        <pre id="brainJson" tabindex="0" aria-label="Фрагмент файла с весами"></pre>
       </div>
     </div>
   </section>

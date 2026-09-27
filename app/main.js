@@ -14,6 +14,7 @@ import { codeTab, runAllTests } from './tabs/code.js';
 import { examTab } from './tabs/exam.js';
 import { raceTab } from './tabs/race.js';
 import { introTab, redrawIntro } from './tabs/intro.js';
+import { initTheme } from './theme.js';
 import { teachTab, redrawLoss, renderNetwork } from './tabs/teach.js';
 
 const TABS = { intro: introTab, teach: teachTab, train: trainTab, code: codeTab, exam: examTab, race: raceTab };
@@ -101,7 +102,7 @@ function frame() {
   requestAnimationFrame(frame);
 }
 
-// Холсты с графиками перерисовываем при смене размера и после загрузки шрифтов
+// Холсты с графиками перерисовываем при смене размера, темы и после загрузки шрифтов
 function redrawCharts() {
   readPalette();
   if (state.tab === 'intro') redrawIntro();
@@ -112,6 +113,7 @@ function redrawCharts() {
   if (state.tab === 'train') drawChart($('#chart'), state.history);
 }
 new ResizeObserver(redrawCharts).observe(document.body);
+initTheme(redrawCharts);
 document.fonts?.ready.then(redrawCharts);
 
 // ── старт ──

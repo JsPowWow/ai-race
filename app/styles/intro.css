@@ -1,0 +1,90 @@
+/* Титульная страница */
+/* ── титульная страница ── */
+.intro {
+  max-width: 1480px; margin: 0 auto;
+  padding-inline: 16px; padding-block: 28px 48px;
+  display: flex; flex-direction: column; gap: 22px;
+}
+.intro-hero {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 32px; align-items: center;
+  padding-block: 12px 8px;
+}
+.intro-copy { display: flex; flex-direction: column; gap: 18px; }
+.intro-kicker {
+  align-self: flex-start;
+  font: 700 12px/1 var(--display); text-transform: uppercase; letter-spacing: 0.12em;
+  background: var(--ai); color: var(--on-ai); padding: 7px 12px; transform: skewX(var(--skew));
+}
+.intro-title {
+  margin: 0; font: 900 clamp(40px, 5.6vw, 86px)/0.98 var(--display); font-style: italic;
+  letter-spacing: -0.03em; text-wrap: balance;
+}
+.intro-title span { color: var(--headline); display: block; text-shadow: 5px 5px 0 var(--headline-shadow); }
+.intro-lead { font-size: 18px; line-height: 1.55; max-width: 56ch; color: var(--ink-2); }
+.intro-promise { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; max-width: 58ch; }
+.intro-promise li { display: flex; align-items: baseline; gap: 2px; line-height: 1.5; color: var(--ink-2); }
+.intro-promise .tag { flex: none; min-width: 30px; text-align: center; }
+.intro-promise .tag.race { background: var(--bg-2); border: 1px solid var(--line); }
+.intro-promise b { color: var(--ink); }
+.intro-actions, .intro-cta { display: flex; align-items: center; gap: 14px 18px; flex-wrap: wrap; }
+.btn.primary.big { font-size: 17px; padding: 16px 34px; clip-path: polygon(14px 0, 100% 0, calc(100% - 14px) 100%, 0 100%); }
+.intro-demo { margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.intro-demo canvas {
+  width: 100%; aspect-ratio: 16 / 10; display: block; background: var(--grass);
+  border: 1px solid var(--line);
+  box-shadow: 0 30px 80px -30px color-mix(in srgb, var(--ai) 60%, transparent), inset 0 0 0 1px var(--line);
+}
+.intro-demo figcaption { font-size: 13px; color: var(--muted); }
+.intro-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.intro-block {
+  background: var(--surface); border: 1px solid var(--line); padding: 20px 22px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.intro-block h2 { font-size: 13px; }
+.intro-steps { margin: 0; padding: 0; list-style: none; counter-reset: step; display: flex; flex-direction: column; gap: 12px; }
+.intro-steps li { counter-increment: step; position: relative; padding-left: 40px; line-height: 1.55; color: var(--ink-2); }
+.intro-steps li::before {
+  content: counter(step); position: absolute; left: 0; top: 0;
+  font: 900 24px/1 var(--display); font-style: italic; color: var(--accent-text);
+}
+.intro-steps b, .brain-grid b { color: var(--ink); }
+.intro-learn { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.intro-learn ul { margin: 10px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; color: var(--ink-2); line-height: 1.5; }
+.intro-learn li::marker { color: var(--ai-text); }
+.brain-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; }
+.brain-explain, .brain-file { display: flex; flex-direction: column; gap: 10px; line-height: 1.6; color: var(--ink-2); }
+.brain-explain .net { height: 250px; background: var(--bg-2); border: 1px solid var(--line); }
+.brain-file b { color: var(--accent-text); }
+.brain-file pre {
+  margin: 0; padding: 16px; overflow-x: auto;
+  background: var(--code-bg); border: 1px solid var(--line); border-left: 3px solid var(--accent);
+  font: 12.5px/1.6 var(--mono); color: var(--code-ink-2);
+}
+.intro-path { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+.intro-path button {
+  width: 100%; height: 100%; text-align: left; cursor: pointer;
+  display: flex; flex-direction: column; gap: 6px;
+  background: var(--bg-2); border: 1px solid var(--line); border-top: 3px solid var(--ai);
+  padding: 14px; color: var(--ink); font: inherit;
+  transition: border-color .15s, transform .15s;
+}
+.intro-path button:hover { border-color: var(--accent); transform: translateY(-2px); }
+.intro-path .n { font: 900 26px/1 var(--display); font-style: italic; color: var(--accent-text); }
+.intro-path b { font: 800 15px/1.2 var(--display); }
+.intro-path span:last-child { font-size: 13px; line-height: 1.5; color: var(--muted); }
+.intro-cta { justify-content: center; padding-block: 8px; }
+@media (max-width: 1100px) {
+  .intro-path { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 900px) {
+  .intro-hero, .intro-pair, .brain-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 560px) {
+  .intro { padding-block: 18px 36px; gap: 16px; }
+  .intro-lead { font-size: 16px; }
+  .intro-block { padding: 16px; }
+  .intro-learn, .intro-path { grid-template-columns: minmax(0, 1fr); }
+  .btn.primary.big { width: 100%; text-align: center; }
+  .brain-explain .net { height: 220px; }
+}
+@media (prefers-reduced-motion: reduce) { .intro-path button { transition: none; } }

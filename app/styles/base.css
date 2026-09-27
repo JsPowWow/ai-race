@@ -1,0 +1,38 @@
+/* База: сброс, текст, фокус, выделение */
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { background: var(--bg); }
+body {
+  margin: 0;
+  background:
+    linear-gradient(transparent 0 calc(100% - 1px), var(--grid-line) 0) 0 0 / 100% 48px,
+    linear-gradient(90deg, transparent 0 calc(100% - 1px), var(--grid-line) 0) 0 0 / 48px 100%,
+    var(--bg);
+  color: var(--ink);
+  font: 15px/1.5 var(--body);
+}
+h2 {
+  font: 700 12px/1.2 var(--display);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink);
+  margin: 0;
+  display: flex; align-items: center; gap: 8px;
+}
+h2::before {
+  content: ""; width: 10px; height: 10px; background: var(--accent);
+  transform: skewX(var(--skew)); flex: none;
+}
+p { margin: 0; }
+code { font-family: var(--mono); font-size: 0.9em; color: var(--accent-text); }
+b { font-weight: 600; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--ai-text); outline-offset: 2px; }
+::selection { background: var(--ai); color: var(--on-ai); }
+
+/* Ссылка «К содержимому»: видна только с клавиатуры — чтобы не проходить Tab'ом всю шапку */
+.skip-link {
+  position: absolute; inset-inline-start: 12px; inset-block-start: -100px; z-index: 10;
+  background: var(--accent); color: var(--on-accent); padding: 10px 16px; font-weight: 600;
+}
+.skip-link:focus { inset-block-start: 12px; }

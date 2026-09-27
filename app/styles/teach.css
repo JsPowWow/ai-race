@@ -1,0 +1,96 @@
+/* «Я учу»: пульт, мои заезды, история мозга, шаги */
+/* Кнопки управления поверх трассы: руль под левый большой палец, педали под правый */
+.pad {
+  position: absolute; left: 12px; right: 12px; bottom: 12px; z-index: 2;
+  display: flex; justify-content: space-between; align-items: flex-end;
+  pointer-events: none;
+}
+body:not([data-tab="teach"]) .pad { display: none; }
+.pad > div { display: flex; gap: 12px; pointer-events: auto; }
+.pad-pedals { flex-direction: column; align-items: center; }
+.pad button {
+  width: 64px; height: 64px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: color-mix(in srgb, var(--hud-bg) 70%, transparent); color: var(--hud-ink);
+  border: 2px solid color-mix(in srgb, var(--hud-ink) 30%, transparent);
+  font: 800 11px/1 var(--display); text-transform: uppercase; letter-spacing: 0.04em;
+  cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  backdrop-filter: blur(3px);
+}
+.pad svg { width: 28px; height: 28px; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.pad .gas { width: 78px; height: 78px; border-color: var(--accent); color: var(--accent); }
+.pad .brake { border-color: var(--ai); color: var(--ai); font-size: 9px; }
+.pad button.on { background: var(--hud-ink); color: var(--on-accent); border-color: var(--hud-ink); }
+.pad .gas.on { background: var(--accent); border-color: var(--accent); }
+.pad .brake.on { background: var(--ai); border-color: var(--ai); color: var(--on-ai); }
+/* На телефоне кнопки не закрывают дорогу: отдельная полоса под трассой, педали рядом */
+@media (max-width: 700px) {
+  body[data-tab="teach"] .viewport { aspect-ratio: 4 / 4.5; max-height: 74vh; }
+  body[data-tab="teach"] .viewport canvas { bottom: 96px; height: calc(100% - 96px); }
+  body[data-tab="teach"] .viewport::after { bottom: 104px; }
+  body[data-tab="teach"] .banner { bottom: 110px; }
+  .pad {
+    left: 0; right: 0; bottom: 0; height: 96px; padding-inline: 12px;
+    align-items: center; background: var(--bg-2); border-top: 1px solid var(--line);
+  }
+  .pad-pedals { flex-direction: row-reverse; align-items: center; }
+  .pad button { width: 68px; height: 68px; }
+  .pad .gas { width: 76px; height: 76px; }
+}
+@media (pointer: fine) {
+  .pad { opacity: 0.85; }
+  .pad { bottom: 18px; right: 18px; left: 18px; }
+  .pad button { width: 56px; height: 56px; }
+  .pad .gas, .pad .brake { width: 64px; height: 64px; }
+  .pad .brake { font-size: 9px; letter-spacing: 0; }
+}
+
+/* ── «Я учу»: заезды, свёрнутые секции, библиотека мозгов ── */
+.runs { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; max-height: 260px; overflow-y: auto; }
+.runs li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 8px; align-items: center; padding: 6px 8px; background: var(--bg-2); font-size: 13px; }
+.runs li.off { opacity: 0.5; }
+.runs li.bad .res { color: var(--bad); }
+.runs li.good .res { color: var(--good); }
+.runs li.recording { outline: 1px dashed var(--bad); outline-offset: -1px; }
+.runs input { width: 16px; height: 16px; accent-color: var(--ai); cursor: pointer; }
+.runs .meta { color: var(--muted); font-size: 12px; }
+.runs .res { font-family: var(--mono); font-size: 12px; }
+.runs button, .lib-del { border: 0; background: transparent; cursor: pointer; color: var(--muted); width: 26px; height: 26px; }
+.runs button:hover, .lib-del:hover { background: var(--surface-2); color: var(--bad); }
+.runs .empty { background: transparent; grid-template-columns: 1fr; color: var(--muted); padding: 0; }
+details.fold > summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
+details.fold > summary::-webkit-details-marker { display: none; }
+details.fold > summary::after { content: "+"; font: 700 18px var(--display); color: var(--muted); }
+details.fold[open] > summary::after { content: "–"; }
+details.fold[open] > summary { margin-bottom: 4px; }
+.library .lib-current { margin: 0; display: flex; flex-direction: column; gap: 2px; }
+.library .meta, .lib-list .meta { color: var(--muted); font-size: 12px; }
+.lib-save input { flex: 1; min-width: 120px; }
+.lib-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; max-height: 240px; overflow-y: auto; }
+.lib-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; align-items: center; padding: 6px 8px; background: var(--bg-2); border-left: 2px solid transparent; }
+.lib-list li { grid-template-columns: auto minmax(0, 1fr) auto auto; }
+.lib-list li.pinned { border-left-color: var(--accent); }
+.lib-list .pin { border: 0; background: transparent; cursor: pointer; color: var(--muted); font-size: 16px; width: 26px; height: 26px; }
+.lib-list li.pinned .pin { color: var(--accent-text); }
+.history summary { cursor: pointer; font-size: 13px; color: var(--muted); }
+.history[open] summary { margin-bottom: 6px; }
+.lib-name { display: flex; flex-direction: column; min-width: 0; }
+.lib-name b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+
+/* ── учитель: три шага ── */
+.steps { margin: 0; padding: 0; list-style: none; counter-reset: step; display: flex; flex-direction: column; gap: 10px; }
+.steps li {
+  counter-increment: step; position: relative; display: flex; flex-direction: column; gap: 4px; align-items: flex-start;
+  padding: 10px 12px 10px 46px; background: var(--bg-2); border-left: 3px solid var(--line); color: var(--muted);
+}
+.steps li::before {
+  content: counter(step); position: absolute; left: 12px; top: 8px;
+  font: 900 22px/1 var(--display); font-style: italic; color: var(--muted);
+}
+.steps li b { color: var(--ink); font-weight: 600; }
+.steps .status { font-size: 13px; line-height: 1.45; }
+.steps li.current { border-left-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--bg-2)); }
+.steps li.current::before { color: var(--accent-text); }
+.steps li.done { border-left-color: var(--good); }
+.steps li.done::before { content: "✓"; color: var(--good); }
+.steps .btn { margin-top: 4px; }

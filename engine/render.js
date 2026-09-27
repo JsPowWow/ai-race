@@ -2,10 +2,22 @@
 import { CAR } from './car.js';
 import { pointAt } from './track.js';
 
+/**
+ * Цвет из CSS-переменной — готовый для canvas.
+ * Сама переменная может быть «light-dark(светлый, тёмный)»: canvas такое не понимает,
+ * поэтому просим браузер вычислить цвет на невидимом элементе — он учтёт текущую тему.
+ */
+let probe = null;
+export function cssColor(name) {
+  probe ??= document.documentElement.appendChild(Object.assign(document.createElement('i'), { hidden: true }));
+  probe.style.color = `var(${name})`;
+  return getComputedStyle(probe).color;
+}
+
 let palette = null;
+/** Перечитать цвета трассы — после смены темы */
 export function readPalette() {
-  const cs = getComputedStyle(document.documentElement);
-  const v = (n) => cs.getPropertyValue(n).trim();
+  const v = cssColor;
   palette = {
     grass: v('--grass'), road: v('--road'), roadEdge: v('--road-edge'), kerb: v('--kerb'),
     ink: v('--ink'), muted: v('--muted'), accent: v('--accent'), surface: v('--surface'),

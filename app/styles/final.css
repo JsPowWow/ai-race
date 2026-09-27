@@ -1,0 +1,50 @@
+/* «Финал»: таблица, заметки, галерея, трансляция */
+/* ── финал ── */
+.final-link { border-left: 3px solid var(--accent); }
+.fboard { position: relative; max-height: 62vh; overflow-y: auto; overscroll-behavior: contain; padding-right: 2px; }
+.fboard li { display: flex; gap: 8px; align-items: center; }
+.fboard li::before { content: none; }
+.fboard .pos { flex: none; width: 30px; text-align: right; font: 800 15px var(--display); font-style: italic; color: var(--muted); }
+.fboard li.p1 .pos { color: var(--accent-text); }
+.fboard li.p2 .pos { color: var(--silver); }
+.fboard li.p3 .pos { color: var(--bronze); }
+.fboard .who { display: flex; flex-direction: column; min-width: 0; flex: 1; line-height: 1.25; }
+.fboard .who b, .fboard .who .kind { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fboard .who .kind { font-size: 11.5px; color: var(--muted); }
+.fboard .res { flex: none; margin-left: auto; font-size: 13px; }
+.fboard .up, .fboard .down { flex: none; font: 600 11px var(--mono); }
+.fboard .up { color: var(--good); }
+.fboard .down { color: var(--bad); }
+.fboard li.found { outline: 2px solid var(--accent); outline-offset: -2px; background: color-mix(in srgb, var(--accent) 12%, var(--bg-2)); }
+.fboard li.gap { background: transparent; justify-content: center; color: var(--muted); padding: 0; }
+.notes summary { cursor: pointer; font-size: 13px; color: var(--muted); }
+.notes summary.warn, .warn { color: var(--bad); }
+.notes li .btn { margin-left: 6px; padding: 2px 8px; }
+.notes ul { margin: 8px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; max-height: 220px; overflow-y: auto; }
+.notes code { font-size: 11.5px; overflow-wrap: anywhere; }
+.check { display: flex; gap: 8px; align-items: center; font-size: 13px; cursor: pointer; }
+.check input { width: 16px; height: 16px; accent-color: var(--ai); }
+.gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px; margin-top: 8px; max-height: 280px; overflow-y: auto; }
+.gallery button {
+  display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px; cursor: pointer;
+  background: var(--bg-2); border: 1px solid var(--line); color: var(--muted); font-size: 11px; min-width: 0;
+}
+.gallery button span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gallery .avatar { width: 40px; height: 40px; }
+.gallery button.off { opacity: 0.35; text-decoration: line-through; }
+.gallery button.off .avatar { filter: grayscale(1) blur(2px); }
+#fProgress { width: 100%; height: 8px; accent-color: var(--accent); }
+
+/* режим трансляции: только трасса и таблица на весь экран */
+body.broadcast .topbar, body.broadcast .kerb, body.broadcast #lesson, body.broadcast .panel .setup { display: none; }
+body.broadcast .work { max-width: none; height: 100vh; padding: 12px; grid-template-columns: minmax(0, 1fr) 380px; }
+body.broadcast .stage { height: calc(100vh - 24px); }
+body.broadcast .viewport { aspect-ratio: auto; max-height: none; flex: 1; }
+body.broadcast .fboard { max-height: calc(100vh - 170px); }
+body.broadcast .board-block { height: calc(100vh - 24px); }
+@media (max-width: 1000px) {
+  body.broadcast .work { height: auto; grid-template-columns: minmax(0, 1fr); }
+  body.broadcast .stage { height: 70vh; }
+}
+.award { border: 1px solid var(--line); border-left: 3px solid var(--ai); padding: 8px 10px; font-size: 13px; background: var(--bg-2); }
+.award b { display: block; font: 700 11px var(--display); text-transform: uppercase; letter-spacing: 0.08em; color: var(--ai-text); margin-bottom: 3px; }

@@ -1,7 +1,6 @@
 // Картинка нейросети: слои слева направо, цвет связи — знак веса, яркость — сила.
 import { OUTPUT_LABELS } from './brain.js';
-
-const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+import { cssColor as css } from './render.js';
 
 /**
  * selected: { type: 'w', k, i, j } — связь i → j в слое k, или { type: 'b', k, j } — порог нейрона j.
@@ -43,7 +42,7 @@ export function drawNetwork(canvas, brain, trace = null, selected = null, hover 
   ctx.globalAlpha = 1;
 
   // выбранная связь и связь под курсором
-  const accent = css('--accent-strong');
+  const accent = css('--accent-text');
   for (const [sel, width] of [[hover, 5], [selected, 7]]) {
     if (!sel || sel.type !== 'w' || !brain.layers[sel.k]) continue;
     const { k, i, j } = sel;
