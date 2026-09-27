@@ -1,0 +1,62 @@
+// Холст с трассой: камера, отрисовка сцены, подсказки поверх (HUD, баннер).
+import { Camera, fitCanvas, clear, drawTrack, drawTraffic, drawCar, drawSensors } from '../engine/render.js';
+import { trafficAt } from '../engine/traffic.js';
+import { $ } from './ui.js';
+
+export const canvas = $('#stage');
+const ctx = canvas.getContext('2d');
+const cam = new Camera();
+let dpr = 1;
+
+export function beginFrame() {
+  dpr = fitCanvas(canvas);
+}
+
+/** Положение машин трафика на тике tick (или null, если трафика нет) */
+export const trafficOn = (track, tick) => (track.traffic ? trafficAt(track, track.traffic, tick) : null);
+
+/** Трасса и трафик. camera: 'fit' — вся трасса, 'follow' — за машиной follow */
+export function drawScene(track, { camera = 'fit', follow = null, traffic = null } = {}) {
+  cam.mode = camera;
+  cam.update(canvas, track, follow, dpr);
+  clear(ctx, canvas);
+  cam.apply(ctx, canvas);
+  drawTrack(ctx, track, cam);
+  drawTraffic(ctx, traffic);
+}
+
+export const paintCar = (car, options = {}) => drawCar(ctx, car, { ...options, cam });
+export const paintSensors = (car) => drawSensors(ctx, car);
+
+/** Машина под пальцем или курсором (или null) */
+export function carAt(event, cars, radiusPx = 28) {
+  const rect = canvas.getBoundingClientRect();
+  const p = cam.toWorld(canvas, (event.clientX - rect.left) * dpr, (event.clientY - rect.top) * dpr);
+  let best = null;
+  let bestDist = (radiusPx * dpr) / cam.scale;
+  for (const car of cars) {
+    const d = Math.hypot(car.x - p.x, car.y - p.y);
+    if (d < bestDist) [best, bestDist] = [car, d];
+  }
+  return best;
+}
+
+// ── HUD и баннер ──
+
+const hud = $('#hud');
+export function setHud(items) {
+  const html = items.map((item) => `<span>${item}</span>`).join('');
+  if (hud.innerHTML !== html) hud.innerHTML = html;
+}
+
+const banner = $('#banner');
+let bannerTimer = 0;
+export function showBanner(text, ms = 1800) {
+  banner.textContent = text;
+  banner.hidden = false;
+  clearTimeout(bannerTimer);
+  if (ms) bannerTimer = setTimeout(hideBanner, ms);
+}
+export function hideBanner() {
+  banner.hidden = true;
+}

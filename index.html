@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AI Race</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;600&family=Unbounded:wght@600;700;800;900&display=swap">
+<link rel="stylesheet" href="app/styles.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand" aria-label="AI Race"><span class="ai"><span>AI</span></span><span class="race"><span>Race</span></span><span class="lines" aria-hidden="true"></span></div>
+  <nav class="tabs" role="tablist" aria-label="Разделы">
+    <button role="tab" id="tab-garage" data-tab="garage" aria-selected="true"><span class="t"><span class="n">01</span>Гараж</span></button>
+    <button role="tab" id="tab-train" data-tab="train" aria-selected="false"><span class="t"><span class="n">02</span>Трек</span></button>
+    <button role="tab" id="tab-code" data-tab="code" aria-selected="false"><span class="t"><span class="n">{ }</span>Код</span></button>
+    <button role="tab" id="tab-exam" data-tab="exam" aria-selected="false"><span class="t"><span class="n">03</span>Экзамен</span></button>
+    <button role="tab" id="tab-race" data-tab="race" aria-selected="false"><span class="t"><span class="n">04</span>Гонка</span></button>
+  </nav>
+  <div class="champ" id="champChip">Мозг не обучен</div>
+</header>
+<div class="kerb" aria-hidden="true"></div>
+
+<section class="lesson" id="lesson" aria-labelledby="lessonTitle"></section>
+
+<main class="work">
+  <section class="stage">
+    <div class="viewport" id="viewport">
+      <canvas id="stage" aria-label="Трасса"></canvas>
+      <div class="hud" id="hud"></div>
+      <div class="banner" id="banner" hidden></div>
+      <div class="countdown" id="countdown" hidden><span></span></div>
+    </div>
+
+    <div class="editor" id="editor" hidden>
+      <div class="filetabs" id="fileTabs" role="tablist" aria-label="Файлы студента"></div>
+      <textarea id="codeEditor" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Код"></textarea>
+      <div class="row">
+        <button class="btn primary" id="codeApply">Применить</button>
+        <button class="btn" id="codeReset">Вернуть исходный</button>
+        <span class="note" id="codeMsg" role="status"></span>
+      </div>
+    </div>
+
+    <div class="toolbar" data-for="garage">
+      <div class="seg" role="group" aria-label="Кто рулит">
+        <button id="gManual" aria-pressed="true">Еду сам</button>
+        <button id="gAuto" aria-pressed="false">Рулит мозг</button>
+      </div>
+      <button class="btn" id="gRestart">Заново</button>
+      <label class="inline">Трасса
+        <select id="gTrack"></select>
+      </label>
+      <label class="inline">Машины
+        <select id="gTraffic"></select>
+      </label>
+      <div class="pad" aria-label="Кнопки для телефона">
+        <button data-key="ArrowLeft" aria-label="Влево">←</button>
+        <button data-key="ArrowUp" aria-label="Газ">↑</button>
+        <button data-key="ArrowDown" aria-label="Тормоз">↓</button>
+        <button data-key="ArrowRight" aria-label="Вправо">→</button>
+      </div>
+    </div>
+
+    <div class="toolbar" data-for="train" hidden>
+      <button class="btn primary" id="tToggle">Старт</button>
+      <button class="btn" id="tEndGen">Закончить поколение</button>
+      <div class="seg" role="group" aria-label="Скорость">
+        <button data-speed="1" aria-pressed="true">×1</button>
+        <button data-speed="4" aria-pressed="false">×4</button>
+        <button data-speed="16" aria-pressed="false">×16</button>
+        <button data-speed="turbo" aria-pressed="false">Турбо</button>
+      </div>
+      <div class="seg" role="group" aria-label="Камера">
+        <button data-cam="fit" aria-pressed="true">Вся трасса</button>
+        <button data-cam="follow" aria-pressed="false">За лидером</button>
+      </div>
+    </div>
+
+    <div class="toolbar" data-for="exam" hidden>
+      <button class="btn primary" id="eRun">Проверить чемпиона</button>
+      <span class="note" id="eReplayNote">Щёлкни строку в таблице, чтобы посмотреть заезд</span>
+    </div>
+
+    <div class="toolbar" data-for="race" hidden>
+      <button class="btn primary" id="rStart">Старт гонки</button>
+      <div class="seg" role="group" aria-label="Скорость гонки">
+        <button data-rspeed="1" aria-pressed="true">×1</button>
+        <button data-rspeed="2" aria-pressed="false">×2</button>
+        <button data-rspeed="4" aria-pressed="false">×4</button>
+        <button data-rspeed="8" aria-pressed="false">×8</button>
+      </div>
+      <span class="note">Время считается в тиках: 60 тиков = 1 секунда, от мощности ноутбука не зависит</span>
+    </div>
+  </section>
+
+  <aside class="panel">
+    <!-- ГАРАЖ -->
+    <div data-panel="garage">
+      <section class="block">
+        <h2>Сенсоры</h2>
+        <div class="field"><label for="sCount">Лучей</label><input type="range" id="sCount" min="3" max="15" step="1"><output id="sCountOut"></output></div>
+        <div class="field"><label for="sSpread">Угол обзора</label><input type="range" id="sSpread" min="30" max="180" step="10"><output id="sSpreadOut"></output></div>
+        <div class="field"><label for="sLength">Дальность</label><input type="range" id="sLength" min="80" max="260" step="10"><output id="sLengthOut"></output></div>
+      </section>
+      <section class="block">
+        <h2>Слои сети</h2>
+        <div class="layers" id="layersEditor"></div>
+        <button class="btn small" id="addLayer">+ Скрытый слой</button>
+        <div class="pending" id="pending" hidden>
+          <p id="pendingText"></p>
+          <div class="row">
+            <button class="btn primary small" id="pendingApply">Применить и сбросить</button>
+            <button class="btn small" id="pendingCancel">Отменить</button>
+          </div>
+        </div>
+      </section>
+      <section class="block">
+        <h2>Как думает</h2>
+        <select id="thinkSelect" aria-label="Вариант мозга"></select>
+        <p class="hint" id="thinkHint"></p>
+      </section>
+      <section class="block">
+        <h2>Сеть · редактор</h2>
+        <canvas id="netCanvas" class="net" aria-label="Схема нейросети: щёлкни связь или нейрон, чтобы поменять вес"></canvas>
+        <p class="legend"><span class="sw pos"></span>положительный вес <span class="sw neg"></span>отрицательный <span class="sw act"></span>нейрон сработал</p>
+        <div class="wedit" id="wEdit">
+          <p id="wLabel" class="hint">Щёлкни связь или нейрон на схеме, чтобы поменять вес руками. Попробуй: удали скрытый слой, нажми «Все веса в ноль», опусти порог «Газа» ниже нуля — и научи машину отворачивать от бордюров.</p>
+          <div class="field" id="wRow" hidden>
+            <label for="wVal" id="wName">Вес</label>
+            <input type="range" id="wVal" min="-1" max="1" step="0.01">
+            <output id="wValOut"></output>
+          </div>
+          <p class="hint" id="wExplain" hidden></p>
+          <div class="row">
+            <button class="btn small" id="wZero">Все веса в ноль</button>
+            <button class="btn small" id="wRandom">Случайные веса</button>
+          </div>
+        </div>
+        <p class="hint" id="netNote"></p>
+      </section>
+    </div>
+
+    <!-- ТРЕК -->
+    <div data-panel="train" hidden>
+      <section class="block">
+        <h2>Трасса</h2>
+        <select id="tTrack" aria-label="Трасса для обучения"></select>
+        <div class="field wide"><label for="tTraffic">Машины</label><select id="tTraffic"></select></div>
+        <p class="hint">На гонке будут попутные и встречные. Если обучение не идёт, начни без машин, а потом включи их.</p>
+        <div class="field" id="tSeedRow" hidden><label for="tSeed">Seed</label><input type="text" id="tSeed" maxlength="40"></div>
+      </section>
+      <section class="block">
+        <h2>Поколение</h2>
+        <div class="field"><label for="tPop">Машин</label><input type="range" id="tPop" min="10" max="300" step="10"><output id="tPopOut"></output></div>
+        <div class="field"><label for="tRate">Мутация</label><input type="range" id="tRate" min="0" max="0.5" step="0.01"><output id="tRateOut"></output></div>
+        <div class="field wide"><span class="lbl">Родителей</span>
+          <div class="seg" role="group" aria-label="Сколько родителей">
+            <button data-parents="1" aria-pressed="true">1</button>
+            <button data-parents="2" aria-pressed="false">2</button>
+          </div>
+        </div>
+        <p class="hint">1 родитель — дети его мутированные копии. 2 родителя — ребёнок получает веса от обоих (кроссовер), потом мутирует. Новые значения и правки кода действуют со следующего поколения. Щёлкни машину на трассе, чтобы сделать её родителем вручную (при двух родителях — две машины).</p>
+        <div class="pending" id="pickedBar" hidden>
+          <p id="pickedText">Выбрана машина вручную: она станет родителем следующего поколения.</p>
+          <button class="btn small" id="pickedCancel">Отменить выбор</button>
+        </div>
+        <div class="error" id="tError" hidden></div>
+      </section>
+      <section class="block">
+        <h2>Обучение</h2>
+        <dl class="stats">
+          <div><dt>Поколение</dt><dd id="stGen">0</dd></div>
+          <div><dt>Родитель проехал</dt><dd id="stBest">—</dd></div>
+          <div><dt>Доехали</dt><dd id="stFin">—</dd></div>
+        </dl>
+        <canvas id="chart" class="chart" aria-label="График фитнеса по поколениям"></canvas>
+        <p class="legend"><span class="sw line"></span>лучший фитнес <span class="sw dash"></span>медиана <span class="sw dot"></span>родитель доехал</p>
+      </section>
+      <section class="block">
+        <h2>Зал чемпионов</h2>
+        <ol class="hall" id="hall"></ol>
+        <div class="row">
+          <button class="btn small danger" id="tReset">Сбросить обучение</button>
+        </div>
+        <div class="pending" id="resetConfirm" hidden>
+          <p>Удалить обученный мозг, график и зал чемпионов?</p>
+          <div class="row">
+            <button class="btn small danger" id="tResetYes">Да, сбросить</button>
+            <button class="btn small" id="tResetNo">Оставить</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- КОД -->
+    <div data-panel="code" hidden>
+      <section class="block">
+        <h2 id="codeTitle">Задание</h2>
+        <p id="codeTask"></p>
+        <p class="error" id="evalNote" hidden>Здесь нельзя запускать отредактированный код. Правьте файлы в папке <code>student/</code> и обновите страницу.</p>
+      </section>
+      <section class="block">
+        <h2>Проверки</h2>
+        <ul class="tests" id="testList"></ul>
+        <p class="legend"><span class="badge pass">OK</span> работает <span class="badge advice">Совет</span> можно лучше <span class="badge fail">Ошибка</span> надо чинить</p>
+      </section>
+    </div>
+
+    <!-- ЭКЗАМЕН -->
+    <div data-panel="exam" hidden>
+      <section class="block">
+        <h2>Результаты</h2>
+        <div class="table-wrap">
+          <table class="results" id="examTable">
+            <thead><tr><th>Трасса</th><th>Итог</th><th class="num">Время</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p id="examVerdict" class="verdict"></p>
+      </section>
+      <section class="block">
+        <h2>На гонку</h2>
+        <div class="field"><label for="pName">Имя машины</label><input type="text" id="pName" maxlength="24" placeholder="Например, Сквозняк"></div>
+        <div class="colors" id="pColors" role="radiogroup" aria-label="Цвет машины"></div>
+        <div class="row">
+          <button class="btn primary" id="pCopy">Скопировать JSON</button>
+          <button class="btn" id="pDownload">Скачать .json</button>
+        </div>
+        <p class="note" id="pMsg" role="status"></p>
+        <details>
+          <summary>Что внутри файла</summary>
+          <textarea id="pJson" readonly rows="8" aria-label="JSON машины"></textarea>
+        </details>
+      </section>
+    </div>
+
+    <!-- ГОНКА -->
+    <div data-panel="race" hidden>
+      <section class="block">
+        <h2>Секретная трасса</h2>
+        <div class="field"><label for="rSeed">Seed</label><input type="text" id="rSeed" maxlength="40"></div>
+        <div class="field wide"><label for="rTraffic">Машины</label><select id="rTraffic"></select></div>
+        <p class="hint">Один и тот же seed даёт одну и ту же трассу на любом компьютере. Объявите его в час X.</p>
+      </section>
+      <section class="block">
+        <h2>Участники</h2>
+        <ul class="entrants" id="rList"></ul>
+        <div class="row">
+          <button class="btn small" id="rAddMine">+ Мой чемпион</button>
+          <label class="btn small file">Загрузить .json<input type="file" id="rFiles" accept=".json,application/json" multiple></label>
+          <button class="btn small" id="rCross" disabled>Скрестить</button>
+        </div>
+        <p class="hint" id="rCrossNote"></p>
+        <details>
+          <summary>Вставить JSON текстом</summary>
+          <textarea id="rPaste" rows="5" placeholder='{"format":"ai-race/car@1", ...}' aria-label="JSON участника"></textarea>
+          <button class="btn small" id="rPasteAdd">Добавить</button>
+        </details>
+        <p class="hint">Файлы можно перетащить прямо на трассу.</p>
+        <div class="error" id="rError" hidden></div>
+      </section>
+      <section class="block">
+        <h2>Таблица</h2>
+        <ol class="board" id="rBoard"></ol>
+        <div class="awards" id="rAwards"></div>
+      </section>
+    </div>
+  </aside>
+</main>
+
+<script type="module" src="app/main.js"></script>
+</body>
+</html>

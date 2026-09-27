@@ -1,0 +1,18 @@
+{
+  "name": "ai-race",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "npx serve .",
+    "build": "node tools/build.mjs",
+    "lint": "eslint .",
+    "bots": "node tools/train-bots.mjs",
+    "compare": "node tools/compare-parents.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "esbuild": "^0.24.0",
+    "eslint": "^9.39.5",
+    "globals": "^15.15.0"
+  }
+}
