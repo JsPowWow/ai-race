@@ -133,12 +133,14 @@ function inputLabels(ctx, lay, color) {
   });
   if (lay.vertical) { ctx.textAlign = 'left'; ctx.font = `500 11px ${SANS}`; ctx.fillText('лучи 1–7 и скорость v', 12, 14); }
 }
+/** Победитель пары (газ/тормоз, влево/вправо): машина слушает разницу, заметный перевес — светится */
+const pairWins = (p, i) => p[i] - p[i ^ 1] > 0.08;
 /** Кнопки пульта: чем сильнее мозг жмёт, тем ярче кнопка; полоска снизу — точная шкала.
  *  В каждой паре (газ/тормоз, влево/вправо) победитель светится — машина слушает разницу. */
 function outputs(ctx, lay, style) {
   const last = lay.sizes.length - 1;
   const p = [0, 1, 2, 3].map((i) => warm(`${style.key}-out-${i}`, actOf(last, i)));
-  const wins = (i) => p[i] - p[i ^ 1] > 0.08;
+  const wins = (i) => pairWins(p, i);
   const off = hexRGB(style.off);
   lay.pos[last].forEach(([x, y], i) => {
     const w = lay.vertical ? (lay.W - 24) / 4 - 6 : 132, h = lay.vertical ? 40 : 36;
@@ -203,7 +205,7 @@ function lampNode(ctx, lay, key, k, i, s) {
     ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.strokeStyle = s.biasColor(b); ctx.stroke(); ctx.lineCap = 'butt';
   }
   ctx.fillStyle = lum(mix) > 0.45 ? s.inkOn : s.ink; // тёмные цифры — только на светлой заливке
-  ctx.font = `600 ${Math.min(12, Math.floor((2 * lay.r - 9) / 2.4))}px ${MONO}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = `600 ${Math.min(12, Math.floor((2 * lay.r - 8) / 2.3))}px ${MONO}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText(fmt(textOf(k, i)), x, y + 1);
 }
 function eachHidden(lay, fn) {
@@ -230,7 +232,7 @@ const VARIANTS = [
   {
     key: 'two', name: 'Два цвета',
     about: 'Красный — вес толкает, синий — мешает. Лента проступает из дымки там, где сигнал идёт сейчас.',
-    legend: [['#ff5a60', 'вес «+»'], ['#6f9bff', 'вес «−»'], ['#ffd23f', 'нейрон: жёлтый «+», голубой «−»'], ['#e9e8e4', 'засечка на ободке — порог']],
+    legend: [['#ff5a60', 'вес «+»'], ['#6f9bff', 'вес «−»'], ['#ffd23f', 'нейрон: жёлтый «+», голубой «−»'], ['#e9e8e4', 'засечка на ободке — порог'], ['#ffffff', 'светится победитель пары, если перевес заметный']],
     bg: '#0f0f11',
     draw(ctx, lay) {
       brain().layers.forEach((L, k) => {
@@ -264,7 +266,7 @@ const VARIANTS = [
   {
     key: 'fire', name: 'Огонь',
     about: 'Один цвет на всё: где идёт сигнал, там разгорается. Вспыхивает быстро, гаснет медленно.',
-    legend: [['#8c1c10', 'слабый сигнал'], ['#e04e0c', 'сильнее'], ['#ffeec4', 'сильнейший'], ['#5a4a3e', 'знак веса — в формуле']],
+    legend: [['#8c1c10', 'слабый сигнал'], ['#e04e0c', 'сильнее'], ['#ffeec4', 'сильнейший'], ['#5a4a3e', 'знак веса — в формуле'], ['#ffffff', 'светится победитель пары, если перевес заметный']],
     bg: '#0e0c0b',
     draw(ctx, lay) {
       brain().layers.forEach((L, k) => {
@@ -292,7 +294,7 @@ const VARIANTS = [
   {
     key: 'chalk', name: 'Мел',
     about: 'Строгий монохром: сила сигнала — только яркость и толщина. Цвет есть только у кнопок пульта.',
-    legend: [['#4a4a4f', 'связь в покое'], ['#f4f4f2', 'идёт сигнал'], ['#8e8d89', 'засечка на ободке — порог'], ['#d11f28', 'цвет — только у кнопок пульта']],
+    legend: [['#4a4a4f', 'связь в покое'], ['#f4f4f2', 'идёт сигнал'], ['#8e8d89', 'засечка на ободке — порог'], ['#d11f28', 'цвет — только у кнопок пульта'], ['#ffffff', 'светится победитель пары, если перевес заметный']],
     bg: '#111113',
     draw(ctx, lay) {
       brain().layers.forEach((L, k) => {
@@ -314,7 +316,7 @@ const VARIANTS = [
   {
     key: 'stars', name: 'Созвездие',
     about: 'Нейроны — звёзды, связи — тонкие волоски. Где проходит сигнал, путь светится холодным светом.',
-    legend: [['#4b5266', 'тишина'], ['#cfe0ff', 'идёт сигнал'], ['#ffffff', 'выход — звезда: крупнее, значит сильнее жмёт']],
+    legend: [['#4b5266', 'тишина'], ['#cfe0ff', 'идёт сигнал'], ['#ffffff', 'выход — звезда: крупнее, значит сильнее жмёт · кольцо — победитель пары']],
     bg: '#0a0c12',
     draw(ctx, lay) {
       // связи выходят из-за плашки с числом, а не из самой точки — число не перечёркнуто
@@ -347,19 +349,87 @@ const VARIANTS = [
       });
       // выходы — самые крупные звёзды: размер = насколько мозг жмёт кнопку
       const last = lay.sizes.length - 1;
+      const pv = [0, 1, 2, 3].map((i) => warm(`stars-out-${i}`, actOf(last, i)));
       lay.pos[last].forEach(([x, y], i) => {
-        const pv = warm(`stars-out-${i}`, actOf(last, i));
-        star(x, y, pv, 5 + 7 * pv);
-        ctx.fillStyle = pv > 0.12 ? '#eef4ff' : '#6f7892'; ctx.textBaseline = 'middle';
+        const r = 4 + 12 * Math.min(1, Math.max(0, pv[i])) ** 2; // квадрат — чтобы 70 % и 90 % различались на глаз
+        star(x, y, pv[i], r);
+        if (pairWins(pv, i)) { ctx.beginPath(); ctx.arc(x, y, r + 4, 0, Math.PI * 2); ctx.lineWidth = 1.5; ctx.strokeStyle = '#cfe0ff'; ctx.stroke(); }
+        ctx.fillStyle = pv[i] > 0.12 ? '#eef4ff' : '#6f7892'; ctx.textBaseline = 'middle';
         if (lay.vertical) {
           ctx.textAlign = 'center';
-          ctx.font = `600 11.5px ${SANS}`; ctx.fillText(OUT[i], x, y + 24);
-          ctx.font = `500 11px ${MONO}`; ctx.fillText(pct(textOf(last, i)).trim(), x, y + 39);
+          ctx.font = `600 11.5px ${SANS}`; ctx.fillText(OUT[i], x, y + r + 12);
+          ctx.font = `500 11px ${MONO}`; ctx.fillText(pct(textOf(last, i)).trim(), x, y + r + 27);
         } else {
           ctx.textAlign = 'left';
-          ctx.font = `600 13px ${SANS}`; ctx.fillText(OUT[i], x + 22, y - 8);
-          ctx.font = `500 12px ${MONO}`; ctx.fillText(pct(textOf(last, i)).trim(), x + 22, y + 9);
+          ctx.font = `600 13px ${SANS}`; ctx.fillText(OUT[i], x + r + 10, y - 8);
+          ctx.font = `500 12px ${MONO}`; ctx.fillText(pct(textOf(last, i)).trim(), x + r + 10, y + 9);
         }
+      });
+    },
+  },
+  {
+    key: 'lab', name: 'Лаборатория',
+    about: 'Как в ролике про нейросеть: зелёные и красные нити складываются в свечение, у каждого слоя рамка с подписью. Приблизь — проступят числа.',
+    legend: [['#3ddc84', 'вес «+»'], ['#ff4d4d', 'вес «−»'], ['#f4f4ff', 'чем ярче узел, тем сильнее сигнал'], ['#b8c4ff', 'приблизь — появятся числа']],
+    bg(ctx, W, H) {
+      const g = ctx.createLinearGradient(0, 0, W, H);
+      g.addColorStop(0, '#0b1030'); g.addColorStop(0.6, '#0a0c22'); g.addColorStop(1, '#1d1030');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    },
+    draw(ctx, lay) {
+      const z = lay.zoom, px = 1 / z; // толщины — в пикселях экрана: при приближении линии тоньше и чётче
+      const detail = Math.max(0, Math.min(1, (z - 1.3) / 0.4)); // числа проступают между ×1,3 и ×1,7
+      const last = lay.sizes.length - 1;
+      // рамки слоёв с подписями, как у лабораторного стенда
+      const titles = [['ВХОД · 8', 'лучи 1–7 и скорость'], ['СЛОЙ 1 · 8 нейронов', 'tanh(2z)'], ['ВЫХОД · 4', 'σ(3z) · кнопки пульта']];
+      lay.pos.forEach((col, k) => {
+        const xs = col.map((q) => q[0]), ys = col.map((q) => q[1]), pad = 16;
+        const x0 = Math.min(...xs) - pad, y0 = Math.min(...ys) - pad, x1 = Math.max(...xs) + pad, y1 = Math.max(...ys) + pad;
+        ctx.lineWidth = px; ctx.strokeStyle = 'rgb(150 165 255 / 0.35)'; ctx.strokeRect(x0, y0, x1 - x0, y1 - y0);
+        ctx.font = `600 ${10.5 * Math.min(1, 1 / Math.sqrt(z)) + 0.5}px ${MONO}`; ctx.textBaseline = 'alphabetic';
+        const [t1, t2] = titles[Math.min(k, 2)];
+        ctx.textAlign = lay.vertical ? 'left' : k === last ? 'right' : 'left';
+        const tx = lay.vertical ? x0 : k === last ? x1 : x0;
+        ctx.fillStyle = '#b8c4ff'; ctx.fillText(t1, tx, y0 - 17);
+        ctx.fillStyle = '#ff7a6b'; ctx.fillText(t2, tx, y0 - 5);
+      });
+      ctx.globalCompositeOperation = 'lighter'; // нити складываются: где их много — свечение
+      brain().layers.forEach((L, k) => {
+        L.weights.forEach((row, i) => row.forEach((w, j) => {
+          const h = warm(`lab-e-${k}-${i}-${j}`, Math.abs(sigs[k][i][j]) ** 1.3);
+          ctx.globalAlpha = 0.12 + 0.55 * h; ctx.lineWidth = (0.7 + 2.2 * h) * px;
+          ctx.strokeStyle = w >= 0 ? '#3ddc84' : '#ff4d4d';
+          curve(ctx, lay.pos[k][i], lay.pos[k + 1][j], lay.vertical); ctx.stroke();
+        }));
+      });
+      ctx.globalAlpha = 1;
+      drawPulses(ctx, lay, (p) => (p.v >= 0 ? '#c9ffe0' : '#ffd0d0'), 1.8 * px);
+      ctx.globalCompositeOperation = 'source-over';
+      const dot = (x, y, h, r) => {
+        ctx.save(); ctx.shadowColor = `rgb(220 230 255 / ${0.9 * h})`; ctx.shadowBlur = (4 + 14 * h) * px;
+        ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = `rgb(${Math.round(150 + 105 * h)} ${Math.round(160 + 95 * h)} 255)`; ctx.fill();
+        ctx.restore();
+      };
+      eachHidden(lay, (k, i) => {
+        const [x, y] = lay.pos[k][i];
+        const h = warm(`lab-n-${k}-${i}`, Math.min(1, Math.abs(actOf(k, i))));
+        dot(x, y, h, (2.5 + 2.5 * h) * Math.max(0.6, px * 1.4));
+        if (detail > 0) {
+          ctx.globalAlpha = detail; ctx.fillStyle = '#e8ecff'; ctx.font = `500 ${11 * px + 2}px ${MONO}`;
+          ctx.textBaseline = 'middle'; ctx.textAlign = lay.vertical ? 'center' : 'left';
+          ctx.fillText(fmt(textOf(k, i)), lay.vertical ? x : x + 8 * px + 3, lay.vertical ? y - 9 * px - 4 : y - 7 * px - 3);
+          ctx.globalAlpha = 1;
+        }
+      });
+      const pv = [0, 1, 2, 3].map((i) => warm(`lab-out-${i}`, actOf(last, i)));
+      lay.pos[last].forEach(([x, y], i) => {
+        const r = 3 + 6 * Math.min(1, Math.max(0, pv[i])) ** 2;
+        dot(x, y, pv[i], r);
+        if (pairWins(pv, i)) { ctx.beginPath(); ctx.arc(x, y, r + 4, 0, Math.PI * 2); ctx.lineWidth = 1.5 * px; ctx.strokeStyle = '#c9ffe0'; ctx.stroke(); }
+        ctx.fillStyle = '#e8ecff'; ctx.textBaseline = 'middle';
+        ctx.font = `600 12px ${MONO}`;
+        if (lay.vertical) { ctx.textAlign = 'center'; ctx.fillText(OUT[i], x, y + 24); ctx.fillText(pct(textOf(last, i)).trim(), x, y + 39); }
+        else { ctx.textAlign = 'left'; ctx.fillText(`${OUT[i].padEnd(7, ' ')}${pct(textOf(last, i))}`, x + 24, y); }
       });
     },
   },
@@ -402,27 +472,88 @@ function drawMini() {
   if (mini.width !== w || mini.height !== h) { mini.width = w; mini.height = h; }
   const ctx = mini.getContext('2d');
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#141415'; ctx.fillRect(0, 0, w, h);
-  miniCam.mode = 'follow'; miniCam.update(mini, track, car, dpr * 0.6); miniCam.apply(ctx, mini);
+  // полоска низкая и широкая — камера смотрит дальше вперёд, чтобы слева не пустовало
+  const L = miniCam.ready ? (0.3 * w) / miniCam.scale : 0;
+  const aim = { x: car.x + Math.cos(car.angle) * L, y: car.y + Math.sin(car.angle) * L, angle: car.angle };
+  miniCam.mode = 'follow'; miniCam.update(mini, track, aim, dpr * 0.6); miniCam.apply(ctx, mini);
   drawTrack(ctx, track, miniCam); drawSensors(ctx, car); drawCar(ctx, car, { color: bot.color, number: 1, cam: miniCam });
 }
 
-// ── доски: по одной на вариант ──
+// ── доски: по одной на вариант, у каждой — зум ──
 const gallery = document.getElementById('gallery');
-gallery.innerHTML = VARIANTS.map((v) => `
+gallery.innerHTML = VARIANTS.map((v, n) => `
   <section class="variant" id="board-${v.key}">
-    <header><h2><span>${VARIANTS.indexOf(v) + 1}</span>${v.name}</h2><p>${v.about}</p></header>
+    <header>
+      <div class="title"><h2><span>${n + 1}</span>${v.name}</h2>
+        <div class="zoom" role="group" aria-label="Масштаб"><button data-z="in" aria-label="Приблизить">+</button><button data-z="out" aria-label="Отдалить">−</button><button data-z="reset" aria-label="Обычный масштаб" hidden>1:1</button></div>
+      </div>
+      <p>${v.about}</p>
+    </header>
     <div class="board"><canvas aria-label="Схема сети — вариант «${v.name}»"></canvas><div class="formula" hidden></div></div>
     <p class="legend">${v.legend.map(([c, t]) => `<span><i style="background:${c}"></i>${t}</span>`).join('')}</p>
   </section>`).join('');
+
+const MAX_ZOOM = 4;
+/** Зум вокруг точки экрана (cx, cy): она остаётся на месте, остальное растягивается от неё */
+function zoomAt(b, factor, cx, cy) {
+  const v = b.view, s = Math.max(1, Math.min(MAX_ZOOM, v.s * factor));
+  v.x = cx - ((cx - v.x) * s) / v.s; v.y = cy - ((cy - v.y) * s) / v.s; v.s = s;
+  clampView(b);
+}
+function clampView(b) {
+  const v = b.view, W = b.canvas.clientWidth, H = b.canvas.clientHeight;
+  v.x = Math.min(0, Math.max(W - W * v.s, v.x)); v.y = Math.min(0, Math.max(H - H * v.s, v.y));
+  b.canvas.style.touchAction = v.s > 1 ? 'none' : 'pan-y'; // приближено — палец двигает схему, а не страницу
+  b.el.querySelector('[data-z=reset]').hidden = v.s === 1;
+  b.lastFormula = 0;
+}
+const local = (b, e) => { const r = b.canvas.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
 const boards = VARIANTS.map((v) => {
   const el = document.getElementById(`board-${v.key}`);
-  const b = { v, canvas: el.querySelector('canvas'), card: el.querySelector('.formula'), mouse: null, lastFormula: 0 };
-  b.canvas.addEventListener('pointermove', (e) => { const r = b.canvas.getBoundingClientRect(); b.mouse = [e.clientX - r.left, e.clientY - r.top]; });
+  const b = { v, el, canvas: el.querySelector('canvas'), card: el.querySelector('.formula'), mouse: null, lastFormula: 0, view: { s: 1, x: 0, y: 0 } };
+  const touches = new Map();
+  let drag = null, pinch = null;
+  b.canvas.style.touchAction = 'pan-y';
+  b.canvas.addEventListener('pointerdown', (e) => {
+    touches.set(e.pointerId, local(b, e));
+    b.mouse = local(b, e); b.lastFormula = 0; // на телефоне наведения нет — нейрон выбирается касанием
+    if (touches.size === 2) {
+      const [p1, p2] = [...touches.values()];
+      pinch = { d: Math.hypot(p1[0] - p2[0], p1[1] - p2[1]), s: b.view.s }; drag = null;
+    } else if (b.view.s > 1) { drag = { at: local(b, e), x: b.view.x, y: b.view.y }; b.canvas.setPointerCapture(e.pointerId); }
+  });
+  b.canvas.addEventListener('pointermove', (e) => {
+    const m = local(b, e);
+    b.mouse = m;
+    if (touches.has(e.pointerId)) touches.set(e.pointerId, m);
+    if (pinch && touches.size === 2) {
+      const [p1, p2] = [...touches.values()];
+      const d = Math.hypot(p1[0] - p2[0], p1[1] - p2[1]);
+      zoomAt(b, (pinch.s * d) / pinch.d / b.view.s, (p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2);
+    } else if (drag) {
+      b.view.x = drag.x + m[0] - drag.at[0]; b.view.y = drag.y + m[1] - drag.at[1]; clampView(b);
+    }
+  });
+  const up = (e) => { touches.delete(e.pointerId); if (touches.size < 2) pinch = null; if (!touches.size) drag = null; };
+  b.canvas.addEventListener('pointerup', up);
+  b.canvas.addEventListener('pointercancel', up);
   b.canvas.addEventListener('pointerleave', (e) => { if (e.pointerType !== 'mouse') return; b.mouse = null; b.card.hidden = true; });
-  // на телефоне наведения нет — нейрон выбирается касанием
-  b.canvas.addEventListener('pointerdown', (e) => { const r = b.canvas.getBoundingClientRect(); b.mouse = [e.clientX - r.left, e.clientY - r.top]; b.lastFormula = 0; });
+  // колесо зумит только с Ctrl/⌘ — иначе страница перестанет прокручиваться
+  b.canvas.addEventListener('wheel', (e) => {
+    if (!e.ctrlKey && !e.metaKey) return;
+    e.preventDefault(); zoomAt(b, Math.exp(-e.deltaY * 0.002), ...local(b, e));
+  }, { passive: false });
+  b.canvas.addEventListener('dblclick', (e) => zoomAt(b, b.view.s > 1 ? 1 / b.view.s : 2, ...local(b, e)));
+  el.querySelector('.zoom').addEventListener('click', (e) => {
+    const z = e.target.closest('button')?.dataset.z;
+    const W = b.canvas.clientWidth, H = b.canvas.clientHeight;
+    if (z === 'in') zoomAt(b, 1.5, W / 2, H / 2);
+    if (z === 'out') zoomAt(b, 1 / 1.5, W / 2, H / 2);
+    if (z === 'reset') zoomAt(b, 1 / b.view.s, W / 2, H / 2);
+  });
   return b;
 });
+
 function drawBoard(b, t) {
   const dpr = Math.min(devicePixelRatio || 1, 2);
   const vertical = b.canvas.clientWidth < 640;
@@ -431,30 +562,46 @@ function drawBoard(b, t) {
   if (b.canvas.width !== Math.round(W * dpr) || b.canvas.height !== Math.round(H * dpr)) { b.canvas.width = Math.round(W * dpr); b.canvas.height = Math.round(H * dpr); }
   const ctx = b.canvas.getContext('2d');
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.fillStyle = b.v.bg; ctx.fillRect(0, 0, W, H);
-  const lay = layout(W, H, vertical);
+  if (typeof b.v.bg === 'function') b.v.bg(ctx, W, H); else { ctx.fillStyle = b.v.bg; ctx.fillRect(0, 0, W, H); }
+  const { s: z, x: vx, y: vy } = b.view;
+  ctx.setTransform(dpr * z, 0, 0, dpr * z, dpr * vx, dpr * vy); // схема рисуется в своих координатах, зум — одной матрицей
+  const lay = { ...layout(W, H, vertical), zoom: z };
   b.v.draw(ctx, lay);
   if (!b.mouse || !trace || t - b.lastFormula < 100) return;
   b.lastFormula = t;
+  const toScreen = ([x, y]) => [x * z + vx, y * z + vy];
+  const m = [(b.mouse[0] - vx) / z, (b.mouse[1] - vy) / z]; // указатель — в координатах схемы
   let hit = null;
   lay.pos.forEach((col, k) => col.forEach(([x, y], i) => {
     if (k === 0) return;
     // у выходов цель — вся кнопка, а не точка, где сходятся связи
     const [cx, cy, rad] = k < lay.sizes.length - 1 ? [x, y, lay.r + 12] : lay.vertical ? [x, y + 24, 30] : [x + 60, y, 66];
-    if (Math.hypot(b.mouse[0] - cx, b.mouse[1] - cy) < rad) hit = { k, i, x, y };
+    if (Math.hypot(m[0] - cx, m[1] - cy) < rad) hit = { k, i, x, y };
   }));
   if (!hit) { b.card.hidden = true; return; }
   b.card.innerHTML = formulaHTML(lay, hit.k, hit.i);
   b.card.hidden = false;
   const cw = b.card.offsetWidth, ch = b.card.offsetHeight;
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
-  if (lay.vertical) { // на телефоне — под нейроном или над ним, во всю ширину
-    b.card.style.left = `${clamp(hit.x - cw / 2, 8, W - cw - 8)}px`;
-    b.card.style.top = `${hit.y + 28 + ch > H ? hit.y - ch - 28 : hit.y + 28}px`;
-  } else { // на десктопе — сбоку, в пустом промежутке между слоями, соседей не закрывает
-    const outLayer = hit.k === lay.sizes.length - 1;
-    b.card.style.left = `${outLayer ? hit.x - cw - lay.r - 18 : hit.x + lay.r + 18}px`;
-    b.card.style.top = `${clamp(hit.y - ch / 2, 8, H - ch - 8)}px`;
+  const [hx, hy] = toScreen([hit.x, hit.y]), hr = lay.r * z;
+  const outLayer = hit.k === lay.sizes.length - 1;
+  // сбоку — только если карточка целиком влезает в промежуток между слоями и не закрывает соседей
+  let left = null;
+  if (!lay.vertical) {
+    if (outLayer) {
+      const prevRight = toScreen(lay.pos[hit.k - 1][0])[0] + hr, room = hx - 6 * z - prevRight;
+      if (room >= cw + 28) left = hx - 6 * z - cw - 14;
+    } else {
+      const nextLeft = toScreen(lay.pos[hit.k + 1][0])[0] - 6 * z, room = nextLeft - (hx + hr);
+      if (room >= cw + 28) left = hx + hr + 14;
+    }
+  }
+  if (left !== null) {
+    b.card.style.left = `${left}px`;
+    b.card.style.top = `${clamp(hy - ch / 2, 8, H - ch - 8)}px`;
+  } else { // иначе — под узлом или над ним
+    b.card.style.left = `${clamp(hx - cw / 2, 8, W - cw - 8)}px`;
+    b.card.style.top = `${hy + hr + 28 + ch > H ? hy - hr - ch - 12 : hy + hr + 12}px`;
   }
 }
 

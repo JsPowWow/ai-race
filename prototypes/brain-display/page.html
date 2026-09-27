@@ -42,11 +42,17 @@ __FONTS__</style>
   .board::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; box-shadow: inset 0 2px 14px rgb(0 0 0 / 0.75); }
   .board canvas { width: 100%; display: block; cursor: crosshair; }
   .formula {
-    position: absolute; z-index: 2; width: 310px; max-width: calc(100% - 16px); display: flex; flex-direction: column; gap: 3px; pointer-events: none;
+    position: absolute; z-index: 2; box-sizing: border-box; width: 292px; max-width: calc(100% - 16px); display: flex; flex-direction: column; gap: 3px; pointer-events: none;
     background: #1d1d20; border: 1px solid #4a494d; border-radius: 10px; padding: 10px 12px; box-shadow: 0 6px 18px rgb(0 0 0 / 0.5);
-    font: 13px/1.45 "JetBrains Mono", monospace; color: #d2d1ce; font-variant-numeric: tabular-nums;
+    font: 12px/1.45 "JetBrains Mono", monospace; color: #d2d1ce; font-variant-numeric: tabular-nums;
   }
   .formula[hidden] { display: none; }
+  /* зум: маленький пульт в углу доски */
+  /* зум — над доской, рядом с названием: на самой схеме кнопки закрыли бы подписи */
+  .variant .title { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .zoom { display: flex; gap: 4px; }
+  .zoom button { min-width: 34px; min-height: 34px; padding: 0 8px; border-radius: 8px; background: var(--surface); border-color: #3a393d; font: 600 15px/1 "JetBrains Mono", monospace; }
+  .zoom button[data-z=reset] { font-size: 12px; }
   .formula b { font: 600 14px Rubik, sans-serif; color: var(--ink); margin-block-end: 2px; }
   .formula em { font-style: normal; color: #ffd23f; font-weight: 600; }
   .formula .more { color: #8a8985; }
@@ -59,15 +65,14 @@ __FONTS__</style>
     .top { grid-template-columns: minmax(0, 1fr) 118px; gap: 8px; padding-block: 6px; }
     #mini { height: 64px; }
     .top select, .top button { min-height: 30px; padding: 4px 10px; font-size: 13px; }
-    .jump { display: grid; grid-template-columns: 1fr 1fr; }
-    .jump a { text-align: center; }
+    .jump a { flex: 1 1 auto; text-align: center; } /* строки заполняются целиком — никто не остаётся один */
     .variant { scroll-margin-top: 92px; }
   }
 </style>
 <div class="wrap">
-  <h1>Табло мозга: четыре варианта</h1>
-  <p class="lead">Прототип для AI Race. Настоящий мозг бота едет по «Разминке» и думает прямо сейчас — все четыре табло показывают одну и ту же сеть в один и тот же миг. Наведи на нейрон или нажми на него — появится его формула с настоящими числами. Выбери, какое табло поставить в «Я учу».</p>
-  <nav class="jump" aria-label="Варианты"><a href="#board-two">1 · Два цвета</a><a href="#board-fire">2 · Огонь</a><a href="#board-chalk">3 · Мел</a><a href="#board-stars">4 · Созвездие</a></nav>
+  <h1>Табло мозга: пять вариантов</h1>
+  <p class="lead">Прототип для AI Race. Настоящий мозг бота едет по «Разминке» и думает прямо сейчас — все пять табло показывают одну и ту же сеть в один и тот же миг. Наведи на нейрон или нажми на него — появится его формула с настоящими числами. Приблизить: кнопка «+», Ctrl/⌘ + колесо, двойной щелчок или щипок пальцами. Выбери, какое табло поставить в «Я учу».</p>
+  <nav class="jump" aria-label="Варианты"><a href="#board-two">1 · Два цвета</a><a href="#board-fire">2 · Огонь</a><a href="#board-chalk">3 · Мел</a><a href="#board-stars">4 · Созвездие</a><a href="#board-lab">5 · Лаборатория</a></nav>
   <div class="top">
     <canvas id="mini" aria-label="Машина бота на трассе «Разминка»"></canvas>
     <div class="row">
