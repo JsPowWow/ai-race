@@ -1,7 +1,7 @@
 // AI Race — точка входа: вкладки, строка чемпиона и кадровый цикл.
 import { readPalette } from '../engine/render.js';
 import { drawChart } from '../engine/netviz.js';
-import { state, on, persist, sizesOf } from './state.js';
+import { state, on, persist, sizesOf, brainTitle } from './state.js';
 import { restoreEdits, endCodeStartup } from './student-code.js';
 import { renderLesson } from './lesson.js';
 import { beginFrame, showBanner, hideBanner } from './stage.js';
@@ -74,8 +74,7 @@ function renderChampion() {
   const last = state.history.at(-1);
   const fromSwarm = state.generation > 0 && !state.handEdited && last;
   const result = fromSwarm ? (last.finished ? ` · доехал за <b>${secs(last.ticks)}</b>` : ` · проехал <b>${pct(last.progressPct)}</b>`) : '';
-  const note = state.brainNote || (state.generation ? `рой, поколение ${state.generation}` : 'свой');
-  $('#champChip').innerHTML = `Мозг: <b>${esc(note)}</b>${result}${isTraining() ? ' · <b>рой учит</b>' : ''}`;
+  $('#champChip').innerHTML = `Мозг: <b>${esc(brainTitle())}</b>${result}${isTraining() ? ' · <b>рой учит</b>' : ''}`;
 }
 on('champion', renderChampion);
 
@@ -111,17 +110,17 @@ document.fonts?.ready.then(redrawCharts);
 
 // ── старт ──
 
-/** Один раз: ученик со старой вкладки «Учитель» — в библиотеку, галочки старых уроков 1–2 — сбросить */
+/** Один раз: ученик со старой вкладки «Учитель» — в историю мозга, галочки старых уроков 1–2 — сбросить */
 function migrateOldData() {
   const student = load('teachStudent', null);
   if (student) {
     remove('teachStudent');
     if (!checkBrain(student, sizesOf())) {
-      state.library = [{
-        id: 'old-student', name: 'Ученик со старой вкладки «Учитель»', savedAt: new Date().toISOString(),
+      state.versions = [{
+        id: 'old-student', at: new Date().toISOString(), pinned: true,
         brain: student, config: { ...structuredClone(state.config), think: 'smooth' }, generation: 0, handEdited: false,
         brainNote: 'ученик со старой вкладки «Учитель»',
-      }, ...state.library];
+      }, ...state.versions];
       persist();
     }
   }

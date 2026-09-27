@@ -6,11 +6,11 @@ import { createBrain, cloneBrain, LIMITS } from '../../engine/brain.js';
 import { TRAFFIC_LEVELS, withTraffic } from '../../engine/traffic.js';
 import { sampleOf, worthLearning, trainEpoch, agreement, TEACH_THINK } from '../../engine/imitation.js';
 import { drawSeries } from '../../engine/netviz.js';
-import { state, persist, sizesOf, thinkFn, thinkVariant, on } from '../state.js';
+import { state, persist, sizesOf, thinkFn, brainTitle, on } from '../state.js';
 import { load, save } from '../storage.js';
 import { live } from '../student-code.js';
 import { runs, addRun, toggleRun, removeRun, trainingSamples, sampleCount, saveRuns, memoryNote, MAX_SAMPLES } from '../runs.js';
-import { setBrain, changeShape, renderLibrary } from '../library.js';
+import { setBrain, changeShape, shapeResetsBrain, renderLibrary } from '../library.js';
 import { steerWith } from '../manual-drive.js';
 import { drawScene, paintCar, trafficOn, setHud, showBanner } from '../stage.js';
 import { $, esc, secs, pct, options, setPressed, delegate } from '../ui.js';
@@ -19,9 +19,7 @@ import { createNetworkEditor } from './network-editor.js';
 const MIN_SAMPLES = 200;
 const RESTART_DELAY = 1100;
 
-/** С нуля — побольше эпох и шаг покрупнее; дообучение — поменьше, чтобы не забыть выученное */
-const PRESETS = { scratch: { epochs: 30, rate: 0.05 }, current: { epochs: 10, rate: 0.01 } };
-const learning = { from: 'scratch', ...PRESETS.scratch, ...load('teach', {}) };
+const learning = { epochs: 20, rate: 0.05, ...load('teach', {}) };
 
 let mode = 'me';      // 'me' — еду я (и записываю), 'brain' — едет текущий мозг
 let car = null;
@@ -41,7 +39,6 @@ export const teachTab = {
   enter() {
     resetCar();
     renderShape();
-    renderFrom();
     renderRuns();
     renderTraining();
     renderLibrary();
@@ -163,10 +160,10 @@ function renderRuns() {
     }).join('')
     : '<li class="empty">Пока пусто. Нажми газ — запись начнётся сама.</li>';
   $('#teachGo').disabled = samples.length < MIN_SAMPLES || !!training;
-  $('#teachGo').textContent = training ? `Учится… ${training.epoch}/${training.total}` : 'Обучить на отмеченных';
+  $('#teachGo').textContent = training ? `Учится… ${training.epoch}/${training.total}` : 'Учить на заездах';
   $('#teachStatus').textContent = training ? ''
     : samples.length < MIN_SAMPLES ? `Нужно хотя бы ${MIN_SAMPLES} примеров в отмеченных заездах (сейчас ${samples.length}) — это пара кругов по «Разминке».`
-    : `Отмечено: ${used.length} ${used.length === 1 ? 'заезд' : 'заездов'}, ${samples.length} примеров. Новый мозг сразу поедет сам, а прежний можно будет вернуть.`;
+    : `${used.length} ${used.length === 1 ? 'заезд' : 'заездов'}, ${samples.length} примеров. ${state.champion ? 'Мозг продолжит учиться с того, что уже умеет.' : 'Мозга ещё нет — начнём с нуля.'}`;
   $('#exMemory').textContent = memoryNote(saveRuns());
 }
 
@@ -194,41 +191,15 @@ delegate('[data-panel="teach"]', 'click', '[data-lr]', (b) => {
   renderTraining();
 });
 
-/** Дообучать можно только «Плавный»: обучение на примерах считает именно его плавные кривые */
-function fineTuneBlocker() {
-  if (!state.champion) return 'Текущего мозга пока нет — учим с нуля.';
-  if (state.config.think !== TEACH_THINK) return `Дообучать можно мозг с вариантом «Плавный», а у текущего — «${thinkVariant(state.config.think)?.title ?? state.config.think}». Пусть рой учит сразу «Плавный» (блок «Сеть»).`;
-  return null;
-}
-
-function renderFrom() {
-  const blocker = fineTuneBlocker();
-  if (blocker && learning.from === 'current') learning.from = 'scratch';
-  setPressed('[data-from]', (b) => b.dataset.from === learning.from);
-  $('[data-from="current"]').disabled = !!blocker;
-  $('#fromHint').textContent = learning.from === 'current'
-    ? `Возьмём веса текущего мозга (${state.brainNote || 'свой'}) и подвинем их под твои заезды. Шаг маленький, чтобы он не забыл, что уже умел.`
-    : blocker ?? 'Случайные веса — и учим только на твоих заездах. Всё, что умел текущий мозг, не используется (но его можно вернуть).';
-}
-
-delegate('[data-panel="teach"]', 'click', '[data-from]', (b) => {
-  learning.from = b.dataset.from;
-  Object.assign(learning, PRESETS[learning.from]);
-  $('#epochs').value = learning.epochs;
-  $('#epochsOut').textContent = learning.epochs;
-  save('teach', learning);
-  renderFrom();
-  renderTraining();
-});
-
 $('#teachGo').addEventListener('click', () => {
   const { samples, runs: used } = trainingSamples(sizesOf()[0]);
   if (samples.length < MIN_SAMPLES) return;
-  const fineTune = learning.from === 'current' && !fineTuneBlocker();
+  // учёба всегда продолжается с текущего мозга; нет мозга — начинаем со случайных весов
   training = {
-    epoch: 0, total: learning.epochs, samples, runs: used.length, fineTune,
-    brain: fineTune ? cloneBrain(state.champion) : createBrain(sizesOf()),
-    before: state.brainNote,
+    epoch: 0, total: learning.epochs, samples, runs: used.length,
+    fresh: !state.champion,
+    brain: state.champion ? cloneBrain(state.champion) : createBrain(sizesOf()),
+    before: brainTitle(),
   };
   losses = [];
   $('.learn-box').open = true;
@@ -242,19 +213,19 @@ function trainStep() {
   renderTraining();
   if (training.epoch % 5 === 0) renderRuns();
   if (training.epoch < training.total) return;
-  const { brain, samples, runs: count, fineTune, before } = training;
+  const { brain, samples, runs: count, fresh, before } = training;
   training = null;
   const match = pct(agreement(brain, samples) * 100);
-  const where = `${count} ${count === 1 ? 'заезде' : 'заездах'}`;
+  const base = before.replace(/ \+ твои заезды.*$/, '');
   setBrain(brain, {
     config: { ...state.config, think: TEACH_THINK },
     by: 'teach',
-    generation: fineTune ? state.generation : 0,
-    note: fineTune ? `${(before || 'мозг').replace(/ \+ дообучен.*$/, '')} + дообучен на твоих заездах` : `обучен на ${where}, повторяет тебя в ${match}`,
+    generation: fresh ? 0 : state.generation,
+    note: fresh ? `обучен на ${count} ${count === 1 ? 'заезде' : 'заездах'}` : `${base} + твои заезды`,
   });
   setMode('brain');
   renderRuns();
-  showBanner(`${fineTune ? 'Дообученный' : 'Новый'} мозг едет сам. Не понравился — «↶ Вернуть прежний» в блоке «Мозг»`, 3200);
+  showBanner(`Мозг повторяет тебя в ${match} примеров и едет сам. Прежний — в «Истории»`, 3200);
 }
 
 function renderTraining() {
@@ -280,18 +251,44 @@ for (const [id, key, format] of SENSOR_SLIDERS) {
   $(id).addEventListener('input', (e) => {
     const value = +e.target.value;
     $(`${id}Out`).textContent = format(value);
-    changeShape({ ...state.config, sensors: { ...state.config.sensors, [key]: value } });
+    const shape = pendingShape ?? state.config;
+    askShape({ ...shape, sensors: { ...shape.sensors, [key]: value } });
   });
 }
+
+/** Другая форма сети не подходит к обученному мозгу — спросим, прежде чем начинать с нуля */
+let pendingShape = null;
+function askShape(config) {
+  if (!shapeResetsBrain(config)) {
+    pendingShape = null;
+    $('#shapeConfirm').hidden = true;
+    return changeShape(config);
+  }
+  pendingShape = config;
+  $('#shapeConfirmText').textContent = `Сеть станет ${sizesOf(config).join('-')}. Нынешний мозг под неё не подходит — учиться придётся с нуля (он останется в «Истории»).`;
+  $('#shapeConfirm').hidden = false;
+  $('#shapeConfirm').scrollIntoView({ block: 'nearest' });
+}
+$('#shapeYes').addEventListener('click', () => {
+  $('#shapeConfirm').hidden = true;
+  if (pendingShape) changeShape(pendingShape);
+  pendingShape = null;
+});
+$('#shapeNo').addEventListener('click', () => {
+  $('#shapeConfirm').hidden = true;
+  pendingShape = null;
+  renderShape();
+});
 
 // ── сеть: слои и вариант мозга ──
 
 function renderShape() {
+  const shape = pendingShape ?? state.config;
   for (const [id, key, format] of SENSOR_SLIDERS) {
-    $(id).value = state.config.sensors[key];
-    $(`${id}Out`).textContent = format(state.config.sensors[key]);
+    $(id).value = shape.sensors[key];
+    $(`${id}Out`).textContent = format(shape.sensors[key]);
   }
-  const hidden = state.config.hidden.map((n, i) => `
+  const hidden = shape.hidden.map((n, i) => `
     <span class="arrow" aria-hidden="true">→</span>
     <span class="layer">Слой ${i + 1}
       <button data-act="minus" data-i="${i}" aria-label="Меньше нейронов в слое ${i + 1}">−</button><b>${n}</b>
@@ -299,9 +296,9 @@ function renderShape() {
       <button data-act="del" data-i="${i}" aria-label="Удалить слой ${i + 1}">×</button>
     </span>`).join('');
   $('#layersEditor').innerHTML = `
-    <span class="layer fixed">Входы <b>${state.config.sensors.count + 1}</b></span>${hidden}
+    <span class="layer fixed">Входы <b>${shape.sensors.count + 1}</b></span>${hidden}
     <span class="arrow" aria-hidden="true">→</span><span class="layer fixed">Выходы <b>4</b></span>`;
-  $('#addLayer').disabled = state.config.hidden.length >= LIMITS.hiddenLayersMax;
+  $('#addLayer').disabled = shape.hidden.length >= LIMITS.hiddenLayersMax;
 
   const variants = live.think.thinkVariants ?? {};
   if (!variants[state.config.think]) state.config.think = variants.step ? 'step' : Object.keys(variants)[0];
@@ -312,19 +309,24 @@ function renderShape() {
 
 delegate('#layersEditor', 'click', 'button', (button) => {
   const i = +button.dataset.i;
-  const hidden = [...state.config.hidden];
+  const shape = pendingShape ?? state.config;
+  const hidden = [...shape.hidden];
   if (button.dataset.act === 'plus') hidden[i] = Math.min(LIMITS.neuronsMax, hidden[i] + 1);
   if (button.dataset.act === 'minus') hidden[i] = Math.max(LIMITS.neuronsMin, hidden[i] - 1);
   if (button.dataset.act === 'del') hidden.splice(i, 1);
-  changeShape({ ...state.config, hidden });
+  askShape({ ...shape, hidden });
+  renderShape();
 });
-$('#addLayer').addEventListener('click', () => changeShape({ ...state.config, hidden: [...state.config.hidden, 6] }));
+$('#addLayer').addEventListener('click', () => {
+  const shape = pendingShape ?? state.config;
+  askShape({ ...shape, hidden: [...shape.hidden, 6] });
+  renderShape();
+});
 
 $('#thinkSelect').addEventListener('change', (e) => {
   state.config.think = e.target.value;
   persist();
   renderShape();
-  renderFrom();
   if (mode === 'brain') resetCar();
 });
 
@@ -334,15 +336,13 @@ on('config', () => {
   editor.reset();
   if (state.tab !== 'teach') return;
   renderShape();
-  renderFrom();
   renderRuns();
   resetCar();
   editor.render();
 });
 on('champion', ({ by }) => {
-  if (state.tab !== 'teach') return;
-  renderFrom();
-  if (by === 'editor') return;
+  if (state.tab !== 'teach' || by === 'editor') return;
+  renderRuns();
   if (mode === 'brain') resetCar();
   editor.render();
 });

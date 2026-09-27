@@ -201,12 +201,7 @@
         <h2>Мои заезды</h2>
         <p class="hint" id="runsHint">Просто езди: заезд записывается сам — от старта до финиша или аварии. Каждый тик — пример «что видят лучи → что ты нажал».</p>
         <ol class="runs" id="runsList"></ol>
-        <div class="seg" role="group" aria-label="С чего начать обучение">
-          <button data-from="scratch" aria-pressed="true">С нуля</button>
-          <button data-from="current" aria-pressed="false">Дообучить текущий</button>
-        </div>
-        <p class="hint" id="fromHint"></p>
-        <button class="btn primary" id="teachGo" disabled>Обучить на отмеченных</button>
+        <button class="btn primary" id="teachGo" disabled>Учить на заездах</button>
         <p class="note" id="teachStatus" role="status"></p>
         <details class="learn-box">
           <summary>Как учится</summary>
@@ -218,11 +213,18 @@
               <button data-lr="0.01">0,01</button><button data-lr="0.05">0,05</button><button data-lr="0.2">0,2</button><button data-lr="1">1</button>
             </div>
           </div>
-          <p class="hint">Эпоха — один проход по всем примерам. Шаг — насколько сильно двигать веса за раз. «С нуля» — сеть той же формы со случайными весами, вариант «Плавный». «Дообучить» — берём веса текущего мозга и подвигаем их, поэтому шаг поменьше, чтобы сеть не забыла то, что уже умела.</p>
+          <p class="hint">Эпоха — один проход по всем примерам. Шаг — насколько сильно двигать веса за раз. Учёба продолжается с текущего мозга: его веса чуть-чуть подвигаются под твои заезды. Вариант мозга станет «Плавный» — обучение на примерах работает с плавными кривыми.</p>
         </details>
         <p class="hint" id="exMemory"></p>
       </section>
       <section class="block library" data-library></section>
+      <div class="pending" id="shapeConfirm" hidden>
+        <p id="shapeConfirmText"></p>
+        <div class="row">
+          <button class="btn small danger" id="shapeYes">Поменять</button>
+          <button class="btn small" id="shapeNo">Оставить как было</button>
+        </div>
+      </div>
       <details class="block fold" open>
         <summary><h2>Глаза</h2></summary>
         <div class="field"><label for="sCount">Лучей</label><input type="range" id="sCount" min="3" max="15" step="1"><output id="sCountOut"></output></div>
@@ -298,16 +300,6 @@
       <section class="block">
         <h2>Рекорды роя</h2>
         <ol class="hall" id="hall"></ol>
-        <div class="row">
-          <button class="btn small danger" id="tReset">Начать с нуля</button>
-        </div>
-        <div class="pending" id="resetConfirm" hidden>
-          <p>Начать рой с нуля? График и рекорды роя удалятся, а текущий мозг можно будет вернуть в блоке «Мозг».</p>
-          <div class="row">
-            <button class="btn small danger" id="tResetYes">Да, сбросить</button>
-            <button class="btn small" id="tResetNo">Оставить</button>
-          </div>
-        </div>
       </section>
     </div>
 

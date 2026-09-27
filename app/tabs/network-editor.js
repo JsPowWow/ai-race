@@ -3,7 +3,7 @@ import { createBrain, OUTPUT_LABELS } from '../../engine/brain.js';
 import { drawNetwork, hitNetwork } from '../../engine/netviz.js';
 import { mulberry32 } from '../../engine/utils.js';
 import { state, sizesOf, setChampion } from '../state.js';
-import { stashCurrent } from '../library.js';
+import { remember } from '../library.js';
 import { $ } from '../ui.js';
 
 /**
@@ -54,7 +54,7 @@ export function createNetworkEditor({ getTrace, onEdit }) {
   /** Правка руками превращает показанную сеть в «мой мозг» */
   /** Первая правка обученного мозга: сперва отложим его целым, чтобы можно было вернуть */
   function beforeEdit() {
-    if (state.champion && !state.handEdited && !stashed) stashCurrent();
+    if (state.champion && !state.handEdited && !stashed) remember();
     stashed = true;
   }
 

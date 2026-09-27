@@ -5,8 +5,8 @@ import { cloneBrain, checkBrain } from '../../engine/brain.js';
 import { Evolution } from '../../engine/evolution.js';
 import { TRAFFIC_LEVELS, withTraffic } from '../../engine/traffic.js';
 import { drawChart } from '../../engine/netviz.js';
-import { state, persist, sizesOf, thinkFn, setChampion, resetProgress, on } from '../state.js';
-import { setBrain, stashCurrent, renderLibrary } from '../library.js';
+import { state, persist, sizesOf, thinkFn, setChampion, on } from '../state.js';
+import { setBrain, remember, renderLibrary } from '../library.js';
 import { live, errorLine } from '../student-code.js';
 import { seedTrack } from '../tracks.js';
 import { canvas, drawScene, paintCar, trafficOn, carAt, setHud, showBanner } from '../stage.js';
@@ -135,6 +135,7 @@ function showStudentErrors() {
 }
 
 function setRunning(on) {
+  if (on && !running) remember(); // рой будет менять мозг — сначала сохраним его в историю
   if (on && !evo) {
     evo = new Evolution({ ...settings(), parent: state.champion && cloneBrain(state.champion) });
     startGeneration();
@@ -235,18 +236,12 @@ delegate('#hall', 'click', '[data-hall]', (button) => {
   const record = state.hall[+button.dataset.hall];
   if (checkBrain(record.brain, sizesOf())) return showBanner('Этот мозг от другой архитектуры сети');
   setBrain(cloneBrain(record.brain), { by: 'hall', generation: record.gen });
-  showBanner(`Текущий мозг — рекорд поколения ${record.gen}. Прежний можно вернуть в блоке «Мозг»`, 2800);
+  showBanner(`Текущий мозг — рекорд поколения ${record.gen}. Прежний — в «Истории»`, 2800);
 });
 
 // ── сброс ──
 
-$('#tReset').addEventListener('click', () => ($('#resetConfirm').hidden = false));
-$('#tResetNo').addEventListener('click', () => ($('#resetConfirm').hidden = true));
-$('#tResetYes').addEventListener('click', () => {
-  $('#resetConfirm').hidden = true;
-  stashCurrent(); // на всякий случай: прежний мозг можно вернуть
-  resetProgress();
-});
+// Начать с нуля — кнопка «Сбросить мозг» в блоке «Мозг» (app/library.js)
 
 // ── реакция на другие вкладки ──
 

@@ -1,44 +1,46 @@
-// Мозги: текущий, прежний («↶ Вернуть») и библиотека сохранённых.
+// Мозг и его история.
 //
-// Текущий мозг (state.champion + state.config) — тот, что едет на «Я учу», доучивается роем,
-// сдаёт экзамен и уходит на гонку. Мозг всегда хранится вместе со своей формой: лучи, слои, вариант.
-// Поэтому, взяв из библиотеки мозг с 7 лучами, получаешь и машину с 7 лучами.
+// Текущий мозг (state.champion + state.config) — один на весь сайт: его учат на «Я учу» и «Учится само»,
+// он сдаёт экзамен и едет на гонку. Мозг всегда хранится вместе со своей формой: лучи, слои, вариант.
 //
-// Когда текущий мозг заменяют целиком (обучили новый, взяли из библиотеки, поменяли форму сети),
-// старый не пропадает: он становится «прежним», и его можно вернуть одной кнопкой.
-// В библиотеку мозг попадает только по кнопке «Сохранить».
+// Учиться — значит продолжать с текущего мозга. Перед каждым большим изменением
+// (обучение на заездах, старт роя, ручная правка, сброс, другая форма сети) текущий мозг
+// сам попадает в «Историю» — к любой версии можно вернуться. ★ закрепляет версию навсегда,
+// незакреплённых хранится HISTORY_MAX последних.
 import { cloneBrain, checkBrain } from '../engine/brain.js';
-import { state, persist, sizesOf, sameSizes, setChampion, resetProgress, emit, on, thinkVariant } from './state.js';
+import { state, persist, sizesOf, sameSizes, setChampion, resetProgress, emit, on, thinkVariant, brainTitle } from './state.js';
 import { showBanner } from './stage.js';
 import { $$, esc, delegate } from './ui.js';
 
-const LIBRARY_MAX = 30;
+const HISTORY_MAX = 10;
+let historyOpen = false; // раскрыта ли «История» — помним между перерисовками
 
-const snapshot = () => (state.champion
-  ? {
+const sameBrain = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+/** Сохранить текущий мозг в историю (если он есть и ещё не лежит там последним) */
+export function remember() {
+  if (!state.champion) return;
+  const [latest] = state.versions;
+  if (latest && sameBrain(latest.brain, state.champion) && sameSizes(latest.config, state.config)) return;
+  const version = {
+    id: `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`,
+    at: new Date().toISOString(),
     brain: cloneBrain(state.champion),
     config: structuredClone(state.config),
     generation: state.generation,
     handEdited: state.handEdited,
-    brainNote: state.brainNote,
-  }
-  : null);
-
-/** Отложить текущий мозг в «прежний» (если он есть) */
-export function stashCurrent() {
-  const current = snapshot();
-  if (!current) return;
-  state.previous = current;
+    brainNote: brainTitle(),
+    pinned: false,
+  };
+  let unpinned = 0;
+  state.versions = [version, ...state.versions].filter((v) => v.pinned || ++unpinned <= HISTORY_MAX);
   persist();
   emit('library');
 }
 
-/**
- * Поставить новый текущий мозг. config — его форма (по умолчанию текущая).
- * Старый уходит в «прежний». Если форма сети другая — обучение роя начинается заново.
- */
+/** Поставить новый текущий мозг (с его формой). Нынешний — сначала в историю. */
 export function setBrain(brain, { config = state.config, by, generation = 0, handEdited = false, note } = {}) {
-  stashCurrent();
+  remember();
   const next = structuredClone(config);
   if (!sameSizes(next, state.config)) resetProgress();
   state.config = next;
@@ -48,98 +50,98 @@ export function setBrain(brain, { config = state.config, by, generation = 0, han
   emit('library');
 }
 
-/** Поменять форму сети (лучи, слои). Обученный мозг под новую форму не подходит — откладываем его. */
+/** Новая форма обнулит мозг? (другое число входов или слоёв при обученном мозге) */
+export const shapeResetsBrain = (config) => !!state.champion && !sameSizes(config, state.config);
+
+/** Поменять форму сети. Если мозг под неё не подходит — он уходит в историю, а учиться начнём с нуля. */
 export function changeShape(config) {
-  const resized = !sameSizes(config, state.config);
-  if (resized && state.champion) {
-    stashCurrent();
+  if (shapeResetsBrain(config)) {
+    remember();
     resetProgress();
-    showBanner(`Сеть стала ${sizesOf(config).join('-')}. Прежний мозг отложен — его можно вернуть в блоке «Мозг».`, 3200);
   }
   state.config = structuredClone(config);
   persist();
   emit('config');
 }
 
-export function restorePrevious() {
-  const prev = state.previous;
-  if (!prev) return;
-  // setBrain отложит нынешний мозг в «прежний» — так можно вернуться и обратно
-  setBrain(prev.brain, { config: prev.config, by: 'restore', generation: prev.generation, handEdited: prev.handEdited, note: prev.brainNote });
-  showBanner('Вернули прежний мозг');
-}
-
-export function saveToLibrary(name) {
-  if (!state.champion) return showBanner('Пока нечего сохранять: сначала обучи мозг');
-  const entry = {
-    id: `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
-    name: (name || '').trim().slice(0, 40) || suggestName(),
-    savedAt: new Date().toISOString(),
-    ...snapshot(),
-  };
-  state.library = [entry, ...state.library].slice(0, LIBRARY_MAX);
-  state.libraryId = entry.id;
-  persist();
+/** «Сбросить мозг»: начать с нуля (прежний останется в истории) */
+export function resetBrain() {
+  remember();
+  resetProgress();
   emit('library');
-  showBanner(`Сохранено: «${entry.name}»`);
+  showBanner('Мозг начнётся с нуля. Прежний — в «Истории»');
 }
 
-export function useFromLibrary(id) {
-  const entry = state.library.find((e) => e.id === id);
-  if (!entry) return;
-  if (checkBrain(entry.brain, sizesOf(entry.config))) return showBanner('Этот мозг повреждён');
-  setBrain(cloneBrain(entry.brain), { config: entry.config, by: 'library', generation: entry.generation, handEdited: entry.handEdited, note: entry.brainNote });
-  state.libraryId = entry.id;
-  persist();
-  emit('library');
-  showBanner(`Текущий мозг: «${entry.name}»`);
+export function restoreVersion(id) {
+  const v = state.versions.find((x) => x.id === id);
+  if (!v || checkBrain(v.brain, sizesOf(v.config))) return;
+  setBrain(cloneBrain(v.brain), { config: v.config, by: 'restore', generation: v.generation, handEdited: v.handEdited, note: v.brainNote });
+  showBanner(`Вернули: ${v.brainNote || 'мозг'}`);
 }
 
-export function removeFromLibrary(id) {
-  state.library = state.library.filter((e) => e.id !== id);
-  if (state.libraryId === id) state.libraryId = null;
+function togglePin(id) {
+  const v = state.versions.find((x) => x.id === id);
+  if (v) v.pinned = !v.pinned;
   persist();
   emit('library');
 }
 
-const suggestName = () => `Мозг ${state.library.length + 1}${state.brainNote ? ` · ${state.brainNote}` : ''}`;
+function removeVersion(id) {
+  state.versions = state.versions.filter((x) => x.id !== id);
+  persist();
+  emit('library');
+}
 
-// ── блок «Мозг»: один и тот же на «Я учу» и «Учится само» ──
+// ── блок «Мозг»: одинаковый на «Я учу» и «Учится само» ──
 
 const shapeOf = (config) => `${sizesOf(config).join('-')} · ${thinkVariant(config.think)?.title ?? config.think}`;
 const when = (iso) => new Date(iso).toLocaleString('ru', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 
 export function renderLibrary() {
   const current = state.champion
-    ? `<b>${esc(state.brainNote || 'мозг')}</b><span class="meta">${esc(shapeOf(state.config))}${state.libraryId ? ' · сохранён' : ' · не сохранён'}</span>`
-    : '<span class="meta">Мозга пока нет: запиши заезды и обучи его — или поправь веса руками.</span>';
-  const prev = state.previous
-    ? `<button class="btn small" data-lib-undo title="${esc(state.previous.brainNote || '')}">↶ Вернуть прежний</button>` : '';
-  const items = state.library.map((e) => `
-    <li class="${e.id === state.libraryId ? 'active' : ''}">
-      <span class="lib-name"><b>${esc(e.name)}</b><span class="meta">${esc(shapeOf(e.config))} · ${esc(when(e.savedAt))}</span></span>
-      <button class="btn small" data-lib-use="${e.id}" ${e.id === state.libraryId ? 'disabled' : ''}>${e.id === state.libraryId ? 'Текущий' : 'Взять'}</button>
-      <button class="lib-del" data-lib-del="${e.id}" aria-label="Удалить «${esc(e.name)}»">×</button>
+    ? `<b>${esc(brainTitle())}</b><span class="meta">${esc(shapeOf(state.config))}</span>`
+    : `<span class="meta">Мозга пока нет — начнём с нуля (${esc(shapeOf(state.config))}).</span>`;
+  const items = state.versions.map((v) => `
+    <li class="${v.pinned ? 'pinned' : ''}">
+      <button class="pin" data-pin="${v.id}" aria-pressed="${v.pinned}" title="${v.pinned ? 'Открепить' : 'Закрепить навсегда'}">${v.pinned ? '★' : '☆'}</button>
+      <span class="lib-name"><b>${esc(v.brainNote || 'мозг')}</b><span class="meta">${esc(shapeOf(v.config))} · ${esc(when(v.at))}</span></span>
+      <button class="btn small" data-restore="${v.id}">Вернуть</button>
+      <button class="lib-del" data-del-version="${v.id}" aria-label="Удалить версию">×</button>
     </li>`).join('');
   for (const root of $$('[data-library]')) {
+    const confirming = root.dataset.confirm === 'reset';
     root.innerHTML = `
       <h2>Мозг</h2>
       <p class="lib-current">${current}</p>
-      <div class="row lib-save">
-        <input type="text" data-lib-name maxlength="40" placeholder="Название" aria-label="Название мозга" ${state.champion ? '' : 'disabled'}>
-        <button class="btn small primary" data-lib-save ${state.champion ? '' : 'disabled'}>Сохранить</button>
-        ${prev}
-      </div>
-      ${items ? `<ol class="lib-list">${items}</ol>` : '<p class="hint">Библиотека пуста. Понравился мозг — сохрани его: потом можно вернуться к нему или сравнить на «Экзамене».</p>'}`;
+      ${confirming
+        ? `<div class="pending"><p>Мозг начнётся с нуля: веса станут случайными. Нынешний останется в «Истории».</p>
+            <div class="row"><button class="btn small danger" data-reset-yes>Сбросить</button><button class="btn small" data-reset-no>Отмена</button></div></div>`
+        : `<div class="row"><button class="btn small" data-reset ${state.champion ? '' : 'disabled'}>Сбросить мозг</button></div>`}
+      <details class="history" ${state.versions.length ? '' : 'hidden'} ${historyOpen ? 'open' : ''}>
+        <summary>История · ${state.versions.length}</summary>
+        <p class="hint">Перед каждым обучением, стартом роя, ручной правкой и сбросом мозг сохраняется сам. ☆ — закрепить версию навсегда, остальные хранятся ${HISTORY_MAX} последних.</p>
+        <ol class="lib-list">${items}</ol>
+      </details>`;
   }
 }
 
-delegate('body', 'click', '[data-lib-save]', (b) => {
-  saveToLibrary(b.closest('[data-library]').querySelector('[data-lib-name]').value);
+delegate('body', 'click', '[data-reset]', (b) => {
+  b.closest('[data-library]').dataset.confirm = 'reset';
+  renderLibrary();
 });
-delegate('body', 'click', '[data-lib-use]', (b) => useFromLibrary(b.dataset.libUse));
-delegate('body', 'click', '[data-lib-del]', (b) => removeFromLibrary(b.dataset.libDel));
-delegate('body', 'click', '[data-lib-undo]', restorePrevious);
+delegate('body', 'click', '[data-reset-no]', (b) => {
+  delete b.closest('[data-library]').dataset.confirm;
+  renderLibrary();
+});
+delegate('body', 'click', '[data-reset-yes]', (b) => {
+  delete b.closest('[data-library]').dataset.confirm;
+  resetBrain();
+});
+delegate('body', 'click', '.history > summary', () => (historyOpen = !historyOpen));
+delegate('body', 'click', '[data-restore]', (b) => restoreVersion(b.dataset.restore));
+delegate('body', 'click', '[data-pin]', (b) => togglePin(b.dataset.pin));
+delegate('body', 'click', '[data-del-version]', (b) => removeVersion(b.dataset.delVersion));
 
 on('library', renderLibrary);
 on('champion', renderLibrary);
+on('config', renderLibrary);
