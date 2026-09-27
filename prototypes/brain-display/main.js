@@ -19,7 +19,7 @@ const OUT = [
   { id: 'left', label: '←', color: C.lamp },
   { id: 'right', label: '→', color: C.lamp },
 ];
-const VARIANTS = { A: 'Слева направо', B: 'Сверху вниз', C: 'Поток сильных сигналов' };
+const VARIANTS = { A: 'Слева направо', B: 'Сверху вниз', C: 'Поток сильных сигналов', D: 'A + поток', E: 'Огонь', F: 'Созвездие' };
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // ── машина едет, сеть думает ──
@@ -249,6 +249,164 @@ function drawFlow(ctx, W, H) {
   return lay;
 }
 
+// ── «теплота»: вспыхивает быстро, гаснет медленно (для E и F) ──
+const ATTACK = 0.04, DECAY = 0.5; // секунды
+const edgeHeat = new Map(), nodeHeat = new Map();
+function warm(map, key, target, dt) {
+  const h = map.get(key) ?? 0;
+  const tau = target > h ? ATTACK : DECAY;
+  const v = h + (target - h) * (1 - Math.exp(-dt / tau));
+  map.set(key, v);
+  return v;
+}
+let frameDt = 0.016;
+/** огненная шкала: угли → красный → оранжевый → жёлтый → почти белый */
+const FIRE = [[40, 12, 6], [150, 30, 18], [230, 80, 10], [255, 170, 20], [255, 240, 200]];
+function fire(t, a = 1) {
+  t = Math.max(0, Math.min(1, t)) * (FIRE.length - 1);
+  const i = Math.min(FIRE.length - 2, Math.floor(t)), f = t - i;
+  const c = FIRE[i].map((v, n) => Math.round(v + (FIRE[i + 1][n] - v) * f));
+  return `rgb(${c[0]} ${c[1]} ${c[2]} / ${a})`;
+}
+
+// ── D: все связи в дымке + сильные сигналы лентами + импульсы + лампочки ──
+function drawHybrid(ctx, W, H) {
+  const lay = layout(W, H, false);
+  const brain = brainOf();
+  brain.layers.forEach((L, k) => {
+    const sig = signals(k);
+    L.weights.forEach((row, i) => row.forEach((w, j) => {
+      ctx.globalAlpha = 0.07; ctx.lineWidth = 0.7; ctx.strokeStyle = w >= 0 ? C.pos : C.neg;
+      curve(ctx, lay.pos[k][i], lay.pos[k + 1][j], false); ctx.stroke();
+    }));
+    const strong = [];
+    sig.forEach((row, i) => row.forEach((v, j) => { if (Math.abs(v) > 0.2) strong.push({ i, j, v }); }));
+    strong.sort((a, b) => Math.abs(a.v) - Math.abs(b.v));
+    ctx.lineCap = 'round';
+    for (const e of strong) {
+      ctx.globalAlpha = 0.2 + 0.55 * Math.abs(e.v); ctx.lineWidth = 1 + 9 * Math.abs(e.v);
+      ctx.strokeStyle = e.v >= 0 ? C.pos : C.neg;
+      curve(ctx, lay.pos[k][e.i], lay.pos[k + 1][e.j], false); ctx.stroke();
+    }
+    ctx.lineCap = 'butt'; ctx.globalAlpha = 1;
+    spawnPulses(k, sig);
+  });
+  drawPulses(ctx, lay, false, (p) => '#fff');
+  drawNodes(ctx, lay, (k, i, act) => lamp(ctx, ...lay.pos[k][i], lay.r, act, k > 0 ? brain.layers[k - 1].biases[i] : null, textOf(k, i)));
+  return lay;
+}
+
+// ── E: одного цвета; активность горит огнём ──
+function drawFire(ctx, W, H) {
+  const lay = layout(W, H, false);
+  const brain = brainOf();
+  brain.layers.forEach((L, k) => {
+    const sig = signals(k);
+    const hot = [];
+    L.weights.forEach((row, i) => row.forEach((w, j) => {
+      const h = warm(edgeHeat, `${k}-${i}-${j}`, Math.abs(sig[i][j]) ** 1.3, frameDt);
+      ctx.globalAlpha = 0.35; ctx.lineWidth = 0.6; ctx.strokeStyle = '#2c2a28';
+      curve(ctx, lay.pos[k][i], lay.pos[k + 1][j], false); ctx.stroke();
+      if (h > 0.03) hot.push({ i, j, h });
+    }));
+    hot.sort((a, b) => a.h - b.h);
+    ctx.lineCap = 'round';
+    for (const e of hot) {
+      ctx.globalAlpha = 1; ctx.lineWidth = 0.8 + 3.4 * e.h; ctx.strokeStyle = fire(e.h, Math.min(1, 0.2 + e.h));
+      curve(ctx, lay.pos[k][e.i], lay.pos[k + 1][e.j], false); ctx.stroke();
+    }
+    ctx.lineCap = 'butt';
+    spawnPulses(k, sig);
+  });
+  drawPulses(ctx, lay, false, (p) => fire(0.75 + 0.25 * Math.abs(p.v)));
+  drawNodes(ctx, lay, (k, i, act) => {
+    const [x, y] = lay.pos[k][i];
+    const h = warm(nodeHeat, `${k}-${i}`, Math.min(1, Math.abs(act ?? 0)), frameDt);
+    ctx.beginPath(); ctx.arc(x, y, lay.r, 0, Math.PI * 2);
+    ctx.fillStyle = '#171615'; ctx.fill();
+    ctx.fillStyle = fire(h, h); ctx.fill();
+    ctx.lineWidth = 1.5; ctx.strokeStyle = '#3a3835'; ctx.stroke();
+    if (lay.r >= 11) {
+      ctx.fillStyle = h > 0.55 ? '#1a0e05' : '#e9e4dc'; ctx.font = `600 ${Math.round(lay.r * 0.72)}px "JetBrains Mono", monospace`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(fmt(textOf(k, i)), x, y + 1);
+    }
+  }, (x, y, i, act, text) => fireButton(ctx, x + 36, y, 116, 30, OUT[i], warm(nodeHeat, `out-${i}`, act, frameDt), text));
+  return lay;
+}
+function fireButton(ctx, x, y, w, h, o, heat, text) {
+  roundRect(ctx, x - w / 2, y - h / 2, w, h, h / 2);
+  ctx.fillStyle = '#171615'; ctx.fill(); ctx.fillStyle = fire(heat, heat); ctx.fill();
+  ctx.lineWidth = 1.5; ctx.strokeStyle = '#3a3835'; ctx.stroke();
+  ctx.fillStyle = heat > 0.6 ? '#1a0e05' : '#e9e4dc'; ctx.font = '600 13px Rubik, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(o.label, x - 14, y + 1);
+  ctx.font = '600 12px "JetBrains Mono", monospace';
+  ctx.fillText(`${String(Math.round(text * 100)).padStart(3, ' ')}%`, x + w / 2 - 24, y + 1);
+}
+
+// ── F: созвездие — мелкие светящиеся узлы, волоски-связи, тёплое свечение ──
+function drawStars(ctx, W, H) {
+  const lay = layout(W, H, false);
+  lay.r = 5;
+  const brain = brainOf();
+  brain.layers.forEach((L, k) => {
+    const sig = signals(k);
+    L.weights.forEach((row, i) => row.forEach((w, j) => {
+      const h = warm(edgeHeat, `${k}-${i}-${j}`, Math.abs(sig[i][j]) ** 1.5, frameDt);
+      ctx.globalAlpha = 0.06 + 0.8 * h; ctx.lineWidth = 0.5 + 1.6 * h;
+      ctx.strokeStyle = h > 0.05 ? `rgb(255 ${Math.round(200 + 40 * h)} ${Math.round(150 + 80 * h)})` : '#cfd6e6';
+      curve(ctx, lay.pos[k][i], lay.pos[k + 1][j], false); ctx.stroke();
+    }));
+    ctx.globalAlpha = 1;
+    spawnPulses(k, sig);
+  });
+  drawPulses(ctx, lay, false, () => '#fff4dd');
+  drawNodes(ctx, lay, (k, i, act) => {
+    const [x, y] = lay.pos[k][i];
+    const h = warm(nodeHeat, `${k}-${i}`, Math.min(1, Math.abs(act ?? 0)), frameDt);
+    ctx.save();
+    ctx.shadowColor = `rgb(255 200 120 / ${0.9 * h})`; ctx.shadowBlur = 6 + 18 * h;
+    ctx.beginPath(); ctx.arc(x, y, 2.5 + 3.5 * h, 0, Math.PI * 2);
+    ctx.fillStyle = h > 0.1 ? `rgb(255 ${Math.round(210 + 40 * h)} ${Math.round(160 + 90 * h)})` : '#8b93a6'; ctx.fill();
+    ctx.restore();
+    ctx.font = '500 11px "JetBrains Mono", monospace'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = 'rgb(16 16 18 / 0.85)'; roundRect(ctx, x + 7, y - 8, 36, 16, 4); ctx.fill(); // плашка: число не тонет в связях
+    ctx.fillStyle = h > 0.3 ? '#f4efe6' : '#6d7282'; ctx.fillText(fmt(textOf(k, i)), x + 10, y);
+  }, (x, y, i, act, text) => {
+    const h = warm(nodeHeat, `out-${i}`, act, frameDt);
+    ctx.save(); ctx.shadowColor = `rgb(255 200 120 / ${h})`; ctx.shadowBlur = 20 * h;
+    ctx.beginPath(); ctx.arc(x, y, 4 + 4 * h, 0, Math.PI * 2); ctx.fillStyle = h > 0.5 ? '#fff1d6' : '#8b93a6'; ctx.fill(); ctx.restore();
+    ctx.fillStyle = h > 0.5 ? '#f4efe6' : '#8b93a6'; ctx.font = '600 13px Rubik, sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText(`${OUT[i].label}`, x + 14, y); ctx.font = '500 12px "JetBrains Mono", monospace';
+    ctx.fillText(`${String(Math.round(text * 100)).padStart(3, ' ')}%`, x + 72, y);
+  });
+  return lay;
+}
+
+// общие куски для D, E, F
+function drawPulses(ctx, lay, vertical, colorOf) {
+  for (const p of pulses) {
+    const a = lay.pos[p.k]?.[p.i], b = lay.pos[p.k + 1]?.[p.j];
+    if (!a || !b) continue;
+    const [x, y] = bezier(a, b, p.t, vertical), [tx, ty] = bezier(a, b, Math.max(0, p.t - 0.08), vertical);
+    ctx.strokeStyle = colorOf(p); ctx.lineWidth = 2; ctx.globalAlpha = 0.9;
+    ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(x, y); ctx.stroke();
+    ctx.fillStyle = colorOf(p); ctx.beginPath(); ctx.arc(x, y, 2.2, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+}
+function drawNodes(ctx, lay, node, output = (x, y, i, act, text) => outButton(ctx, x + 36, y, 116, 30, OUT[i], act, text)) {
+  lay.sizes.forEach((n, k) => {
+    const last = k === lay.sizes.length - 1;
+    for (let i = 0; i < n; i++) {
+      const [x, y] = lay.pos[k][i];
+      const act = trace?.[k]?.[i] ?? 0;
+      if (last) { output(x, y, i, act, textOf(k, i)); continue; }
+      node(k, i, act);
+      if (k === 0) { ctx.fillStyle = C.muted; ctx.font = '12px Rubik, sans-serif'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(inputLabel(i, n), x - Math.max(lay.r, 6) - 8, y); }
+    }
+  });
+}
+
 // ── формула нейрона под курсором ──
 const card = document.getElementById('formula');
 function showFormula(lay, mx, my) {
@@ -299,7 +457,9 @@ function frame(t) {
   if (canvas.width !== Math.round(W * dpr) || canvas.height !== Math.round(H * dpr)) { canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr); }
   const ctx = canvas.getContext('2d');
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
-  const lay = variant === 'C' ? drawFlow(ctx, W, H) : drawGraph(ctx, W, H, vertical);
+  frameDt = dt;
+  const draw = { C: drawFlow, D: drawHybrid, E: drawFire, F: drawStars }[variant];
+  const lay = draw ? draw(ctx, W, H) : drawGraph(ctx, W, H, vertical);
   if (mouse && t - lastFormula > 100) { showFormula(lay, mouse[0], mouse[1]); lastFormula = t; }
   requestAnimationFrame(frame);
 }
@@ -308,7 +468,7 @@ function frame(t) {
 canvas.addEventListener('pointermove', (e) => { const r = canvas.getBoundingClientRect(); mouse = [e.clientX - r.left, e.clientY - r.top]; });
 canvas.addEventListener('pointerleave', () => { mouse = null; card.hidden = true; });
 function setVariant(v) {
-  variant = v; pulses.length = 0;
+  variant = v; pulses.length = 0; edgeHeat.clear(); nodeHeat.clear();
   try { history.replaceState(null, '', `#${v}`); } catch { /* превью */ }
   document.getElementById('vLabel').textContent = `${v} — ${VARIANTS[v]}`;
 }
