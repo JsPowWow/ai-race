@@ -6,7 +6,7 @@ import { restoreEdits, endCodeStartup } from './student-code.js';
 import { renderLesson } from './lesson.js';
 import { beginFrame, showBanner, hideBanner } from './stage.js';
 import { steerWith } from './manual-drive.js';
-import { onStorageFull } from './storage.js';
+import { onStorageFull, load, save } from './storage.js';
 import { $, $$, secs, pct, delegate } from './ui.js';
 import { garageTab, renderNetwork } from './tabs/garage.js';
 import { trainTab, updateTraining, isTraining } from './tabs/train.js';
@@ -23,6 +23,7 @@ const TAB_BUTTON = { final: 'race' };
 
 function openTab(id) {
   state.tab = id;
+  save('lastTab', id); // в следующий раз откроем там же
   document.body.dataset.tab = id;
   const isIntro = id === 'intro';
   $('#introPage').hidden = !isIntro;
@@ -112,7 +113,8 @@ endCodeStartup();
 readPalette();
 renderChampion();
 const fromHash = location.hash.slice(1);
-openTab(fromHash in TABS ? fromHash : 'intro'); // чистый адрес открывает титульную
+const lastTab = load('lastTab', 'intro');
+openTab(fromHash in TABS ? fromHash : lastTab in TABS ? lastTab : 'intro'); // впервые — титульная, потом — где остановился
 if (frozen) showBanner('Прошлый раз код завис — твои правки отключены, вернули исходные файлы', 6000);
 else if (failedEdits.length) showBanner(`Сохранённые правки не применились: ${failedEdits[0]}`, 4000);
 requestAnimationFrame(frame);
