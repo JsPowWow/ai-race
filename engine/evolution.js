@@ -22,6 +22,7 @@ export class Evolution {
     this.tick = 0;
     this.cars = [];
     this.errors = [];
+    this.lastError = null;
     const two = this.parents === 2 && this.parent && this.parent2 && this.crossover;
     for (let i = 0; i < this.population; i++) {
       let brain;
@@ -33,7 +34,7 @@ export class Evolution {
         try {
           this.mutate(brain, this.rate);
         } catch (e) {
-          this.report(`mutate(): ${e.message}`);
+          this.report(`mutate(): ${e.message}`, e);
         }
       }
       this.cars.push(new Car(track, { brain, think: this.safeThink(), sensors: this.sensors }));
@@ -48,13 +49,15 @@ export class Evolution {
       if (!err) return child;
       this.report(`crossover() вернула мозг не той формы: ${err}`);
     } catch (e) {
-      this.report(`crossover(): ${e.message}`);
+      this.report(`crossover(): ${e.message}`, e);
     }
     return cloneBrain(this.parent);
   }
 
-  report(msg) {
-    if (!this.errors.length) this.errors.push(msg);
+  report(msg, error = null) {
+    if (this.errors.length) return;
+    this.errors.push(msg);
+    this.lastError = error;
   }
 
   safeThink() {
@@ -63,7 +66,7 @@ export class Evolution {
       try {
         return think(inputs, brain);
       } catch (e) {
-        if (!this.errors.length) this.errors.push(`think(): ${e.message}`);
+        this.report(`think(): ${e.message}`, e);
         return [0, 0, 0, 0];
       }
     };
@@ -87,12 +90,12 @@ export class Evolution {
     try {
       const v = this.fitness(carReport(car, this.track));
       if (!Number.isFinite(v)) {
-        if (!this.errors.length) this.errors.push('fitness() вернула не число');
+        this.report('fitness() вернула не число');
         return -Infinity;
       }
       return v;
     } catch (e) {
-      if (!this.errors.length) this.errors.push(`fitness(): ${e.message}`);
+      this.report(`fitness(): ${e.message}`, e);
       return -Infinity;
     }
   }

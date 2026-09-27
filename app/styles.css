@@ -492,12 +492,33 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 .filetabs button[aria-selected="true"] { background: var(--ai); color: #fff; border-color: var(--ai); }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line); display: inline-block; }
 .dot.pass { background: var(--good); } .dot.advice { background: var(--accent); } .dot.fail { background: var(--bad); }
-#codeEditor {
-  width: 100%; min-height: 62vh; resize: vertical;
-  font: 13.5px/1.6 var(--mono); tab-size: 2;
-  padding: 16px 18px; background: #07090c; white-space: pre; overflow: auto;
-  border: 1px solid var(--line); border-left: 3px solid var(--accent); color: #e6e9ef;
+.code-box {
+  display: grid; grid-template-columns: auto minmax(0, 1fr);
+  min-height: 62vh; border: 1px solid var(--line); border-left: 3px solid var(--accent); background: #07090c;
 }
+.code-box.has-error { border-left-color: var(--bad); }
+.gutter {
+  margin: 0; padding: 16px 10px 16px 14px; overflow: hidden; user-select: none;
+  font: 13.5px/1.6 var(--mono); text-align: right; color: #4b5566; background: #0b0e13;
+  border-right: 1px solid var(--line);
+}
+.gutter .bad { color: #fff; background: var(--bad); display: inline-block; min-width: 100%; padding-inline: 4px; margin-inline: -4px; }
+#codeEditor {
+  width: 100%; height: 100%; min-height: 62vh; resize: vertical;
+  font: 13.5px/1.6 var(--mono); tab-size: 2;
+  padding: 16px 18px; background: transparent; white-space: pre; overflow: auto;
+  border: 0; color: #e6e9ef; outline: none;
+}
+.code-box:focus-within { box-shadow: 0 0 0 2px color-mix(in srgb, var(--ai) 60%, transparent); }
+.code-error {
+  display: grid; gap: 6px; padding: 12px 14px;
+  background: color-mix(in srgb, var(--bad) 14%, var(--surface)); border: 1px solid var(--bad); border-left-width: 4px;
+}
+.code-error b { font: 800 13px var(--display); color: #fff; }
+.code-error .msg { font: 13px/1.5 var(--mono); color: #ffd6d6; }
+.code-error pre { margin: 0; font: 13px/1.5 var(--mono); color: #fff; background: rgba(0, 0, 0, 0.35); padding: 6px 10px; overflow-x: auto; }
+.code-error .hint { color: #f1c9c9; }
+
 .tests { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .tests li { display: grid; grid-template-columns: 66px minmax(0, 1fr); gap: 8px; font-size: 13px; align-items: start; }
 .tests .msg { display: block; color: var(--muted); font-size: 12px; }
@@ -530,6 +551,11 @@ details textarea { width: 100%; margin-top: 8px; font: 12px/1.4 var(--mono); }
 details .btn { margin-top: 6px; }
 
 /* ── гонка ── */
+.review { display: flex; flex-direction: column; gap: 8px; border: 1px dashed var(--warn); padding: 12px; background: var(--bg-2); }
+.review h3 { margin: 0; font: 700 12px var(--display); text-transform: uppercase; letter-spacing: 0.08em; color: var(--warn); }
+.review-code { margin: 0; max-height: 320px; overflow: auto; padding: 10px; background: #07090c; font: 12px/1.5 var(--mono); color: #d7dce6; }
+.review-code .sus { background: color-mix(in srgb, var(--bad) 30%, transparent); color: #fff; display: inline-block; min-width: 100%; }
+.review-btn { margin-top: 4px; border-color: var(--warn); color: var(--warn); }
 .entrants { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .entrants li { display: grid; grid-template-columns: 14px minmax(0, 1fr) auto auto; gap: 8px; align-items: center; font-size: 13px; padding: 6px 0; border-bottom: 1px solid var(--line); }
 .entrants .car-dot { width: 14px; height: 14px; transform: skewX(var(--skew)); }
@@ -586,7 +612,10 @@ details .btn { margin-top: 6px; }
   .block { padding: 14px; }
   .btn.primary { padding: 12px 20px; }
   .seg button { padding: 10px 12px; }
-  #codeEditor { min-height: 55vh; font-size: 12.5px; padding: 12px; }
+  .code-box, #codeEditor { min-height: 55vh; }
+  #codeEditor, .gutter { font-size: 12.5px; }
+  #codeEditor { padding: 12px; }
+  .gutter { padding: 12px 6px 12px 8px; }
   .countdown { font-size: clamp(70px, 26vw, 140px); }
 }
 @media (prefers-reduced-motion: reduce) {

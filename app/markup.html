@@ -121,7 +121,11 @@
 
     <div class="editor" id="editor" hidden>
       <div class="filetabs" id="fileTabs" role="tablist" aria-label="Файлы студента"></div>
-      <textarea id="codeEditor" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Код"></textarea>
+      <div class="code-error" id="codeError" role="alert" hidden></div>
+      <div class="code-box">
+        <pre class="gutter" id="codeGutter" aria-hidden="true"></pre>
+        <textarea id="codeEditor" spellcheck="false" autocomplete="off" autocapitalize="off" wrap="off" aria-label="Код" aria-describedby="codeError"></textarea>
+      </div>
       <div class="row">
         <button class="btn primary" id="codeApply">Применить</button>
         <button class="btn" id="codeReset">Вернуть исходный</button>
@@ -380,6 +384,16 @@
           <button class="btn small" id="rCross" disabled>Скрестить</button>
         </div>
         <p class="hint" id="rCrossNote"></p>
+        <div class="review" id="rReview" hidden>
+          <h3 id="rReviewTitle">Код участника</h3>
+          <p class="hint">Участник написал свой вариант мозга. Этот код выполнится у тебя в браузере, поэтому сначала прочитай его. Без разрешения машина в гонке не участвует.</p>
+          <pre class="review-code" id="rReviewCode"></pre>
+          <p class="hint" id="rReviewFlags"></p>
+          <div class="row">
+            <button class="btn small primary" id="rReviewAllow">Разрешить</button>
+            <button class="btn small danger" id="rReviewReject">Отклонить и убрать</button>
+          </div>
+        </div>
         <details>
           <summary>Вставить JSON текстом</summary>
           <textarea id="rPaste" rows="5" placeholder='{"format":"ai-race/car@1", ...}' aria-label="JSON участника"></textarea>

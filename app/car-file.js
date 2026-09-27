@@ -45,15 +45,23 @@ export function fromCarFile(file, fallbackColor = CAR_COLORS[0]) {
   const brainError = checkBrain(file.brain, sizes);
   if (brainError) fail(brainError);
 
-  return { name, color, sensors, sizes, brain: file.brain, think: resolveThink(file, fail), thinkId: file.think, file };
+  const entrant = { name, color, sensors, sizes, brain: file.brain, thinkId: file.think, file, think: null, code: null };
+  if (file.think === 'mine') {
+    // Чужой код не запускаем сразу: сначала его читает преподаватель (см. approveCode)
+    if (typeof file.thinkSource !== 'string' || !file.thinkSource.trim()) fail('вариант «Мой», но нет thinkSource');
+    entrant.code = file.thinkSource.slice(0, 20000);
+    return entrant;
+  }
+  const variants = live.think.thinkVariants ?? {};
+  if (!Object.hasOwn(variants, file.think)) fail(`неизвестный вариант мозга «${file.think}»`);
+  entrant.think = variants[file.think].think;
+  return entrant;
 }
 
-function resolveThink(file, fail) {
-  if (file.think !== 'mine') {
-    return live.think.thinkVariants?.[file.think]?.think ?? fail(`неизвестный вариант мозга «${file.think}»`);
-  }
-  if (!file.thinkSource) fail('вариант «Мой», но нет thinkSource');
-  if (!evalAvailable()) fail('свой think() здесь запустить нельзя');
-  const think = compileModule(String(file.thinkSource)).thinkVariants?.mine?.think;
-  return typeof think === 'function' ? think : fail('в thinkSource нет thinkVariants.mine');
+/** Запустить свой вариант мозга участника — только после того, как человек прочитал код */
+export function approveCode(entrant) {
+  if (!evalAvailable()) throw new Error('здесь нельзя запускать свой код');
+  const think = compileModule(entrant.code).thinkVariants?.mine?.think;
+  if (typeof think !== 'function') throw new Error('в коде нет thinkVariants.mine.think');
+  entrant.think = think;
 }

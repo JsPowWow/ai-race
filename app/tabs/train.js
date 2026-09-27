@@ -6,7 +6,7 @@ import { Evolution } from '../../engine/evolution.js';
 import { TRAFFIC_LEVELS, withTraffic } from '../../engine/traffic.js';
 import { drawChart } from '../../engine/netviz.js';
 import { state, persist, sizesOf, thinkFn, setChampion, resetProgress, on } from '../state.js';
-import { live } from '../student-code.js';
+import { live, errorLine } from '../student-code.js';
 import { seedTrack } from '../tracks.js';
 import { canvas, drawScene, paintCar, trafficOn, carAt, setHud, showBanner } from '../stage.js';
 import { $, esc, secs, pct, options, setPressed, delegate, showError } from '../ui.js';
@@ -128,7 +128,8 @@ function addToHall(entry, report) {
 
 function showStudentErrors() {
   const [error] = evo.errors;
-  showError('#tError', error && `Ошибка в коде студента: ${error}. Машины едут, но результат может быть странным.`);
+  const line = errorLine(evo.lastError);
+  showError('#tError', error && `Ошибка в коде студента${line ? ` (строка ${line})` : ''}: ${error}. Машины едут, но результат может быть странным. Подробности — на вкладке «Код».`);
 }
 
 function setRunning(on) {

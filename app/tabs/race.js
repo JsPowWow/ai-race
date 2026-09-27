@@ -5,7 +5,7 @@ import { TRAFFIC_LEVELS, withTraffic } from '../../engine/traffic.js';
 import { state, persist, thinkVariant, CAR_COLORS } from '../state.js';
 import { live } from '../student-code.js';
 import { seedTrack } from '../tracks.js';
-import { toCarFile, fromCarFile } from '../car-file.js';
+import { toCarFile, fromCarFile, approveCode } from '../car-file.js';
 import { BOTS } from '../generated/bots.js';
 import { drawScene, paintCar, paintSensors, trafficOn, setHud, showBanner } from '../stage.js';
 import { $, esc, secs, pct, options, setPressed, delegate, showError } from '../ui.js';
@@ -50,7 +50,7 @@ export const raceTab = {
 
 function prepare() {
   race.track = withTraffic(seedTrack(state.race.seed || 'урок-1'), state.race.traffic);
-  race.cars = entrants.map((entrant) => ({ entrant, car: new Car(race.track, entrant) }));
+  race.cars = entrants.filter((e) => e.think).map((entrant) => ({ entrant, car: new Car(race.track, entrant) }));
   Object.assign(race, { tick: 0, maxTicks: maxTicksFor(race.track), running: false, finished: false, countdownAt: 0 });
   $('#countdown').hidden = true;
   $('#rStart').textContent = 'Старт гонки';
@@ -177,9 +177,12 @@ for (const [id, key] of [['#rSeed', 'seed'], ['#rTraffic', 'traffic']]) {
 
 // ── участники ──
 
-function addEntrant(file, source) {
+/** inheritThink — готовый think (гибрид берёт его у мамы, повторно проверять код не нужно) */
+function addEntrant(file, source, { inheritThink = null } = {}) {
   try {
     const entrant = { ...fromCarFile(file, CAR_COLORS[entrants.length % CAR_COLORS.length]), source };
+    if (inheritThink) entrant.think = inheritThink;
+    else if (entrant.code && source === 'mine') approveCode(entrant); // свой код — свой браузер
     if (source === 'mine') entrants = entrants.filter((e) => e.source !== 'mine');
     entrants = [...entrants, entrant];
     showError('#rError', null);
@@ -235,7 +238,8 @@ function renderEntrants() {
   $('#rList').innerHTML = entrants.map((e, i) => `
     <li>
       <span class="car-dot" style="background:${e.color}"></span>
-      <span>${esc(e.name)} <span class="kind">${SOURCE_LABEL[e.source]} · ${esc(thinkVariant(e.thinkId)?.title ?? e.thinkId)} · ${e.sizes.join('-')}</span></span>
+      <span>${esc(e.name)} <span class="kind">${SOURCE_LABEL[e.source]} · ${esc(thinkVariant(e.thinkId)?.title ?? e.thinkId)} · ${e.sizes.join('-')}</span>
+        ${e.think ? '' : `<button class="btn small review-btn" data-review="${i}">Свой код — проверить</button>`}</span>
       <input type="checkbox" data-pick="${i}" ${crossPick.has(e) ? 'checked' : ''} aria-label="Выбрать ${esc(e.name)} для скрещивания">
       <button data-remove="${i}" aria-label="Убрать ${esc(e.name)}">×</button>
     </li>`).join('') || '<li class="kind">Нет участников</li>';
@@ -260,7 +264,7 @@ delegate('#rList', 'change', '[data-pick]', (box) => {
 
 function renderCrossNote() {
   const [a, b] = crossPick;
-  const compatible = a && b && a.sizes.join() === b.sizes.join();
+  const compatible = a && b && a.sizes.join() === b.sizes.join() && !!a.think;
   $('#rCross').disabled = !compatible;
   $('#rCrossNote').textContent = !b
     ? 'Отметь галочками двух участников, чтобы получить их ребёнка.'
@@ -274,7 +278,8 @@ $('#rCross').addEventListener('click', () => {
   try {
     const brain = live.crossover.crossover(cloneBrain(mom.brain), cloneBrain(dad.brain));
     crossPick.clear();
-    addEntrant({ ...mom.file, name: `${mom.name} × ${dad.name}`.slice(0, 24), color: mixColors(mom.color, dad.color), brain }, 'cross');
+    const child = { ...mom.file, name: `${mom.name} × ${dad.name}`.slice(0, 24), color: mixColors(mom.color, dad.color), brain };
+    addEntrant(child, 'cross', { inheritThink: mom.think });
   } catch (e) {
     showError('#rError', `Ошибка в crossover(): ${e.message}`);
   }
@@ -283,4 +288,49 @@ $('#rCross').addEventListener('click', () => {
 function mixColors(a, b) {
   const channel = (hex, i) => parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16);
   return `#${[0, 1, 2].map((i) => Math.round((channel(a, i) + channel(b, i)) / 2).toString(16).padStart(2, '0')).join('')}`;
+}
+
+// ── проверка чужого кода ──
+// Свой вариант мозга из чужого файла — это код, который выполнится у тебя в браузере.
+// Поэтому он не запускается сам: преподаватель читает его и нажимает «Разрешить».
+
+const SUSPICIOUS = /\b(window|self|globalThis|document|localStorage|sessionStorage|indexedDB|fetch|XMLHttpRequest|WebSocket|navigator|location|eval|Function|constructor|prototype|__proto__|import|setTimeout|setInterval|postMessage)\b|while\s*\(\s*(true|1)\s*\)|for\s*\(\s*;\s*;\s*\)|Math\.\w+\s*=[^=]/;
+let reviewing = null;
+
+delegate('#rList', 'click', '[data-review]', (b) => openReview(entrants[+b.dataset.review]));
+
+function openReview(entrant) {
+  reviewing = entrant;
+  const lines = entrant.code.split('\n');
+  const flagged = lines.map((line, i) => (SUSPICIOUS.test(line) ? i + 1 : 0)).filter(Boolean);
+  $('#rReviewTitle').textContent = `Код участника «${entrant.name}»`;
+  $('#rReviewCode').innerHTML = lines.map((line, i) =>
+    `<span class="${flagged.includes(i + 1) ? 'sus' : ''}">${String(i + 1).padStart(3)}  ${esc(line)}</span>`).join('\n');
+  $('#rReviewFlags').textContent = flagged.length
+    ? `Внимание, строки ${flagged.join(', ')}: здесь обращение к странице, сети, хранилищу или возможный бесконечный цикл. Честному мозгу это не нужно — такой код лучше отклонить.`
+    : 'Подозрительного не нашлось. Всё равно прочитай: разрешай, только если понятно, что делает каждая строка.';
+  $('#rReviewFlags').classList.toggle('error', flagged.length > 0);
+  $('#rReview').hidden = false;
+  $('#rReview').scrollIntoView({ block: 'nearest' });
+}
+
+$('#rReviewAllow').addEventListener('click', () => {
+  try {
+    approveCode(reviewing);
+    showError('#rError', null);
+  } catch (e) {
+    showError('#rError', `${reviewing.name}: ${e.message}`);
+  }
+  closeReview();
+});
+$('#rReviewReject').addEventListener('click', () => {
+  entrants = entrants.filter((e) => e !== reviewing);
+  closeReview();
+});
+
+function closeReview() {
+  reviewing = null;
+  $('#rReview').hidden = true;
+  renderEntrants();
+  prepare();
 }

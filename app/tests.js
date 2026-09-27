@@ -1,5 +1,6 @@
 // Проверки кода студентов. advice: true — это совет (жёлтый), а не ошибка (красный).
 import { createBrain, cloneBrain, brainSizes } from '../engine/brain.js';
+import { errorLine } from './student-code.js';
 
 class Fail extends Error {}
 const expect = (cond, msg) => { if (!cond) throw new Fail(msg); };
@@ -167,7 +168,8 @@ export function runTests(id, mod) {
       t.run(mod);
       return { name: t.name, status: 'pass' };
     } catch (e) {
-      const msg = e instanceof Fail ? e.message : `ошибка: ${e.message}`;
+      const line = e instanceof Fail ? null : errorLine(e);
+      const msg = e instanceof Fail ? e.message : `ошибка${line ? ` в строке ${line}` : ''}: ${e.message}`;
       return { name: t.name, status: t.advice && e instanceof Fail ? 'advice' : 'fail', msg };
     }
   });

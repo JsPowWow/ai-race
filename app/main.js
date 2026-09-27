@@ -2,7 +2,7 @@
 import { readPalette } from '../engine/render.js';
 import { drawChart } from '../engine/netviz.js';
 import { state, on } from './state.js';
-import { restoreEdits } from './student-code.js';
+import { restoreEdits, endCodeStartup } from './student-code.js';
 import { renderLesson } from './lesson.js';
 import { beginFrame, showBanner, hideBanner } from './stage.js';
 import { steerWith } from './manual-drive.js';
@@ -94,11 +94,13 @@ document.fonts?.ready.then(redrawCharts);
 
 // ── старт ──
 
-const failedEdits = restoreEdits();
-runAllTests();
+const { failed: failedEdits, frozen } = restoreEdits(); // если код студента здесь зависнет,
+runAllTests();                                          // при следующей загрузке правки отключатся
+endCodeStartup();
 readPalette();
 renderChampion();
 const fromHash = location.hash.slice(1);
 openTab(fromHash in TABS ? fromHash : 'intro'); // чистый адрес открывает титульную
-if (failedEdits.length) showBanner(`Сохранённые правки не применились: ${failedEdits[0]}`, 4000);
+if (frozen) showBanner('Прошлый раз код завис — твои правки отключены, вернули исходные файлы', 6000);
+else if (failedEdits.length) showBanner(`Сохранённые правки не применились: ${failedEdits[0]}`, 4000);
 requestAnimationFrame(frame);
