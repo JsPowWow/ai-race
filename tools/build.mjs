@@ -23,7 +23,7 @@ const DESCRIPTION = 'Курс JavaScript: машинка с лучами-сен�
 /** Цвет шапки браузера на телефоне — фон страницы в светлой и тёмной теме (как --bg в app/styles/tokens.css) */
 const THEME_COLOR = { light: '#eef0f3', dark: '#0b0d12' };
 /** Шрифты первого экрана: заголовок и основной текст — качаем сразу, не дожидаясь CSS */
-const PRELOAD_FONTS = ['unbounded-cyrillic', 'golos-text-cyrillic'];
+const PRELOAD_FONTS = ['rubik-cyrillic'];
 
 function writeDataModules() {
   const SOURCES = Object.fromEntries(['controls', 'think', 'mutate', 'fitness', 'crossover'].map((id) => [id, r(`student/${id}.js`)]));

@@ -36,7 +36,7 @@ export const examTab = {
       if (performance.now() > replay.pauseUntil) playReplay(replay.index);
     }
     drawScene(track, { traffic: trafficOn(track, car.ticks) });
-    paintCar(car, { color: state.profile.color, sensors: true, glow: true });
+    paintCar(car, { color: state.profile.color, sensors: true, number: 1 });
     setHud([
       `<b>${esc(trackTitle(results[replay.index], replay.index))}</b>`,
       `время <b>${secs(car.ticks)}</b>`,

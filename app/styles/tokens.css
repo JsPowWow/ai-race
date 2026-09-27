@@ -1,72 +1,85 @@
-/* Токены: все цвета сайта и холста. У каждого — значение для светлой и тёмной темы: light-dark(светлая, тёмная).
-   Тёмная — «ночная гонка»: асфальт, гоночный жёлтый и «нейронный» розовый.
-   Светлая — «дневная трасса»: бетон паддока, светлая трава; жёлтый и розовый те же, но для текста — темнее,
-   чтобы читалось на светлом (контраст WCAG AA ≥ 4,5).
-   Тему выбирает переключатель в шапке: data-theme="light" | "dark" на <html>; без него — как в системе. */
+/* Токены: все цвета, скругления, тени и шрифты сайта и холста.
+   Мир — игрушечная трасса-конструктор: литой пластик основных цветов.
+   Светлая тема — страница инструкции к набору: белая бумага, тонкие линии печати.
+   Тёмная — глянцевый чёрный картон коробки: нейтральный чёрный, без синевы.
+   Каждый цвет — light-dark(светлая, тёмная). Тему выбирает переключатель в шапке:
+   data-theme="light" | "dark" на <html>; без него — как в системе. */
 :root {
   color-scheme: light dark;
 
-  /* фон и поверхности */
-  --bg: light-dark(#eef0f3, #0b0d12);
-  --bg-2: light-dark(#e3e6eb, #10131a);
-  --surface: light-dark(#ffffff, #151922);
-  --surface-2: light-dark(#f3f4f7, #1c212c);
-  --line: light-dark(#c9ced7, #2a3140);
-  --grid-line: light-dark(rgb(20 30 50 / 0.04), rgb(255 255 255 / 0.025));
+  /* страница и поверхности */
+  --bg: light-dark(#ffffff, #0c0c0d);
+  --bg-2: light-dark(#efefed, #121213);
+  --surface: light-dark(#ffffff, #171718);
+  --surface-2: light-dark(#f5f5f3, #201f21);
+  --line: light-dark(#d9d9d5, #2f2e31);
+  --line-strong: light-dark(#b9b9b3, #4a494d);
 
   /* текст */
-  --ink: light-dark(#12151b, #f1f3f8);
-  --ink-2: light-dark(#2c323c, #d9dde6);    /* основной текст абзацев — чуть мягче заголовков */
-  --muted: light-dark(#596170, #8d96aa);
+  --ink: light-dark(#161616, #f4f4f2);
+  --ink-2: light-dark(#393938, #d2d1ce);    /* абзацы — чуть мягче заголовков */
+  --muted: light-dark(#5f5f5b, #9d9c98);
 
-  /* фирменные цвета: заливка, текст на заливке, текст на фоне */
-  --accent: #ffd60a;                         /* гоночный жёлтый */
-  --accent-hover: light-dark(#ffca00, #ffe24d);
-  --on-accent: #14110a;
-  --accent-text: light-dark(#8a5a00, #ffd60a);
-  --ai: #ff3d7f;                             /* «нейронный» розовый */
-  --on-ai: #1a0610;
-  --ai-text: light-dark(#c2185b, #ff3d7f);
-  --brand-ink: #ffffff;                      /* «AI» на логотипе */
-  /* Крупный жёлтый текст (логотип, заголовок титульной): на светлом жёлтые буквы не читаются —
-     там буквы тёмные, а жёлтый уходит в тень, как на гоночном постере */
-  --headline: light-dark(var(--ink), var(--accent));
-  --headline-shadow: light-dark(var(--accent), color-mix(in srgb, var(--ai) 70%, transparent));
+  /* пластик набора: заливка, текст на заливке, текст на фоне страницы (контраст ≥ 4,5) */
+  --action: #d11f28;                         /* красный: главное действие, газ */
+  --action-hover: light-dark(#b81820, #e5323b);
+  --on-action: #ffffff;
+  --action-text: light-dark(#b8161f, #ff6b70);
+  --you: #ffc814;                            /* жёлтый: твоя машина, текущий шаг */
+  --on-you: #1a1400;
+  --you-text: light-dark(#8a5a00, #ffd23f);
+  --brain: #1f5fe0;                          /* синий: мозг, всё про ИИ */
+  --on-brain: #ffffff;
+  --brain-text: light-dark(#1b4fc0, #7aa5ff);
 
   /* состояния */
   --good: light-dark(#146a39, #3ddc84);
-  --bad: light-dark(#c62828, #ff5a5a);
-  --warn: light-dark(#9a5800, #ff9f1c);
+  --bad: light-dark(#c62828, #ff6b6b);
+  --warn: light-dark(#9a5800, #ffab40);
   --on-bad: #ffffff;
   --silver: light-dark(#5f6775, #d7dce6);    /* 2-е место */
   --bronze: light-dark(#a0522d, #e0975a);    /* 3-е место */
 
-  /* веса на схеме сети */
-  --pos: light-dark(#d6336c, #ff3d7f);
-  --neg: light-dark(#0e7490, #22d3ee);
+  /* веса на схеме сети: «+» толкает к действию, «−» мешает */
+  --pos: light-dark(#c9202a, #ff5a60);
+  --neg: light-dark(#1b4fc0, #5b8cff);
 
-  /* трасса (холст) */
-  --grass: light-dark(#cfe0c6, #0e1613);
-  --road: light-dark(#4b515a, #2a2f37);
-  --road-edge: light-dark(#3b4048, #1e2229);
-  --kerb: #ff3b30;
-  --ray: light-dark(rgb(255 200 0 / 0.95), rgb(255 214 10 / 0.9));
-  --ray-hit: light-dark(rgb(20 20 20 / 0.6), rgb(255 255 255 / 0.55));
-  --check-light: #f4f4f0;                    /* шашечки старта и бордюр под шапкой */
+  /* трасса на холсте: полотно стола, серые секции, прорези с медными рельсами, пластиковые бордюры */
+  --board: light-dark(#ececea, #141415);
+  --road: light-dark(#5b5c60, #3c3d41);
+  --road-edge: light-dark(#48494d, #2d2e31);
+  --seam: light-dark(rgb(0 0 0 / 0.22), rgb(0 0 0 / 0.45));
+  --slot: light-dark(#2b2e33, #16181b);
+  --rail: #c98a4b;
+  --kerb: #d11f28;
+  --kerb-2: #f4f4f0;
+  --ray: light-dark(rgb(214 150 0 / 0.95), rgb(255 200 20 / 0.85));
+  --ray-hit: light-dark(rgb(20 20 20 / 0.6), rgb(255 255 255 / 0.6));
+  --traffic: light-dark(#aeb5c0, #9aa2ae);       /* попутные игрушечные машины */
+  --traffic-oncoming: #f4f4f0;                   /* встречные — светлые, с жёлтыми фарами */
+  --traffic-edge: #2b2e33;
+  --crashed: #8a9095;
+  --check-light: #f4f4f0;                    /* шашечки финиша */
   --check-dark: #111111;
 
-  /* поверх трассы (подсказки, пульт) — всегда тёмные: трасса бывает любой */
-  --hud-bg: rgb(8 10 14 / 0.82);
-  --hud-ink: #e9ecf2;
+  /* табло поверх трассы и пульт — всегда тёмный пластик: трасса под ними бывает любой */
+  --hud-bg: rgb(17 18 20 / 0.9);
+  --hud-ink: #f3f4f6;
+  --hud-digit: #ffd23f;
 
   /* код */
-  --code-bg: light-dark(#f7f8fa, #07090c);
+  --code-bg: light-dark(#f7f8fa, #0b0c0f);
   --code-ink: light-dark(#1f2430, #e6e9ef);
   --code-ink-2: light-dark(#0b4f8a, #cfe7ff);
 
-  --skew: -12deg;
-  --display: "Unbounded", "Arial Black", system-ui, sans-serif;
-  --body: "Golos Text", system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* форма деталей: скругления литья и мягкая тень детали, лежащей на столе */
+  --r-s: 6px;
+  --r-m: 10px;
+  --r-l: 16px;
+  --shadow-part: 0 1px 2px rgb(0 0 0 / 0.12), 0 2px 6px rgb(0 0 0 / 0.08);
+  --shadow-lift: 0 4px 10px rgb(0 0 0 / 0.16), 0 1px 3px rgb(0 0 0 / 0.1);
+
+  --font: "Rubik", system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 }
 :root[data-theme="light"] { color-scheme: light; }

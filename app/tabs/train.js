@@ -35,7 +35,7 @@ export const trainTab = {
       if (car !== lead && !picked.includes(car)) paintCar(car, { color: state.profile.color, alpha: car.done ? 0.18 : 0.35 });
     }
     for (const car of picked) if (car !== lead) paintCar(car, { color: state.profile.color, highlight: true });
-    if (lead) paintCar(lead, { color: state.profile.color, sensors: true, glow: true, highlight: picked.includes(lead) });
+    if (lead) paintCar(lead, { color: state.profile.color, sensors: true, highlight: picked.includes(lead) });
     setHud([
       `поколение <b>${state.generation + 1}</b>`,
       `едут <b>${evo.cars.filter((c) => !c.done).length}</b>/${evo.cars.length}`,

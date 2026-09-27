@@ -11,3 +11,4 @@ entries/
 .claude/settings.local.json
 .impeccable/config.local.json
 .impeccable/cache/
+.impeccable/review/

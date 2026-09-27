@@ -2,6 +2,7 @@
 // Сотни машин рисуем попроще (paintPack), десятку лидеров и найденного участника — красиво, с подписями.
 import { REC_EVERY, REC_FIELDS } from '../../engine/rally.js';
 import { avatarUrl } from '../../engine/car-file.js';
+import { UI_FONT } from '../../engine/render.js';
 import { paintCar, paintPack, paintScreen, toScreen } from '../stage.js';
 
 const OUT_VISIBLE_TICKS = 90;      // сколько ещё видно машину после схода
@@ -88,7 +89,7 @@ export function drawStage(order, { found = null, showAvatars = true, hiddenAvata
   });
   paintPack(pack);
   for (const { car, row } of fancy.reverse()) {
-    paintCar({ ...car, done: car.status !== 'driving' }, { color: row.entry.color, glow: car.status === 'driving', highlight: row.entry === found });
+    paintCar({ ...car, done: car.status !== 'driving' }, { color: row.entry.color, highlight: row.entry === found });
   }
   paintScreen((ctx, W, H, dpr) => {
     const placed = []; // подписи не должны налезать друг на друга: следующую поднимаем выше
@@ -102,7 +103,7 @@ export function drawStage(order, { found = null, showAvatars = true, hiddenAvata
 }
 
 function drawLabel(ctx, x, y, text, avatar, dpr, strong, placed) {
-  ctx.font = `600 ${13 * dpr}px "Golos Text", system-ui, sans-serif`;
+  ctx.font = `600 ${13 * dpr}px ${UI_FONT}`;
   const size = 22 * dpr, pad = 6 * dpr;
   const w = ctx.measureText(text).width + pad * 2 + (avatar ? size + pad : 0);
   const h = size + pad;
@@ -134,7 +135,7 @@ export function drawProgressStrip(order, { found = null } = {}) {
     ctx.fillStyle = 'rgba(255, 255, 255, 0.18)';
     ctx.fillRect(left, base + 3 * dpr, right - left, 2 * dpr);
 
-    ctx.font = `700 ${10 * dpr}px "Unbounded", system-ui, sans-serif`;
+    ctx.font = `700 ${10 * dpr}px ${UI_FONT}`;
     ctx.textBaseline = 'middle';
     ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
     ctx.textAlign = 'right';

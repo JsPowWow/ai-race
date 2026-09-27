@@ -1,7 +1,9 @@
-/* «Я учу»: пульт, мои заезды, история мозга, шаги */
-/* Кнопки управления поверх трассы: руль под левый большой палец, педали под правый */
+/* «Я учу»: пульт от набора, мои заезды, история мозга */
+
+/* Пульт поверх трассы: руль под левый большой палец, газ и тормоз — под правый.
+   Как у пульта набора: газ — красная кнопка-курок, тормоз и руль — тёмный пластик. */
 .pad {
-  position: absolute; left: 12px; right: 12px; bottom: 12px; z-index: 2;
+  position: absolute; inset-inline: 12px; inset-block-end: 12px; z-index: 2;
   display: flex; justify-content: space-between; align-items: flex-end;
   pointer-events: none;
 }
@@ -9,88 +11,104 @@ body:not([data-tab="teach"]) .pad { display: none; }
 .pad > div { display: flex; gap: 12px; pointer-events: auto; }
 .pad-pedals { flex-direction: column; align-items: center; }
 .pad button {
-  width: 64px; height: 64px; border-radius: 50%;
+  inline-size: 64px; block-size: 64px; border-radius: 50%;
   display: grid; place-items: center;
-  background: color-mix(in srgb, var(--hud-bg) 70%, transparent); color: var(--hud-ink);
-  border: 2px solid color-mix(in srgb, var(--hud-ink) 30%, transparent);
-  font: 800 11px/1 var(--display); text-transform: uppercase; letter-spacing: 0.04em;
+  background: var(--hud-bg); color: var(--hud-ink); border: 0;
+  box-shadow: inset 0 -3px 0 rgb(0 0 0 / 0.35), var(--shadow-lift);
+  font: 700 12px/1 var(--font);
   cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
-  backdrop-filter: blur(3px);
+  transition: transform 0.08s, box-shadow 0.08s;
 }
-.pad svg { width: 28px; height: 28px; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
-.pad .gas { width: 78px; height: 78px; border-color: var(--accent); color: var(--accent); }
-.pad .brake { border-color: var(--ai); color: var(--ai); font-size: 9px; }
-.pad button.on { background: var(--hud-ink); color: var(--on-accent); border-color: var(--hud-ink); }
-.pad .gas.on { background: var(--accent); border-color: var(--accent); }
-.pad .brake.on { background: var(--ai); border-color: var(--ai); color: var(--on-ai); }
-/* На телефоне кнопки не закрывают дорогу: отдельная полоса под трассой, педали рядом */
-@media (max-width: 700px) {
-  body[data-tab="teach"] .viewport { aspect-ratio: 4 / 4.5; max-height: 74vh; }
-  body[data-tab="teach"] .viewport canvas { bottom: 96px; height: calc(100% - 96px); }
-  body[data-tab="teach"] .viewport::after { bottom: 104px; }
-  body[data-tab="teach"] .banner { bottom: 110px; }
-  .pad {
-    left: 0; right: 0; bottom: 0; height: 96px; padding-inline: 12px;
-    align-items: center; background: var(--bg-2); border-top: 1px solid var(--line);
-  }
-  .pad-pedals { flex-direction: row-reverse; align-items: center; }
-  .pad button { width: 68px; height: 68px; }
-  .pad .gas { width: 76px; height: 76px; }
-}
-@media (pointer: fine) {
-  .pad { opacity: 0.85; }
-  .pad { bottom: 18px; right: 18px; left: 18px; }
-  .pad button { width: 56px; height: 56px; }
-  .pad .gas, .pad .brake { width: 64px; height: 64px; }
-  .pad .brake { font-size: 9px; letter-spacing: 0; }
+.pad svg { inline-size: 28px; block-size: 28px; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.pad .gas { inline-size: 78px; block-size: 78px; background: var(--action); color: var(--on-action); font-size: 14px; }
+.pad button.on { transform: translateY(2px); box-shadow: inset 0 2px 4px rgb(0 0 0 / 0.4); }
+.pad .gas.on { background: var(--action-hover); }
+
+/* На десктопе трасса — полотно на всю высоту экрана под строкой шага, а не окошко 16:10 */
+@media (min-width: 1001px) {
+  body[data-tab="teach"] .viewport { aspect-ratio: auto; block-size: clamp(460px, calc(100svh - 300px), 860px); max-block-size: none; }
 }
 
-/* ── «Я учу»: заезды, свёрнутые секции, библиотека мозгов ── */
-.runs { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; max-height: 260px; overflow-y: auto; }
-.runs li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 8px; align-items: center; padding: 6px 8px; background: var(--bg-2); font-size: 13px; }
+/* На телефоне кнопки не закрывают дорогу: отдельная полоса под трассой, педали рядом */
+@media (max-width: 700px) {
+  body[data-tab="teach"] .viewport { aspect-ratio: 4 / 4.5; max-block-size: 74vh; }
+  body[data-tab="teach"] .viewport canvas { inset-block-end: 96px; block-size: calc(100% - 96px); }
+  body[data-tab="teach"] .banner { inset-block-end: 110px; }
+  .pad {
+    inset-inline: 0; inset-block-end: 0; block-size: 96px; padding-inline: 12px;
+    align-items: center; background: var(--surface-2); border-block-start: 1px solid var(--line);
+  }
+  .pad-pedals { flex-direction: row-reverse; align-items: center; }
+  .pad button { inline-size: 68px; block-size: 68px; }
+  .pad .gas { inline-size: 76px; block-size: 76px; }
+}
+@media (pointer: fine) {
+  .pad { inset-inline: 18px; inset-block-end: 18px; }
+  .pad button { inline-size: 56px; block-size: 56px; }
+  .pad .gas, .pad .brake { inline-size: 64px; block-size: 64px; }
+  .pad .brake { font-size: 11px; }
+}
+@media (prefers-reduced-motion: reduce) { .pad button { transition: none; } }
+
+/* «Детали набора»: как список деталей в инструкции — у каждой детали буква А, Б, В… */
+@counter-style part-letters { system: alphabetic; symbols: "А" "Б" "В" "Г" "Д" "Е" "Ж"; }
+.parts { counter-reset: part; }
+.parts-title { font: 700 17px/1.2 var(--font); padding-inline: 4px; }
+.parts > .block { counter-increment: part; }
+.parts > .block h2 { display: flex; align-items: center; gap: 10px; }
+.parts > .block h2::before {
+  content: counter(part, part-letters);
+  inline-size: 24px; block-size: 24px; border-radius: var(--r-s); flex: none; display: grid; place-items: center;
+  background: var(--surface-2); border: 1px solid var(--line); color: var(--muted); font: 700 12px/1 var(--font);
+}
+
+/* Мои заезды — как карточки кругов: галочка «учить на этом», время, удалить */
+.runs { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; max-block-size: 260px; overflow-y: auto; }
+.runs li {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 8px; align-items: center;
+  padding: 6px 8px; background: var(--surface-2); border-radius: var(--r-s); font-size: 13px;
+}
 .runs li.off { opacity: 0.5; }
 .runs li.bad .res { color: var(--bad); }
 .runs li.good .res { color: var(--good); }
-.runs li.recording { outline: 1px dashed var(--bad); outline-offset: -1px; }
-.runs input { width: 16px; height: 16px; accent-color: var(--ai); cursor: pointer; }
+.runs li.recording { outline: 1px dashed var(--action-text); outline-offset: -1px; }
+.runs input { inline-size: 16px; block-size: 16px; cursor: pointer; }
 .runs .meta { color: var(--muted); font-size: 12px; }
-.runs .res { font-family: var(--mono); font-size: 12px; }
-.runs button, .lib-del { border: 0; background: transparent; cursor: pointer; color: var(--muted); width: 26px; height: 26px; }
-.runs button:hover, .lib-del:hover { background: var(--surface-2); color: var(--bad); }
+.runs .res { font-family: var(--mono); font-size: 12px; font-variant-numeric: tabular-nums; }
+.runs button, .lib-del, .lib-list .pin {
+  display: grid; place-items: center; border: 0; border-radius: var(--r-s); background: transparent; cursor: pointer;
+  color: var(--muted); inline-size: 28px; block-size: 28px;
+}
+.runs button:hover, .lib-del:hover { background: var(--line); color: var(--bad); }
 .runs .empty { background: transparent; grid-template-columns: 1fr; color: var(--muted); padding: 0; }
+
+/* Свёрнутые блоки панели: заголовок и «+» / «−» справа */
 details.fold > summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
 details.fold > summary::-webkit-details-marker { display: none; }
-details.fold > summary::after { content: "+"; font: 700 18px var(--display); color: var(--muted); }
-details.fold[open] > summary::after { content: "–"; }
-details.fold[open] > summary { margin-bottom: 4px; }
+details.fold > summary::after {
+  content: ""; inline-size: 12px; block-size: 12px; flex: none;
+  background: linear-gradient(currentColor, currentColor) center / 12px 2px no-repeat, linear-gradient(currentColor, currentColor) center / 2px 12px no-repeat;
+  color: var(--muted);
+}
+details.fold[open] > summary::after { background: linear-gradient(currentColor, currentColor) center / 12px 2px no-repeat; }
+details.fold[open] > summary { margin-block-end: 4px; }
+details.fold:not([open]) { gap: 0; }
+
+/* История мозга */
 .library .lib-current { margin: 0; display: flex; flex-direction: column; gap: 2px; }
 .library .meta, .lib-list .meta { color: var(--muted); font-size: 12px; }
-.lib-save input { flex: 1; min-width: 120px; }
-.lib-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; max-height: 240px; overflow-y: auto; }
-.lib-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; align-items: center; padding: 6px 8px; background: var(--bg-2); border-left: 2px solid transparent; }
-.lib-list li { grid-template-columns: auto minmax(0, 1fr) auto auto; }
-.lib-list li.pinned { border-left-color: var(--accent); }
-.lib-list .pin { border: 0; background: transparent; cursor: pointer; color: var(--muted); font-size: 16px; width: 26px; height: 26px; }
-.lib-list li.pinned .pin { color: var(--accent-text); }
+.lib-save input { flex: 1; min-inline-size: 120px; }
+.lib-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; max-block-size: 240px; overflow-y: auto; }
+.lib-list li {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 8px; align-items: center;
+  padding: 6px 8px; background: var(--surface-2); border-radius: var(--r-s);
+}
+.lib-list li.pinned { background: color-mix(in srgb, var(--you) 14%, var(--surface-2)); }
+.lib-list .pin svg { inline-size: 16px; block-size: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; }
+.lib-list .pin:hover { background: var(--line); color: var(--ink); }
+.lib-list li.pinned .pin { color: var(--you-text); }
+.lib-list li.pinned .pin svg { fill: currentColor; }
 .history summary { cursor: pointer; font-size: 13px; color: var(--muted); }
-.history[open] summary { margin-bottom: 6px; }
-.lib-name { display: flex; flex-direction: column; min-width: 0; }
+.history[open] summary { margin-block-end: 6px; }
+.lib-name { display: flex; flex-direction: column; min-inline-size: 0; }
 .lib-name b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
-
-/* ── учитель: три шага ── */
-.steps { margin: 0; padding: 0; list-style: none; counter-reset: step; display: flex; flex-direction: column; gap: 10px; }
-.steps li {
-  counter-increment: step; position: relative; display: flex; flex-direction: column; gap: 4px; align-items: flex-start;
-  padding: 10px 12px 10px 46px; background: var(--bg-2); border-left: 3px solid var(--line); color: var(--muted);
-}
-.steps li::before {
-  content: counter(step); position: absolute; left: 12px; top: 8px;
-  font: 900 22px/1 var(--display); font-style: italic; color: var(--muted);
-}
-.steps li b { color: var(--ink); font-weight: 600; }
-.steps .status { font-size: 13px; line-height: 1.45; }
-.steps li.current { border-left-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--bg-2)); }
-.steps li.current::before { color: var(--accent-text); }
-.steps li.done { border-left-color: var(--good); }
-.steps li.done::before { content: "✓"; color: var(--good); }
-.steps .btn { margin-top: 4px; }

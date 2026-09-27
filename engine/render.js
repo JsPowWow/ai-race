@@ -19,13 +19,17 @@ let palette = null;
 export function readPalette() {
   const v = cssColor;
   palette = {
-    grass: v('--grass'), road: v('--road'), roadEdge: v('--road-edge'), kerb: v('--kerb'),
-    ink: v('--ink'), muted: v('--muted'), accent: v('--accent'), surface: v('--surface'),
-    ray: v('--ray'), rayHit: v('--ray-hit'),
+    board: v('--board'), road: v('--road'), roadEdge: v('--road-edge'), seam: v('--seam'), slot: v('--slot'), rail: v('--rail'),
+    kerb: v('--kerb'), kerb2: v('--kerb-2'), checkLight: v('--check-light'), checkDark: v('--check-dark'),
+    you: v('--you'), ray: v('--ray'), rayHit: v('--ray-hit'),
+    traffic: v('--traffic'), trafficOncoming: v('--traffic-oncoming'), trafficEdge: v('--traffic-edge'), crashed: v('--crashed'),
   };
   return palette;
 }
 export const getPalette = () => palette || readPalette();
+
+/** Шрифт подписей на холсте — тот же, что у интерфейса */
+export const UI_FONT = '"Rubik", system-ui, sans-serif';
 
 /** Подогнать размер canvas под CSS-размер size = { width, height } с учётом плотности пикселей */
 export function fitCanvas(canvas, size) {
@@ -44,7 +48,7 @@ export class Camera {
       const s = Math.min(W / (b.maxX - b.minX + pad * 2), H / (b.maxY - b.minY + pad * 2));
       this.scale = s; this.x = (b.minX + b.maxX) / 2; this.y = (b.minY + b.maxY) / 2; this.ready = true;
     } else {
-      const s = dpr * (W / dpr < 520 ? 0.75 : 1.05); // на узком экране — дальше, чтобы видеть поворот
+      const s = dpr * (W / dpr < 520 ? 0.95 : 1.4); // крупный план: секции трассы заполняют полотно
       // Смотрим вперёд по ходу: водителю важна дорога впереди, а не позади
       const lead = (0.25 * Math.min(W, H)) / s;
       const aim = { x: target.x + Math.cos(target.angle ?? 0) * lead, y: target.y + Math.sin(target.angle ?? 0) * lead };
@@ -69,36 +73,63 @@ function polyPath(ctx, pts) {
   for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
 }
 
-export function drawTrack(ctx, track, cam) {
-  const p = getPalette();
-  const { left, right, center } = track;
-  // дорога
+/** Центры полос: по ним идут прорези с рельсами (как у трассы для слот-каров) */
+const laneCenters = new WeakMap();
+function lanesOf(track) {
+  if (!laneCenters.has(track)) {
+    const edges = [track.left, ...(track.dividers ?? []), track.right];
+    const lanes = [];
+    for (let k = 0; k < edges.length - 1; k++) {
+      lanes.push(edges[k].map((a, i) => ({ x: (a.x + edges[k + 1][i].x) / 2, y: (a.y + edges[k + 1][i].y) / 2 })));
+    }
+    laneCenters.set(track, lanes);
+  }
+  return laneCenters.get(track);
+}
+
+/** Контур дороги одним путём: левый край туда, правый обратно */
+function roadPath(ctx, { left, right }) {
   ctx.beginPath();
   ctx.moveTo(left[0].x, left[0].y);
   for (let i = 1; i < left.length; i++) ctx.lineTo(left[i].x, left[i].y);
   for (let i = right.length - 1; i >= 0; i--) ctx.lineTo(right[i].x, right[i].y);
   ctx.closePath();
+}
+
+const SECTION = 150; // длина одной секции игрушечной трассы, px — между швами
+
+/** Игрушечная трасса: серые секции со швами, прорези с медными рельсами, пластиковые бордюры */
+export function drawTrack(ctx, track, cam) {
+  const p = getPalette();
+  const px = 1 / cam.scale;
+  // тень: трасса лежит на столе
+  ctx.save();
+  ctx.translate(0, 5);
+  roadPath(ctx, track);
+  ctx.fillStyle = 'rgb(0 0 0 / 0.18)';
+  ctx.fill();
+  ctx.restore();
+  roadPath(ctx, track);
   ctx.fillStyle = p.road;
   ctx.fill();
-  // разметка полос
-  const px = 1 / cam.scale;
-  ctx.lineWidth = Math.max(2, 1.2 * px);
-  ctx.strokeStyle = 'rgba(255,255,255,0.22)';
-  ctx.setLineDash([22, 26]);
-  for (const lane of track.dividers ?? [center]) { polyPath(ctx, lane); ctx.stroke(); }
-  // бордюры: красно-белые полосы
-  const kw = Math.max(7, 2.5 * px);
-  for (const side of [left, right]) {
-    ctx.setLineDash([]);
-    ctx.lineWidth = kw; ctx.strokeStyle = p.kerb; polyPath(ctx, side); ctx.stroke();
-    ctx.setLineDash([14, 14]); ctx.strokeStyle = '#f4f4f0'; ctx.stroke();
+  // швы между секциями
+  for (let s = SECTION; s < track.total; s += SECTION) line(ctx, pointAt(track, s), track.width, p.seam, Math.max(2, 1.5 * px));
+  // прорези: медные рельсы, между ними тёмная щель
+  for (const lane of lanesOf(track)) {
+    polyPath(ctx, lane);
+    ctx.lineWidth = Math.max(7, 3 * px); ctx.strokeStyle = p.rail; ctx.stroke();
+    ctx.lineWidth = Math.max(3, 1.5 * px); ctx.strokeStyle = p.slot; ctx.stroke();
   }
-  ctx.setLineDash([]);
+  // бордюры: красные и белые пластиковые блоки
+  const kw = Math.max(9, 3 * px);
+  for (const side of [track.left, track.right]) {
+    ctx.lineWidth = kw; ctx.strokeStyle = p.kerb; polyPath(ctx, side); ctx.stroke();
+    ctx.setLineDash([16, 16]); ctx.strokeStyle = p.kerb2; ctx.stroke();
+    ctx.setLineDash([]);
+  }
   // старт и финиш
-  const st = pointAt(track, track.startS - CAR.length / 2 - 4);
-  line(ctx, st, track.width, '#f4f4f0', 5);
-  const fin = pointAt(track, track.finishS);
-  checkered(ctx, fin, track.width);
+  line(ctx, pointAt(track, track.startS - CAR.length / 2 - 4), track.width, p.kerb2, 5);
+  checkered(ctx, pointAt(track, track.finishS), track.width, p);
 }
 
 function line(ctx, pt, width, color, thick) {
@@ -109,19 +140,20 @@ function line(ctx, pt, width, color, thick) {
   ctx.lineWidth = thick; ctx.strokeStyle = color; ctx.stroke();
 }
 
-function checkered(ctx, pt, width) {
+function checkered(ctx, pt, width, p) {
   ctx.save();
   ctx.translate(pt.x, pt.y);
   ctx.rotate(pt.angle);
   const sq = 10, rows = 2, cols = Math.round(width / sq);
   for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
-    ctx.fillStyle = (r + c) % 2 ? '#111' : '#f4f4f0';
+    ctx.fillStyle = (r + c) % 2 ? p.checkDark : p.checkLight;
     ctx.fillRect(r * sq - sq, -width / 2 + c * (width / cols), sq, width / cols);
   }
   ctx.restore();
 }
 
-export function drawCar(ctx, car, { color = '#ffd60a', alpha = 1, sensors = false, label = null, highlight = false, glow = false, cam = null } = {}) {
+/** Слот-кар: литой корпус, тёмное стекло, белый круг под номер на капоте. Разбитая — серая. */
+export function drawCar(ctx, car, { color = null, alpha = 1, sensors = false, label = null, highlight = false, cam = null, number = null } = {}) {
   const p = getPalette();
   if (sensors && !car.done) drawSensors(ctx, car);
   ctx.save();
@@ -129,29 +161,38 @@ export function drawCar(ctx, car, { color = '#ffd60a', alpha = 1, sensors = fals
   ctx.translate(car.x, car.y);
   ctx.rotate(car.angle);
   const L = CAR.length, W = CAR.width;
-  const body = car.status === 'crashed' ? '#8a9095' : color;
+  const body = car.status === 'crashed' ? p.crashed : (color ?? p.you);
   if (highlight) {
     ctx.lineWidth = 3 / (cam?.scale || 1) + 2;
-    ctx.strokeStyle = p.accent;
+    ctx.strokeStyle = p.you;
     roundRect(ctx, -L / 2 - 5, -W / 2 - 5, L + 10, W + 10, 8); ctx.stroke();
   }
+  // тень под машинкой — она стоит на трассе
+  ctx.shadowColor = 'rgb(0 0 0 / 0.35)'; ctx.shadowBlur = 6; ctx.shadowOffsetY = 3;
   ctx.fillStyle = body;
-  if (glow && car.status !== 'crashed') { ctx.shadowColor = color; ctx.shadowBlur = 22; }
-  roundRect(ctx, -L / 2, -W / 2, L, W, 6); ctx.fill();
-  ctx.shadowBlur = 0;
-  ctx.fillStyle = 'rgba(0,0,0,0.45)';
-  roundRect(ctx, L * 0.02, -W / 2 + 4, L * 0.24, W - 8, 3); ctx.fill(); // лобовое
-  ctx.fillStyle = 'rgba(255,255,255,0.35)';
-  ctx.fillRect(-L / 2 + 3, -2, L * 0.4, 4); // полоса
+  roundRect(ctx, -L / 2, -W / 2, L, W, 7); ctx.fill();
+  ctx.shadowColor = 'transparent';
+  ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgb(0 0 0 / 0.35)'; ctx.stroke();
+  ctx.fillStyle = 'rgb(0 0 0 / 0.55)';
+  roundRect(ctx, L * 0.04, -W / 2 + 3, L * 0.22, W - 6, 3); ctx.fill(); // лобовое стекло
+  ctx.fillStyle = p.kerb2;
+  ctx.beginPath(); ctx.arc(-L * 0.2, 0, W * 0.3, 0, Math.PI * 2); ctx.fill(); // круг под номер
+  if (number !== null) {
+    ctx.translate(-L * 0.2, 0); // номер стоит ровно, когда машина едет вправо — как на старте
+    ctx.fillStyle = p.checkDark;
+    ctx.font = `800 ${Math.round(W * 0.42)}px ${UI_FONT}`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(String(number), 0, 1);
+  }
   ctx.restore();
   if (label) {
     ctx.save();
     const s = 1 / (cam?.scale || 1);
-    ctx.font = `${Math.round(13 * s)}px "Golos Text", system-ui, sans-serif`;
+    ctx.font = `600 ${Math.round(13 * s)}px ${UI_FONT}`;
     ctx.textAlign = 'center';
-    ctx.lineWidth = 3 * s; ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+    ctx.lineWidth = 3 * s; ctx.strokeStyle = 'rgb(0 0 0 / 0.65)';
     ctx.strokeText(label, car.x, car.y - 30 * Math.max(1, s * 0.8));
-    ctx.fillStyle = '#fff';
+    ctx.fillStyle = p.kerb2;
     ctx.fillText(label, car.x, car.y - 30 * Math.max(1, s * 0.8));
     ctx.restore();
   }
@@ -206,24 +247,27 @@ function roundRect(ctx, x, y, w, h, r) {
 
 export function clear(ctx, canvas) {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.fillStyle = getPalette().grass;
+  ctx.fillStyle = getPalette().board;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 }
 
-/** Машины трафика: попутные светлые, встречные с жёлтыми фарами */
+/** Машины трафика — игрушечные: попутные серые со стоп-сигналами, встречные светлые с жёлтыми фарами */
 export function drawTraffic(ctx, traffic) {
   if (!traffic) return;
+  const p = getPalette();
   const L = CAR.length, W = CAR.width;
   for (const o of traffic) {
     ctx.save();
     ctx.translate(o.x, o.y);
     ctx.rotate(o.angle);
-    ctx.fillStyle = o.oncoming ? '#e9ecef' : '#ced4da';
-    roundRect(ctx, -L / 2, -W / 2, L, W, 5); ctx.fill();
-    ctx.lineWidth = 2; ctx.strokeStyle = '#343a40'; ctx.stroke();
-    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.shadowColor = 'rgb(0 0 0 / 0.3)'; ctx.shadowBlur = 5; ctx.shadowOffsetY = 3;
+    ctx.fillStyle = o.oncoming ? p.trafficOncoming : p.traffic;
+    roundRect(ctx, -L / 2, -W / 2, L, W, 6); ctx.fill();
+    ctx.shadowColor = 'transparent';
+    ctx.lineWidth = 2; ctx.strokeStyle = p.trafficEdge; ctx.stroke();
+    ctx.fillStyle = 'rgb(0 0 0 / 0.5)';
     roundRect(ctx, L * 0.02, -W / 2 + 4, L * 0.22, W - 8, 3); ctx.fill();
-    ctx.fillStyle = o.oncoming ? '#ffd43b' : '#fa5252'; // фары у встречных, стоп-сигналы у попутных
+    ctx.fillStyle = o.oncoming ? p.you : p.kerb; // фары у встречных, стоп-сигналы у попутных
     const fx = o.oncoming ? L / 2 - 3 : -L / 2 + 1;
     ctx.fillRect(fx, -W / 2 + 2, 3, 5); ctx.fillRect(fx, W / 2 - 7, 3, 5);
     ctx.restore();

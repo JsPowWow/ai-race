@@ -1,87 +1,67 @@
-/* Карточка урока над трассой */
-/* ── урок ── */
-.lesson { max-width: 1480px; margin: 0 auto; padding-inline: 16px; padding-block: 18px 0; }
+/* Урок над трассой — строка инструкции: номер шага на жёлтой детали, одна фраза, «Готово».
+   Остальные шаги — кружки справа; цель и теория — под «Зачем этот урок». */
+.lesson { max-inline-size: 1480px; margin-inline: auto; padding-inline: 16px; padding-block: 16px 0; }
 .lesson-card {
-  position: relative; overflow: hidden;
-  background: linear-gradient(115deg, var(--surface) 0 62%, color-mix(in srgb, var(--ai) 10%, var(--surface)) 100%);
-  border: 1px solid var(--line);
-  border-left: 6px solid var(--ai);
-  padding: 20px 22px;
+  display: flex; flex-direction: column; gap: 14px; padding: 16px 20px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-l); box-shadow: var(--shadow-part);
 }
-.lesson-big {
-  position: absolute; right: -6px; top: -30px;
-  font: 900 180px/1 var(--display); font-style: italic;
-  color: transparent; -webkit-text-stroke: 2px color-mix(in srgb, var(--ai) 45%, transparent);
-  pointer-events: none; user-select: none; letter-spacing: -0.05em;
-}
-.lesson-head { position: relative; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
-.lesson-num {
-  font: 700 11px/1 var(--display); text-transform: uppercase; letter-spacing: 0.12em;
-  color: var(--on-ai); background: var(--ai); padding: 6px 10px;
-  transform: skewX(var(--skew));
-}
-.lesson-head h1 {
-  font: 900 clamp(22px, 3vw, 34px)/1.1 var(--display); margin: 0; text-wrap: balance;
-  font-style: italic; letter-spacing: -0.01em;
-}
-.lesson-toggle {
-  margin-left: auto; border: 1px solid var(--line); background: var(--bg-2); color: var(--muted);
-  cursor: pointer; font: 600 12px var(--body); padding: 6px 10px; position: relative;
-}
-.lesson-toggle:hover { color: var(--ink); border-color: var(--muted); }
-.lesson-progress {
-  font: 700 12px/1 var(--mono); color: var(--accent-text);
-  border: 1px solid var(--line); padding: 5px 8px; margin-left: auto; position: relative;
-}
-.lesson-progress + .lesson-toggle { margin-left: 0; }
-.lesson-goal {
-  position: relative; margin-top: 14px; max-width: 80ch;
-  font-size: 17px; line-height: 1.5;
-  padding: 10px 14px; background: color-mix(in srgb, var(--accent) 8%, transparent);
-  border-left: 3px solid var(--accent);
-}
-.lesson-goal b {
-  display: block; margin-bottom: 2px;
-  font: 700 11px/1.2 var(--display); text-transform: uppercase; letter-spacing: 0.12em; color: var(--accent-text);
-}
-.lesson-tasks ol { list-style: none; padding: 0; counter-reset: task; gap: 8px; }
-.lesson-tasks li { counter-increment: task; }
-.lesson-tasks label { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 8px; cursor: pointer; align-items: start; }
-.lesson-tasks input { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--good); cursor: pointer; }
-.lesson-tasks input:checked + span { color: var(--muted); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--good) 70%, transparent); }
-.tag {
-  display: inline-block; margin-right: 8px; padding: 2px 6px;
-  font: 700 10px/1.3 var(--display); letter-spacing: 0.06em; vertical-align: 1px;
-}
-.tag.js { background: var(--accent); color: var(--on-accent); }
-.tag.ai { background: var(--ai); color: var(--on-ai); }
-.lesson-grid {
-  position: relative;
-  display: grid; gap: 16px 26px; margin-top: 18px;
-  grid-template-columns: minmax(0, 1.5fr) repeat(3, minmax(0, 1fr));
-}
-.lesson-grid section { display: flex; flex-direction: column; gap: 8px; max-width: 60ch; }
-.lesson-grid h3 {
-  font: 700 11px/1.2 var(--display); text-transform: uppercase; letter-spacing: 0.12em;
-  color: var(--accent-text); margin: 0; padding-bottom: 8px; border-bottom: 1px solid var(--line);
-}
-.lesson-grid section:nth-child(2) h3, .lesson-grid section:nth-child(3) h3 { color: var(--ai-text); }
-.lesson-grid p, .lesson-grid li { font-size: 14px; line-height: 1.6; color: var(--ink-2); }
-.lesson-grid b { color: var(--ink); }
-.lesson-grid p + p { margin-top: 2px; }
-.lesson-grid ul, .lesson-grid ol { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
-.lesson-grid li::marker { color: var(--ai-text); }
-.lesson-card.collapsed { padding-block: 14px; }
-.lesson-card.collapsed .lesson-goal, .lesson-card.collapsed .lesson-grid { display: none; }
-@media (max-width: 1200px) { .lesson-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 700px) { .lesson-grid { grid-template-columns: minmax(0, 1fr); } }
-.lesson-card.collapsed .lesson-big { font-size: 90px; top: -14px; }
+.lesson-head { display: flex; align-items: center; gap: 12px 20px; flex-wrap: wrap; }
+.lesson-head h1 { font: 700 20px/1.2 var(--font); letter-spacing: -0.01em; }
 
+.lesson-dots { display: flex; gap: 6px; margin: 0; margin-inline-start: auto; padding: 0; list-style: none; }
+.lesson-dots button {
+  inline-size: 26px; block-size: 26px; border-radius: 50%; cursor: pointer;
+  display: grid; place-items: center;
+  border: 1px solid var(--line-strong); background: var(--surface); color: var(--muted);
+  font: 600 12px/1 var(--font); font-variant-numeric: tabular-nums;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+.lesson-dots button:hover { border-color: var(--ink-2); color: var(--ink); }
+.lesson-dots button.done { background: var(--ink-2); border-color: var(--ink-2); color: var(--surface); }
+.lesson-dots button[aria-current="step"] { border: 2px solid var(--you); box-shadow: 0 0 0 2px color-mix(in srgb, var(--you) 35%, transparent); color: var(--ink); }
+
+.lesson-step { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 16px; align-items: center; }
+.step-num {
+  inline-size: 48px; block-size: 48px; border-radius: var(--r-m); display: grid; place-items: center;
+  background: var(--you); color: var(--on-you);
+  font: 800 26px/1 var(--font); font-variant-numeric: tabular-nums;
+  box-shadow: inset 0 -3px 0 rgb(0 0 0 / 0.15), var(--shadow-part); /* литая деталь */
+}
+.step-text { max-inline-size: 72ch; line-height: 1.45; }
+.step-action { display: block; font-size: 18px; font-weight: 600; color: var(--ink); }
+.step-detail { display: block; margin-block-start: 2px; font-size: 14px; color: var(--muted); }
+.lesson-step.is-done .step-num { background: var(--surface-2); color: var(--good); }
+.lesson-step.is-done .step-action { color: var(--muted); }
+/* «Готово» — тёмная литая деталь: весомее обычной кнопки, но не спорит с красным «Газом» */
+.step-done { background: var(--ink); border-color: var(--ink); color: var(--surface); font-weight: 600; box-shadow: inset 0 -2px 0 rgb(0 0 0 / 0.25), var(--shadow-part); }
+.step-done:hover { background: var(--ink-2); border-color: var(--ink-2); }
+.step-done[aria-pressed="true"] { background: var(--surface); color: var(--good); border-color: color-mix(in srgb, var(--good) 50%, var(--line)); box-shadow: none; }
+
+.lesson-more summary { inline-size: fit-content; font-size: 14px; color: var(--brain-text); }
+.lesson-more summary:hover { color: var(--ink); }
+.lesson-more-body {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px 28px; margin-block-start: 14px;
+  padding-block-start: 14px; border-block-start: 1px solid var(--line);
+}
+.lesson-goal { grid-column: 1 / -1; font-size: 16px; max-inline-size: 80ch; color: var(--ink); }
+.lesson-more-body section { display: flex; flex-direction: column; gap: 8px; max-inline-size: 60ch; }
+.lesson-more-body h3 { font: 600 14px/1.3 var(--font); color: var(--ink); }
+.lesson-more-body p { font-size: 14px; line-height: 1.6; color: var(--ink-2); }
+.tag {
+  display: inline-block; margin-inline-end: 8px; padding: 2px 7px; border-radius: var(--r-s);
+  font: 700 11px/1.4 var(--font); vertical-align: 1px;
+}
+.tag.js { background: var(--you); color: var(--on-you); }
+.tag.ai { background: var(--brain); color: var(--on-brain); }
+
+@media (max-width: 1000px) { .lesson-more-body { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 700px) {
   .lesson { padding-block: 12px 0; }
-  .lesson-card { padding: 14px 14px 16px; }
-  .lesson-big { font-size: 96px; top: -14px; right: 4px; }
-  .lesson-card.collapsed .lesson-big { font-size: 70px; top: -8px; }
-  .lesson-goal { font-size: 15px; }
-  .lesson-progress { margin-left: 0; }
+  .lesson-card { padding: 14px; gap: 12px; }
+  .lesson-dots { margin-inline-start: 0; }
+  .lesson-step { grid-template-columns: auto minmax(0, 1fr); }
+  .lesson-step .step-done { grid-column: 1 / -1; justify-self: start; }
+  .step-num { inline-size: 40px; block-size: 40px; font-size: 22px; }
+  .step-action { font-size: 16px; }
 }
+@media (prefers-reduced-motion: reduce) { .lesson-dots button { transition: none; } }

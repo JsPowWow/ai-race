@@ -1,29 +1,29 @@
 /* «Гонка»: проверка чужого кода, участники, таблица */
 /* ── гонка ── */
 .review { display: flex; flex-direction: column; gap: 8px; border: 1px dashed var(--warn); padding: 12px; background: var(--bg-2); }
-.review h3 { margin: 0; font: 700 12px var(--display); text-transform: uppercase; letter-spacing: 0.08em; color: var(--warn); }
+.review h3 { margin: 0; font: 600 14px var(--font); color: var(--warn); }
 .review-code { margin: 0; max-height: 320px; overflow: auto; padding: 10px; background: var(--code-bg); font: 12px/1.5 var(--mono); color: var(--code-ink); }
 .review-code .sus { background: color-mix(in srgb, var(--bad) 30%, transparent); color: var(--ink); display: inline-block; min-width: 100%; }
 .review-btn { margin-top: 4px; border-color: var(--warn); color: var(--warn); }
 .entrants { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .entrants li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 8px; align-items: center; font-size: 13px; padding: 6px 0; border-bottom: 1px solid var(--line); }
-.entrants .car-dot { width: 14px; height: 14px; transform: skewX(var(--skew)); }
+.entrants .car-dot { width: 14px; height: 14px; border-radius: 4px; }
 .entrants .kind { color: var(--muted); font-size: 12px; }
 .entrants button { border: 0; background: transparent; cursor: pointer; color: var(--muted); width: 26px; height: 26px; }
 .entrants button:hover { background: var(--surface-2); color: var(--bad); }
-.entrants input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--ai); cursor: pointer; }
+.entrants input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--brain); cursor: pointer; }
 .board { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; counter-reset: pos; }
 .board li {
   counter-increment: pos;
   display: grid; grid-template-columns: 30px auto minmax(0, 1fr) auto; gap: 8px; align-items: center;
-  font-size: 14px; padding: 7px 8px; background: var(--bg-2);
+  font-size: 14px; padding: 7px 8px; background: var(--surface-2); border-radius: var(--r-s);
 }
-.board li::before { content: counter(pos); font: 800 15px var(--display); font-style: italic; color: var(--muted); text-align: right; }
-.board li.p1 { background: color-mix(in srgb, var(--accent) 16%, var(--bg-2)); }
-.board li.p1::before { color: var(--accent-text); }
+.board li::before { content: counter(pos); font: 700 15px var(--font); font-variant-numeric: tabular-nums; color: var(--muted); text-align: right; }
+.board li.p1 { background: color-mix(in srgb, var(--you) 16%, var(--bg-2)); }
+.board li.p1::before { color: var(--you-text); }
 .board li.p2::before { color: var(--silver); }
 .board li.p3::before { color: var(--bronze); }
-.board .car-dot { width: 14px; height: 14px; transform: skewX(var(--skew)); }
+.board .car-dot { width: 14px; height: 14px; border-radius: 4px; }
 .board .res { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 .board .empty { background: transparent; color: var(--muted); grid-template-columns: 1fr; padding: 0; }
 .board .empty::before { content: none; }

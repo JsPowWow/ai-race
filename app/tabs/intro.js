@@ -43,7 +43,7 @@ export const introTab = {
     cam.apply(ctx, canvas);
     drawTrack(ctx, track, cam);
     drawTraffic(ctx, trafficAt(track, track.traffic, car.ticks));
-    drawCar(ctx, car, { color: demoBot.color, sensors: true, glow: true, cam });
+    drawCar(ctx, car, { color: demoBot.color, sensors: true, cam });
   },
 };
 

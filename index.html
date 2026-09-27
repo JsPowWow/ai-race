@@ -12,43 +12,40 @@
 <meta property="og:type" content="website">
 <script>try{const t=JSON.parse(localStorage.getItem('ai-race:theme'));if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch{}</script>
 <link rel="icon" href="app/icon.svg" type="image/svg+xml">
-<link rel="preload" href="app/fonts/unbounded-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="app/fonts/golos-text-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="modulepreload" href="app/generated/chunks/chunk-SILUWISA.js">
+<link rel="preload" href="app/fonts/rubik-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="modulepreload" href="app/generated/chunks/chunk-JWCJ2SPW.js">
 <link rel="stylesheet" href="app/generated/app.css">
 <script type="module" src="app/generated/app.js"></script>
 </head>
 <body>
 <a class="skip-link" href="#content">К содержимому</a>
 <header class="topbar">
-  <a class="brand" href="#intro" data-home title="На главную"><span class="ai"><span>AI</span></span> <span class="race"><span>Race</span></span><span class="lines" aria-hidden="true"></span></a>
+  <a class="brand" href="#intro" data-home title="На главную"><svg class="brand-car" viewBox="0 0 40 24" aria-hidden="true"><rect x="2" y="4" width="36" height="16" rx="7" class="body"/><rect x="24" y="7" width="8" height="10" rx="3" class="glass"/><circle cx="14" cy="12" r="4.5" class="roundel"/><rect x="0" y="6" width="4" height="4" rx="1" class="wheel"/><rect x="0" y="14" width="4" height="4" rx="1" class="wheel"/><rect x="34" y="6" width="4" height="4" rx="1" class="wheel"/><rect x="34" y="14" width="4" height="4" rx="1" class="wheel"/></svg><span>AI Race</span></a>
   <nav class="tabs" role="tablist" aria-label="Разделы">
-    <button role="tab" id="tab-intro" data-tab="intro" aria-selected="false"><span class="t"><span class="n">★</span>Старт</span></button>
-    <button role="tab" id="tab-teach" data-tab="teach" aria-selected="false"><span class="t"><span class="n">01</span>Я учу</span></button>
-    <button role="tab" id="tab-train" data-tab="train" aria-selected="false"><span class="t"><span class="n">02</span>Учится само</span></button>
-    <button role="tab" id="tab-code" data-tab="code" aria-selected="false"><span class="t"><span class="n">{ }</span>Код</span></button>
-    <button role="tab" id="tab-exam" data-tab="exam" aria-selected="false"><span class="t"><span class="n">03</span>Экзамен</span></button>
-    <button role="tab" id="tab-race" data-tab="race" aria-selected="false"><span class="t"><span class="n">04</span>Гонка</span></button>
+    <button role="tab" id="tab-intro" data-tab="intro" aria-selected="false">Старт</button>
+    <button role="tab" id="tab-teach" data-tab="teach" aria-selected="false"><span class="n">1</span>Я учу</button>
+    <button role="tab" id="tab-train" data-tab="train" aria-selected="false"><span class="n">2</span>Учится само</button>
+    <button role="tab" id="tab-code" data-tab="code" aria-selected="false">Код</button>
+    <button role="tab" id="tab-exam" data-tab="exam" aria-selected="false"><span class="n">3</span>Экзамен</button>
+    <button role="tab" id="tab-race" data-tab="race" aria-selected="false"><span class="n">4</span>Гонка</button>
   </nav>
   <div class="champ" id="champChip">Мозг не обучен</div>
   <button class="theme-toggle" id="themeToggle" type="button"><span class="theme-icon" aria-hidden="true"></span><span class="theme-label">Авто</span></button>
 </header>
-<div class="kerb" aria-hidden="true"></div>
 <div id="content" tabindex="-1"></div>
 
 <main class="intro" id="introPage" hidden>
   <div class="intro-hero">
     <div class="intro-copy">
-      <p class="intro-kicker">Курс JavaScript · 4 урока и гонка</p>
-      <h1 class="intro-title">Научи машину <span>ездить без водителя</span></h1>
+      <h1 class="intro-title">Научи машину ездить без водителя</h1>
       <p class="intro-lead">Маленькая нейросеть смотрит на дорогу лучами-сенсорами и каждую долю секунды решает: газ, тормоз, влево или вправо. Ты пишешь код на JavaScript, эволюция подбирает машине «мозг», а в конце — гонка на трассе, которую никто не видел.</p>
       <ul class="intro-promise">
         <li><span class="tag ai">ИИ</span><span>Поймёшь, <b>как учится нейросеть</b>: на твоих примерах и сама, через эволюцию.</span></li>
         <li><span class="tag js">JS</span><span>Получишь <b>базовые навыки JavaScript</b>: функции, массивы, объекты, JSON.</span></li>
-        <li><span class="tag race">🏁</span><span>Соберёшь <b>своего бота</b> и выйдешь с ним на гонку против сокурсников.</span></li>
+        <li><span class="tag race">Гонка</span><span>Соберёшь <b>своего бота</b> и выйдешь с ним на гонку против сокурсников.</span></li>
       </ul>
       <div class="intro-actions">
-        <button class="btn primary big" data-start>Поехали →</button>
+        <button class="btn primary big" data-start>Поехали</button>
         <span class="note">Ничего устанавливать не нужно — всё работает в браузере</span>
       </div>
     </div>
@@ -98,7 +95,7 @@
     <div class="brain-grid">
       <div class="brain-explain">
         <p>Слева — <b>входы</b>: что видят лучи (0 — пусто, 1 — вплотную) и скорость. Справа — <b>выходы</b>: газ, тормоз, влево, вправо. Посередине — нейроны.</p>
-        <p>Каждая линия — это <b>вес</b>, одно число: розовые толкают к действию, голубые мешают. Нейрон складывает входы, умноженные на веса, и решает, «загореться» ли ему.</p>
+        <p>Каждая линия — это <b>вес</b>, одно число: красные толкают к действию, синие мешают. Нейрон складывает входы, умноженные на веса, и решает, «загореться» ли ему.</p>
         <canvas id="introNet" class="net" aria-label="Схема нейросети бота"></canvas>
       </div>
       <div class="brain-file">
@@ -111,16 +108,16 @@
   <section class="intro-block">
     <h2>Как проходят уроки</h2>
     <ol class="intro-path">
-      <li><button data-go="teach"><span class="n">01</span><b>Я учу</b><span>Катаемся сами, даём машине глаза и учим сеть повторять за нами.</span></button></li>
-      <li><button data-go="train"><span class="n">02</span><b>Учится само</b><span>Рой из ста машин: отбор лучших, мутации — без подсказок человека.</span></button></li>
-      <li><button data-go="code"><span class="n">{ }</span><b>Код</b><span>Пишем пять функций, которые решают, как машина учится.</span></button></li>
-      <li><button data-go="exam"><span class="n">03</span><b>Экзамен</b><span>Проверяем на незнакомых трассах: выучил или понял?</span></button></li>
-      <li><button data-go="race"><span class="n">04</span><b>Гонка</b><span>Финал на секретной трассе со встречными машинами.</span></button></li>
+      <li><button data-go="teach"><span class="n">1</span><b>Я учу</b><span>Катаемся сами, даём машине глаза и учим сеть повторять за нами.</span></button></li>
+      <li><button data-go="train"><span class="n">2</span><b>Учится само</b><span>Рой из ста машин: отбор лучших, мутации — без подсказок человека.</span></button></li>
+      <li><button data-go="code"><span class="n extra">доп.</span><b>Код</b><span>Пишем пять функций, которые решают, как машина учится.</span></button></li>
+      <li><button data-go="exam"><span class="n">3</span><b>Экзамен</b><span>Проверяем на незнакомых трассах: выучил или понял?</span></button></li>
+      <li><button data-go="race"><span class="n">4</span><b>Гонка</b><span>Финал на секретной трассе со встречными машинами.</span></button></li>
     </ol>
   </section>
 
   <div class="intro-cta">
-    <button class="btn primary big" data-start>Поехали →</button>
+    <button class="btn primary big" data-start>Поехали</button>
     <span class="note">Начнём с урока 1 — «Я учу»</span>
   </div>
 </main>
@@ -133,7 +130,6 @@
       <canvas id="stage" aria-label="Трасса"></canvas>
       <div class="hud" id="hud"></div>
       <div class="banner" id="banner" hidden></div>
-      <div class="rec-badge" id="recBadge" hidden>● REC</div>
       <div class="countdown" id="countdown" hidden><span></span></div>
       <div class="pad" aria-label="Управление касанием">
         <div class="pad-steer">
@@ -220,7 +216,8 @@
 
   <aside class="panel">
     <!-- Я УЧУ -->
-    <div data-panel="teach" hidden>
+    <div data-panel="teach" class="parts" hidden>
+      <h2 class="parts-title">Детали набора</h2>
       <section class="block">
         <h2>Мои заезды</h2>
         <p class="hint" id="runsHint">Просто езди: заезд записывается сам — от старта до финиша или аварии. Каждый тик — пример «что видят лучи → что ты нажал».</p>
@@ -249,12 +246,12 @@
           <button class="btn small" id="shapeNo">Оставить как было</button>
         </div>
       </div>
-      <details class="block fold" open>
+      <details class="block fold" id="eyesFold">
         <summary><h2>Глаза</h2></summary>
         <div class="field"><label for="sCount">Лучей</label><input type="range" id="sCount" min="3" max="15" step="1"><output id="sCountOut"></output></div>
         <div class="field"><label for="sSpread">Угол обзора</label><input type="range" id="sSpread" min="30" max="180" step="10"><output id="sSpreadOut"></output></div>
         <div class="field"><label for="sLength">Дальность</label><input type="range" id="sLength" min="80" max="260" step="10"><output id="sLengthOut"></output></div>
-        <p class="hint">Числа лучей видно вверху трассы: 0 — пусто, 1 — препятствие вплотную.</p>
+        <p class="hint">Пока «Глаза» открыты, числа лучей видно вверху трассы: 0 — пусто, 1 — препятствие вплотную.</p>
       </details>
       <details class="block fold">
         <summary><h2>Сеть</h2></summary>
@@ -263,7 +260,7 @@
         <div class="field wide"><label for="thinkSelect">Как думает</label><select id="thinkSelect" aria-label="Вариант мозга"></select></div>
         <p class="hint" id="thinkHint"></p>
       </details>
-      <details class="block fold" open>
+      <details class="block fold">
         <summary><h2>Мозг под микроскопом</h2></summary>
         <canvas id="netCanvas" class="net" aria-label="Схема нейросети: щёлкни связь или нейрон, чтобы поменять вес"></canvas>
         <p class="legend"><span class="sw pos"></span>положительный вес <span class="sw neg"></span>отрицательный <span class="sw act"></span>нейрон сработал</p>
@@ -391,7 +388,7 @@
       <section class="block final-link">
         <h2>Финал курса</h2>
         <p class="hint">Здесь — гонка на несколько машин. Для общего финала на сотни участников (этапы, суперфинал, живая таблица, стрим) есть отдельный режим.</p>
-        <button class="btn small" data-open="final">Открыть финал →</button>
+        <button class="btn small" data-open="final">Открыть финал</button>
       </section>
       <section class="block">
         <h2>Секретная трасса</h2>

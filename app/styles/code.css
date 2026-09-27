@@ -2,16 +2,16 @@
 /* ── код ── */
 .editor { display: flex; flex-direction: column; gap: 10px; }
 .filetabs { display: flex; flex-wrap: wrap; gap: 4px; }
-.filetabs button { border: 1px solid var(--line); background: var(--surface); padding: 7px 11px; cursor: pointer; font: 13px var(--mono); display: inline-flex; gap: 6px; align-items: center; }
+.filetabs button { border: 1px solid var(--line); border-radius: var(--r-s); background: var(--surface); padding: 7px 11px; cursor: pointer; font: 13px var(--mono); display: inline-flex; gap: 6px; align-items: center; }
 .filetabs button:hover { border-color: var(--muted); }
-.filetabs button[aria-selected="true"] { background: var(--ai); color: var(--on-ai); border-color: var(--ai); }
+.filetabs button[aria-selected="true"] { background: var(--brain); color: var(--on-brain); border-color: var(--brain); }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line); display: inline-block; }
-.dot.pass { background: var(--good); } .dot.advice { background: var(--accent); } .dot.fail { background: var(--bad); }
+.dot.pass { background: var(--good); } .dot.advice { background: var(--you); } .dot.fail { background: var(--bad); }
 .code-box {
   display: grid; grid-template-columns: auto minmax(0, 1fr);
-  min-height: 62vh; border: 1px solid var(--line); border-left: 3px solid var(--accent); background: var(--code-bg);
+  min-height: 62vh; border: 1px solid var(--line); border-radius: var(--r-l); overflow: hidden; background: var(--code-bg);
 }
-.code-box.has-error { border-left-color: var(--bad); }
+.code-box.has-error { border-color: var(--bad); }
 .gutter {
   margin: 0; padding: 16px 10px 16px 14px; overflow: hidden; user-select: none;
   font: 13.5px/1.6 var(--mono); text-align: right; color: var(--muted); background: var(--bg);
@@ -24,12 +24,12 @@
   padding: 16px 18px; background: transparent; white-space: pre; overflow: auto;
   border: 0; color: var(--code-ink); outline: none;
 }
-.code-box:focus-within { box-shadow: 0 0 0 2px color-mix(in srgb, var(--ai) 60%, transparent); }
+.code-box:focus-within { box-shadow: 0 0 0 2px color-mix(in srgb, var(--brain) 60%, transparent); }
 .code-error {
   display: grid; gap: 6px; padding: 12px 14px;
-  background: color-mix(in srgb, var(--bad) 14%, var(--surface)); border: 1px solid var(--bad); border-left-width: 4px;
+  background: color-mix(in srgb, var(--bad) 14%, var(--surface)); border: 1px solid var(--bad); border-radius: var(--r-m);
 }
-.code-error b { font: 800 13px var(--display); color: var(--bad); }
+.code-error b { font: 800 13px var(--font); color: var(--bad); }
 .code-error .msg { font: 13px/1.5 var(--mono); color: var(--ink); }
 .code-error pre { margin: 0; font: 13px/1.5 var(--mono); color: var(--code-ink); background: var(--code-bg); padding: 6px 10px; overflow-x: auto; }
 .code-error .hint { color: var(--ink-2); }
@@ -37,9 +37,9 @@
 .tests { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .tests li { display: grid; grid-template-columns: 66px minmax(0, 1fr); gap: 8px; font-size: 13px; align-items: start; }
 .tests .msg { display: block; color: var(--muted); font-size: 12px; }
-.badge { display: inline-block; font: 700 10px/1 var(--display); text-transform: uppercase; padding: 5px 6px; text-align: center; }
+.badge { display: inline-block; font: 600 11px/1 var(--font); padding: 5px 7px; border-radius: var(--r-s); text-align: center; }
 .badge.pass { background: color-mix(in srgb, var(--good) 12%, transparent); color: var(--good); }
-.badge.advice { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent-text); }
+.badge.advice { background: color-mix(in srgb, var(--you) 16%, transparent); color: var(--you-text); }
 .badge.fail { background: color-mix(in srgb, var(--bad) 12%, transparent); color: var(--bad); }
 
 @media (max-width: 700px) {

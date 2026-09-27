@@ -6,6 +6,7 @@ import { createBrain, cloneBrain, LIMITS } from '../../engine/brain.js';
 import { TRAFFIC_LEVELS, withTraffic } from '../../engine/traffic.js';
 import { sampleOf, worthLearning, trainEpoch, agreement, TEACH_THINK } from '../../engine/imitation.js';
 import { drawSeries } from '../../engine/netviz.js';
+import { cssColor } from '../../engine/render.js';
 import { state, persist, sizesOf, thinkFn, brainTitle, on } from '../state.js';
 import { load, save } from '../storage.js';
 import { live } from '../student-code.js';
@@ -17,6 +18,7 @@ import { $, esc, secs, pct, options, setPressed, delegate } from '../ui.js';
 import { createNetworkEditor } from './network-editor.js';
 
 const MIN_SAMPLES = 200;
+const eyesFold = $('#eyesFold');
 const RESTART_DELAY = 1100;
 
 const learning = { epochs: 20, rate: 0.05, ...load('teach', {}) };
@@ -60,15 +62,15 @@ export const teachTab = {
       resetCar();
     }
     drawScene(track, { camera: 'follow', follow: car, traffic });
-    paintCar(car, { color: mode === 'me' ? state.profile.color : '#ff3d7f', sensors: true, glow: true });
+    paintCar(car, { color: mode === 'me' ? state.profile.color : cssColor('--brain'), sensors: true, number: 1 }); // едет мозг — машина синяя, цвета мозга
     setHud([
-      mode === 'me' ? (recording ? `<b>● запись</b> ${recording.length}` : 'рулишь <b>ты</b>') : 'рулит <b>мозг</b>',
+      mode === 'me' ? (recording ? `<b class="rec">запись</b> ${recording.length}` : 'рулишь <b>ты</b>') : 'рулит <b>мозг</b>',
       `скорость <b>${car.speed.toFixed(1)}</b>`,
       `пройдено <b>${pct(carReport(car, track).progressPct)}</b>`,
       `время <b>${secs(car.ticks)}</b>`,
-      `лучи <b>${[...car.readings].map((v) => v.toFixed(2)).join(' ')}</b>`,
+      // числа лучей нужны, когда разбираешься с «Глазами»; на первом заезде это лишний шум
+      ...(eyesFold.open ? [`лучи <b>${[...car.readings].map((v) => v.toFixed(2)).join(' ')}</b>`] : []),
     ]);
-    $('#recBadge').hidden = !recording;
     if (mode === 'brain' && frameNo % 3 === 0) editor.render();
   },
 };

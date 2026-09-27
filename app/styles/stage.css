@@ -1,61 +1,62 @@
-/* Трасса: окно, подсказки поверх, баннер, отсчёт */
-.stage { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+/* Трасса: полотно стола, на котором лежит набор; поверх — табло счётчика, баннер, отсчёт */
+.stage { display: flex; flex-direction: column; gap: 12px; min-inline-size: 0; }
 .viewport {
   position: relative;
-  width: 100%;
+  inline-size: 100%;
   aspect-ratio: 16 / 10;
-  max-height: 72vh;
+  max-block-size: 72vh;
   overflow: hidden;
-  background: var(--grass);
+  background: var(--board);
   border: 1px solid var(--line);
-  box-shadow: 0 24px 60px -30px color-mix(in srgb, var(--ai) 55%, transparent);
+  border-radius: var(--r-l);
+  box-shadow: var(--shadow-part);
 }
-.viewport::after { /* угловые метки, как в видоискателе */
-  content: ""; position: absolute; inset: 8px; pointer-events: none;
-  background:
-    linear-gradient(var(--accent), var(--accent)) left top / 18px 2px no-repeat,
-    linear-gradient(var(--accent), var(--accent)) left top / 2px 18px no-repeat,
-    linear-gradient(var(--accent), var(--accent)) right bottom / 18px 2px no-repeat,
-    linear-gradient(var(--accent), var(--accent)) right bottom / 2px 18px no-repeat;
-  opacity: 0.8;
-}
-.viewport canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: manipulation; }
-.viewport.drop { outline: 3px dashed var(--ai); outline-offset: -10px; }
+.viewport canvas { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; display: block; touch-action: manipulation; }
+.viewport.drop { outline: 3px dashed var(--brain-text); outline-offset: -10px; }
+
+/* Табло счётчика кругов: тёмный пластик, подпись мелко, цифры жёлтые, моноширинные — чтобы не прыгали */
 .hud {
-  position: absolute; left: 14px; top: 14px; right: 14px;
-  display: flex; flex-wrap: wrap; gap: 6px;
-  pointer-events: none;
-  font: 12px/1.3 var(--mono);
-  font-variant-numeric: tabular-nums;
-  z-index: 1;
+  position: absolute; inset-inline-start: 12px; inset-block-start: 12px; max-inline-size: calc(100% - 24px); z-index: 1;
+  display: flex; flex-wrap: wrap; pointer-events: none;
+  background: var(--hud-bg); color: color-mix(in srgb, var(--hud-ink) 70%, transparent);
+  border-radius: var(--r-m); box-shadow: var(--shadow-lift);
+  font: 500 12px/1.3 var(--font);
 }
-.hud span { background: var(--hud-bg); color: var(--hud-ink); padding: 5px 9px; border-left: 2px solid var(--ai); }
-.hud span b { color: var(--accent); font-weight: 600; }
+.hud:empty { display: none; }
+.hud span { padding: 6px 10px; }
+.hud span + span { border-inline-start: 1px solid rgb(255 255 255 / 0.12); }
+.hud span b { font: 600 13px/1.3 var(--mono); font-variant-numeric: tabular-nums; color: var(--hud-digit); }
+/* идёт запись заезда — мигающая красная лампочка, как у счётчика */
+.hud .rec { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font); color: var(--hud-ink); }
+.hud .rec::before { content: ""; inline-size: 8px; block-size: 8px; border-radius: 50%; background: var(--action); animation: rec 1s steps(2, start) infinite; }
+@keyframes rec { to { opacity: 0.3; } }
+
 .banner {
-  position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%) skewX(var(--skew));
-  background: var(--accent); color: var(--on-accent);
-  padding: 10px 18px; font: 800 16px/1.2 var(--display); text-transform: uppercase;
-  max-width: calc(100% - 32px); text-align: center; z-index: 2;
+  position: absolute; inset-inline-start: 50%; inset-block-end: 18px; transform: translateX(-50%); z-index: 2;
+  max-inline-size: calc(100% - 32px); text-align: center;
+  background: var(--you); color: var(--on-you); padding: 10px 18px; border-radius: var(--r-m);
+  font: 600 16px/1.3 var(--font); box-shadow: var(--shadow-lift);
 }
+
+/* Отсчёт «3 — 2 — 1 — Старт!»: крупные литые цифры с мягкой тенью */
 .countdown {
   position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; z-index: 3;
-  font: 900 clamp(80px, 16vw, 210px)/1 var(--display); font-style: italic;
-  color: var(--accent);
-  text-shadow: 0 0 40px color-mix(in srgb, var(--accent) 60%, transparent), 6px 6px 0 var(--ai);
-  background: radial-gradient(circle, rgba(0, 0, 0, 0.5), transparent 70%);
+  font: 800 clamp(80px, 14vw, 180px)/1 var(--font);
+  color: var(--you);
+  text-shadow: 0 6px 18px rgb(0 0 0 / 0.45);
+  background: rgb(0 0 0 / 0.25);
 }
-.countdown.go { color: var(--ai); text-shadow: 0 0 40px color-mix(in srgb, var(--ai) 60%, transparent), 6px 6px 0 var(--accent); }
-.countdown span { animation: pop 0.7s ease-out both; }
-@keyframes pop { from { transform: scale(1.8); opacity: 0; } 30% { opacity: 1; } to { transform: scale(1); opacity: 1; } }
+.countdown.go { color: var(--kerb-2); }
+.countdown span { animation: pop 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@keyframes pop { from { transform: scale(1.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
 @media (max-width: 700px) {
   /* трасса повыше: на узком экране 16:10 слишком мелко */
-  .viewport { aspect-ratio: 4 / 3.4; max-height: 62vh; }
-  .hud { left: 10px; top: 10px; right: 10px; font-size: 11px; gap: 4px; }
-  .hud span { padding: 3px 6px; }
+  .viewport { aspect-ratio: 4 / 3.4; max-block-size: 62vh; }
+  .hud { inset-inline-start: 8px; inset-block-start: 8px; max-inline-size: calc(100% - 16px); font-size: 11px; }
+  .hud span { padding: 4px 7px; }
   .countdown { font-size: clamp(70px, 26vw, 140px); }
 }
-
 @media (prefers-reduced-motion: reduce) {
-  .countdown span { animation: none; }
+  .countdown span, .hud .rec::before { animation: none; }
 }

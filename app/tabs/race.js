@@ -34,7 +34,7 @@ export const raceTab = {
     const [leader] = standings();
     for (const { entrant, car } of race.cars) {
       const isLeader = leader?.car === car;
-      paintCar(car, { color: entrant.color, alpha: car.status === 'crashed' ? 0.5 : 1, glow: !car.done, label: isLeader ? entrant.name : null });
+      paintCar(car, { color: entrant.color, alpha: car.status === 'crashed' ? 0.5 : 1, label: isLeader ? entrant.name : null });
     }
     if (leader && !leader.car.done) paintSensors(leader.car);
     setHud([
