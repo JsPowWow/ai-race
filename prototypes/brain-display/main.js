@@ -1,7 +1,8 @@
-// ПРОТОТИП «Табло мозга» — выбросить после выбора варианта (ветка prototype/brain-display, не main).
-// Вопрос: как показать маленькую сеть, чтобы было понятно и красиво — числа в узлах, импульсы по связям,
-// дымка неактивных связей. Три варианта: #A слева направо, #B сверху вниз, #C поток сильных сигналов.
-// Настоящий движок и настоящие боты: сеть «думает» прямо сейчас, пока машина едет по «Разминке».
+// ПРОТОТИП «Табло мозга» — выбросить после выбора (ветка prototype/brain-display, не main).
+// Вопрос: как показать маленькую сеть, чтобы было понятно и красиво. Все варианты — на одной странице,
+// каждый вживую на одном и том же боте. Общее для всех: плавные связи, импульсы по сигналу,
+// числа в узлах (без дребезга), выходы — кнопки пульта, формула нейрона при наведении,
+// на узком экране — сверху вниз.
 import { Car, maxTicksFor } from '../../engine/car.js';
 import { getTrainingTrack } from '../../engine/track.js';
 import { Camera, drawTrack, drawCar, drawSensors, readPalette } from '../../engine/render.js';
@@ -9,481 +10,409 @@ import { parseCarFile } from '../../engine/car-file.js';
 import { feedForward, thinkVariants } from '../../student/think.js';
 import BOTS from '../../tools/bots.json';
 
-const C = {
-  panel: '#101012', ink: '#f4f4f2', muted: '#8e8d89', line: '#2f2e31',
-  pos: '#ff5a60', neg: '#5b8cff', lamp: '#ffd23f', action: '#d11f28', off: '#1d1d20',
-};
-const OUT = [
-  { id: 'gas', label: 'Газ', color: C.action },
-  { id: 'brake', label: 'Тормоз', color: '#8e8d89' },
-  { id: 'left', label: '←', color: C.lamp },
-  { id: 'right', label: '→', color: C.lamp },
-];
-const VARIANTS = { A: 'Слева направо', B: 'Сверху вниз', C: 'Поток сильных сигналов', D: 'A + поток', E: 'Огонь', F: 'Созвездие' };
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const OUT = ['Газ', 'Тормоз', 'Влево', 'Вправо'];
+const MONO = '"JetBrains Mono", ui-monospace, monospace';
+const SANS = 'Rubik, system-ui, sans-serif';
 
 // ── машина едет, сеть думает ──
 const track = getTrainingTrack('warmup');
-let bot = BOTS.find((b) => b.name === 'Сквозняк');
-let driver, car, trace = null;
+let bot, driver, car, trace = null;
+let paused = false;
 function loadBot(name) {
   bot = BOTS.find((b) => b.name === name);
   const f = parseCarFile(bot);
   driver = { brain: f.brain, think: thinkVariants[f.thinkId].think, sensors: f.sensors };
   car = new Car(track, driver);
   pulses.length = 0;
+  heat.clear();
+  shown = null;
 }
-let paused = false;
 function step() {
   if (paused) return;
-  for (let s = 0; s < 1; s++) {
-    if (car.done) car = new Car(track, driver);
-    car.step(track, maxTicksFor(track));
-  }
+  if (car.done) car = new Car(track, driver);
+  car.step(track, maxTicksFor(track));
   trace = feedForward.lastTrace;
 }
+const brain = () => driver.brain;
 
-// ── общее: числа, цвета, импульсы ──
-// Числа не прыгают: всегда знак и две цифры (+.73 / −.20) — одна ширина в моноширинном шрифте
+// ── числа без дребезга: знак и две цифры, сглаживание, текст 10 раз в секунду ──
 const fmt = (v) => (v < 0 ? '−' : '+') + Math.min(0.99, Math.abs(v)).toFixed(2).replace(/^0/, '');
-
-// Сглаживание и редкое обновление текста: лампочки реагируют сразу, а цифры меняются
-// 10 раз в секунду и плавно догоняют настоящее значение — их успеваешь прочитать
-let shown = null;          // сглаженные значения для цифр
-let textTrace = null;      // то, что сейчас написано (обновляется раз в 100 мс)
-let lastText = 0;
-function smoothTrace(t, dt) {
+const pct = (v) => `${String(Math.round(Math.max(0, Math.min(1, v)) * 100)).padStart(3, ' ')}%`;
+let shown = null, textTrace = null, lastText = 0;
+function smooth(t, dt) {
   if (!trace) return;
-  if (!shown || shown.length !== trace.length || shown.some((l, k) => l.length !== trace[k].length)) shown = trace.map((l) => [...l]);
+  if (!shown || shown.length !== trace.length) shown = trace.map((l) => [...l]);
   const a = 1 - Math.exp(-dt / 0.12);
   trace.forEach((l, k) => l.forEach((v, i) => { shown[k][i] += (v - shown[k][i]) * a; }));
   if (!textTrace || t - lastText > 100) { textTrace = shown.map((l) => [...l]); lastText = t; }
 }
 const textOf = (k, i) => textTrace?.[k]?.[i] ?? 0;
-const brainOf = () => driver.brain;
-/** сигнал по связи i→j слоя k: вход × вес, нормированный на самый сильный в слое */
+const actOf = (k, i) => trace?.[k]?.[i] ?? 0;
+
+// ── сигнал по связи: вход × вес, нормированный на самый сильный в слое ──
 function signals(k) {
-  const L = brainOf().layers[k];
+  const L = brain().layers[k];
   const a = trace?.[k] ?? L.weights.map(() => 0);
   let max = 1e-6;
-  const s = L.weights.map((row, i) => row.map((w, j) => { const v = a[i] * w; max = Math.max(max, Math.abs(v)); return v; }));
+  const s = L.weights.map((row, i) => row.map((w) => { const v = a[i] * w; max = Math.max(max, Math.abs(v)); return v; }));
   return s.map((row) => row.map((v) => v / max));
 }
+let sigs = [];
+let frameDt = 0.016;
+
+// ── импульсы: общие для всех вариантов, рисует каждый по-своему ──
 const pulses = [];
-function spawnPulses(k, sig) {
+function spawnPulses() {
   if (reduceMotion || paused) return;
-  sig.forEach((row, i) => row.forEach((v, j) => {
-    if (Math.abs(v) > 0.25 && Math.random() < Math.abs(v) * 0.05 && pulses.length < 500) pulses.push({ k, i, j, t: 0, v });
-  }));
+  sigs.forEach((sig, k) => sig.forEach((row, i) => row.forEach((v, j) => {
+    if (Math.abs(v) > 0.3 && Math.random() < Math.abs(v) * 0.04 && pulses.length < 400) pulses.push({ k, i, j, t: 0, v });
+  })));
 }
-function advancePulses(dt) { for (const p of pulses) p.t += dt * 1.6; for (let n = pulses.length - 1; n >= 0; n--) if (pulses[n].t >= 1) pulses.splice(n, 1); }
-function bezier(a, b, t, vertical) {
-  // плавная S-кривая: выходит горизонтально (или вертикально) из узла и так же входит
-  const [x1, y1] = a, [x2, y2] = b;
-  const m = 0.5;
-  const p1 = vertical ? [x1, y1 + (y2 - y1) * m] : [x1 + (x2 - x1) * m, y1];
-  const p2 = vertical ? [x2, y2 - (y2 - y1) * m] : [x2 - (x2 - x1) * m, y2];
-  const u = 1 - t;
-  return [u * u * u * x1 + 3 * u * u * t * p1[0] + 3 * u * t * t * p2[0] + t * t * t * x2,
-    u * u * u * y1 + 3 * u * u * t * p1[1] + 3 * u * t * t * p2[1] + t * t * t * y2];
+function advancePulses(dt) {
+  for (const p of pulses) p.t += dt * 1.5;
+  for (let n = pulses.length - 1; n >= 0; n--) if (pulses[n].t >= 1) pulses.splice(n, 1);
 }
-function curve(ctx, a, b, vertical) {
-  const [x1, y1] = a, [x2, y2] = b;
+
+// ── «теплота»: вспыхивает быстро, гаснет медленно ──
+const ATTACK = 0.04, DECAY = 0.5; // секунды
+const heat = new Map();
+function warm(key, target) {
+  const h = heat.get(key) ?? 0;
+  const v = h + (target - h) * (1 - Math.exp(-frameDt / (target > h ? ATTACK : DECAY)));
+  heat.set(key, v);
+  return v;
+}
+
+// ── геометрия: раскладка слоёв и плавные кривые ──
+function layout(W, H, vertical) {
+  const sizes = [brain().layers[0].weights.length, ...brain().layers.map((l) => l.biases.length)];
+  const along = vertical ? H : W, across = vertical ? W : H;
+  const start = vertical ? 64 : 120, end = vertical ? 78 : 160; // место под подписи входов и кнопки выходов
+  const maxN = Math.max(...sizes);
+  const gap = Math.min(52, (across - 28) / maxN);
+  const r = Math.max(10, Math.min(17, gap * 0.38));
+  const pos = sizes.map((n, k) => {
+    const a = start + ((along - start - end) * k) / (sizes.length - 1);
+    const g = vertical && k === sizes.length - 1 ? (across - 24) / n : gap;
+    return Array.from({ length: n }, (_, i) => {
+      const b = across / 2 + (i - (n - 1) / 2) * g;
+      return vertical ? [b, a] : [a, b];
+    });
+  });
+  return { sizes, pos, r, vertical, W, H };
+}
+function curve(ctx, [x1, y1], [x2, y2], vertical) {
   ctx.beginPath(); ctx.moveTo(x1, y1);
   if (vertical) ctx.bezierCurveTo(x1, (y1 + y2) / 2, x2, (y1 + y2) / 2, x2, y2);
   else ctx.bezierCurveTo((x1 + x2) / 2, y1, (x1 + x2) / 2, y2, x2, y2);
 }
-
-/** Узел-лампочка: число внутри, яркость — сила срабатывания, засечка на ободке — порог */
-function lamp(ctx, x, y, r, act, bias, text = act) {
-  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = C.off; ctx.fill();
-  if (act !== null) {
-    ctx.globalAlpha = Math.min(1, Math.abs(act));
-    ctx.fillStyle = act >= 0 ? C.lamp : C.neg; ctx.fill(); ctx.globalAlpha = 1;
-  }
-  ctx.lineWidth = 1.5; ctx.strokeStyle = '#3a393d'; ctx.stroke();
-  if (bias !== null) { // засечка порога: сверху, длина ~ |порог|, цвет — знак
-    const len = Math.min(1, Math.abs(bias)) * Math.PI * 0.9;
-    ctx.beginPath(); ctx.arc(x, y, r + 3, -Math.PI / 2 - len / 2, -Math.PI / 2 + len / 2);
-    ctx.lineWidth = 2.5; ctx.strokeStyle = bias >= 0 ? C.pos : C.neg; ctx.stroke();
-  }
-  if (act !== null && r >= 11) {
-    ctx.fillStyle = Math.abs(act) > 0.55 ? '#141414' : C.ink;
-    ctx.font = `600 ${Math.round(r * 0.72)}px "JetBrains Mono", monospace`;
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(fmt(text), x, y + 1);
-  }
-}
-/** Кнопка пульта на выходе: горит, когда мозг её «жмёт» */
-function outButton(ctx, x, y, w, h, o, v, text = v) {
-  const on = v > 0.5;
-  ctx.fillStyle = on ? o.color : C.off;
-  roundRect(ctx, x - w / 2, y - h / 2, w, h, h / 2); ctx.fill();
-  ctx.globalAlpha = on ? 0 : Math.min(1, v * 1.6) * 0.5; ctx.fillStyle = o.color; ctx.fill(); ctx.globalAlpha = 1;
-  ctx.lineWidth = 1.5; ctx.strokeStyle = on ? o.color : '#3a393d'; ctx.stroke();
-  ctx.fillStyle = on && o.id !== 'left' && o.id !== 'right' ? '#fff' : on ? '#141414' : C.ink;
-  ctx.font = `600 13px Rubik, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText(o.label, x - 14, y + 1);
-  ctx.font = '600 12px "JetBrains Mono", monospace';
-  ctx.fillText(`${String(Math.round(text * 100)).padStart(3, '\u2007')}%`, x + w / 2 - 24, y + 1);
+function bezierAt([x1, y1], [x2, y2], t, vertical) {
+  const [c1, c2] = vertical ? [[x1, (y1 + y2) / 2], [x2, (y1 + y2) / 2]] : [[(x1 + x2) / 2, y1], [(x1 + x2) / 2, y2]];
+  const u = 1 - t;
+  return [u ** 3 * x1 + 3 * u * u * t * c1[0] + 3 * u * t * t * c2[0] + t ** 3 * x2,
+    u ** 3 * y1 + 3 * u * u * t * c1[1] + 3 * u * t * t * c2[1] + t ** 3 * y2];
 }
 function roundRect(ctx, x, y, w, h, r) {
   ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
   ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
 }
-const inputLabel = (i, n) => (i === n - 1 ? 'скорость' : `луч ${i + 1}`);
 
-// ── раскладки: где стоит каждый узел ──
-function layout(W, H, vertical) {
-  const sizes = [brainOf().layers[0].weights.length, ...brainOf().layers.map((l) => l.biases.length)];
-  const along = vertical ? H : W, across = vertical ? W : H;
-  const pad0 = vertical ? 70 : 110, pad1 = vertical ? 60 : 120;
-  const maxN = Math.max(...sizes);
-  const r = Math.max(8, Math.min(18, (across - 40) / maxN / 2.5));
-  const pos = sizes.map((n, k) => {
-    const a = pad0 + ((along - pad0 - pad1) * k) / (sizes.length - 1);
-    const gap = Math.min((across - 40) / n, r * 3.2);
-    return Array.from({ length: n }, (_, i) => {
-      const b = across / 2 + (i - (n - 1) / 2) * gap;
-      return vertical ? [b, a] : [a, b];
-    });
+// ── общие детали: подписи входов, кнопки выходов, импульсы, лампочки ──
+function inputLabels(ctx, lay, color) {
+  const n = lay.sizes[0];
+  ctx.fillStyle = color; ctx.font = `500 12px ${SANS}`; ctx.textBaseline = 'middle';
+  lay.pos[0].forEach(([x, y], i) => {
+    const speed = i === n - 1;
+    if (lay.vertical) { ctx.textAlign = 'center'; ctx.fillText(speed ? 'v' : String(i + 1), x, y - lay.r - 14); }
+    else { ctx.textAlign = 'right'; ctx.fillText(speed ? 'скорость' : `луч ${i + 1}`, x - lay.r - 10, y); }
   });
-  return { sizes, pos, r };
+  if (lay.vertical) { ctx.textAlign = 'left'; ctx.font = `500 11px ${SANS}`; ctx.fillText('лучи 1–7 и скорость v', 12, 14); }
 }
-
-// ── A и B: все связи, дымка, импульсы ──
-function drawGraph(ctx, W, H, vertical) {
-  const lay = layout(W, H, vertical);
-  const brain = brainOf();
-  brain.layers.forEach((L, k) => {
-    const sig = signals(k);
-    let wmax = 1e-6; L.weights.forEach((row) => row.forEach((w) => { wmax = Math.max(wmax, Math.abs(w)); }));
-    // сначала дымка (слабые), потом чёткие (сильные) — сильные лежат сверху
-    const edges = [];
-    L.weights.forEach((row, i) => row.forEach((w, j) => edges.push({ i, j, w, s: Math.abs(sig[i][j]) })));
-    edges.sort((a, b) => a.s - b.s);
-    for (const e of edges) {
-      ctx.globalAlpha = 0.05 + 0.85 * e.s ** 1.5;
-      ctx.lineWidth = 0.6 + 2.6 * (Math.abs(e.w) / wmax) * (0.35 + 0.65 * e.s);
-      ctx.strokeStyle = e.w >= 0 ? C.pos : C.neg;
-      curve(ctx, lay.pos[k][e.i], lay.pos[k + 1][e.j], vertical); ctx.stroke();
+/** Кнопки пульта: горят, когда мозг их «жмёт». */
+function outputs(ctx, lay, style) {
+  const last = lay.sizes.length - 1;
+  lay.pos[last].forEach(([x, y], i) => {
+    const w = lay.vertical ? Math.min(84, (lay.W - 24) / 4 - 8) : 128, h = 32;
+    const cx = lay.vertical ? x : x + w / 2 - 6, cy = lay.vertical ? y + 26 : y;
+    const hv = warm(`${style.key}-out-${i}`, actOf(last, i));
+    roundRect(ctx, cx - w / 2, cy - h / 2, w, h, h / 2);
+    ctx.fillStyle = style.off; ctx.fill();
+    ctx.fillStyle = style.on(i, hv); ctx.fill();
+    ctx.lineWidth = 1; ctx.strokeStyle = style.ring; ctx.stroke();
+    ctx.fillStyle = hv > 0.55 ? style.inkOn(i) : style.ink; ctx.textBaseline = 'middle';
+    if (lay.vertical) {
+      ctx.font = `600 12px ${SANS}`; ctx.textAlign = 'center'; ctx.fillText(OUT[i], cx, cy - 6);
+      ctx.font = `500 11px ${MONO}`; ctx.fillText(pct(textOf(last, i)), cx, cy + 8);
+    } else {
+      ctx.font = `600 13px ${SANS}`; ctx.textAlign = 'left'; ctx.fillText(OUT[i], cx - w / 2 + 14, cy + 1);
+      ctx.font = `500 12px ${MONO}`; ctx.textAlign = 'right'; ctx.fillText(pct(textOf(last, i)), cx + w / 2 - 12, cy + 1);
     }
-    ctx.globalAlpha = 1;
-    spawnPulses(k, sig);
   });
-  // импульсы: яркая точка с коротким хвостом
+}
+function drawPulses(ctx, lay, colorOf, size = 2) {
+  ctx.lineCap = 'round';
   for (const p of pulses) {
     const a = lay.pos[p.k]?.[p.i], b = lay.pos[p.k + 1]?.[p.j];
     if (!a || !b) continue;
-    const [x, y] = bezier(a, b, p.t, vertical), [tx, ty] = bezier(a, b, Math.max(0, p.t - 0.08), vertical);
-    ctx.strokeStyle = p.v >= 0 ? C.pos : C.neg; ctx.lineWidth = 2; ctx.globalAlpha = 0.9;
+    const [x, y] = bezierAt(a, b, p.t, lay.vertical), [tx, ty] = bezierAt(a, b, Math.max(0, p.t - 0.07), lay.vertical);
+    const c = colorOf(p);
+    ctx.globalAlpha = Math.min(1, 1.6 - p.t); // к концу пути гаснет — сигнал «влился» в нейрон
+    ctx.strokeStyle = c; ctx.lineWidth = size;
     ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(x, y); ctx.stroke();
-    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x, y, 2.2, 0, Math.PI * 2); ctx.fill();
-    ctx.globalAlpha = 1;
+    ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x, y, size, 0, Math.PI * 2); ctx.fill();
   }
-  // узлы
-  lay.sizes.forEach((n, k) => {
-    const last = k === lay.sizes.length - 1;
-    for (let i = 0; i < n; i++) {
-      const [x, y] = lay.pos[k][i];
-      const act = trace?.[k]?.[i] ?? null;
-      if (last) { vertical ? outButton(ctx, x, y + 6, Math.min(86, W / 4.6), 34, OUT[i], act ?? 0, textOf(k, i)) : outButton(ctx, x + 36, y, 116, 30, OUT[i], act ?? 0, textOf(k, i)); continue; }
-      lamp(ctx, x, y, lay.r, act, k > 0 ? brain.layers[k - 1].biases[i] : null, textOf(k, i));
-      if (k === 0) {
-        ctx.fillStyle = C.muted; ctx.font = '12px Rubik, sans-serif'; ctx.textBaseline = 'middle';
-        if (vertical) { ctx.textAlign = 'center'; ctx.fillText(i === n - 1 ? 'v' : `${i + 1}`, x, y - lay.r - 12); }
-        else { ctx.textAlign = 'right'; ctx.fillText(inputLabel(i, n), x - lay.r - 8, y); }
-      }
-    }
-  });
-  if (vertical) drawRayFan(ctx, W / 2, 6); // веер лучей над входами
-  return lay;
+  ctx.globalAlpha = 1; ctx.lineCap = 'butt';
 }
-/** В варианте B над входами — машина и её лучи вверх: длинный луч — пусто, короткий — препятствие близко */
-function drawRayFan(ctx, cx, cy) {
-  const n = car.readings.length;
-  ctx.save(); ctx.translate(cx, cy + 16);
-  for (let i = 0; i < n; i++) {
-    const a = -Math.PI / 2 - 0.9 + (1.8 * i) / Math.max(1, n - 1);
-    const len = 8 + 22 * (1 - car.readings[i]);
-    ctx.strokeStyle = car.readings[i] > 0 ? C.lamp : 'rgb(255 210 63 / 0.35)'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * len, Math.sin(a) * len); ctx.stroke();
+/** Лампочка: число внутри, ободок, засечка порога (сверху; на телефоне — слева) */
+function lampNode(ctx, lay, key, k, i, s) {
+  const [x, y] = lay.pos[k][i];
+  const a = actOf(k, i);
+  const h = warm(`${key}-n-${k}-${i}`, Math.min(1, Math.abs(a)));
+  ctx.beginPath(); ctx.arc(x, y, lay.r, 0, Math.PI * 2);
+  ctx.fillStyle = s.base; ctx.fill();
+  ctx.fillStyle = s.fill(h, a); ctx.fill();
+  ctx.lineWidth = 1; ctx.strokeStyle = s.ring; ctx.stroke();
+  if (k > 0 && s.biasColor) {
+    const b = brain().layers[k - 1].biases[i];
+    const len = Math.min(1, Math.abs(b)) * Math.PI * 0.8 + 0.25;
+    const mid = lay.vertical ? Math.PI : -Math.PI / 2;
+    ctx.beginPath(); ctx.arc(x, y, lay.r + 3.5, mid - len / 2, mid + len / 2);
+    ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.strokeStyle = s.biasColor(b); ctx.stroke(); ctx.lineCap = 'butt';
   }
-  ctx.fillStyle = C.lamp; roundRect(ctx, -6, -4, 12, 16, 4); ctx.fill();
-  ctx.restore();
+  ctx.fillStyle = h > 0.6 ? s.inkOn : s.ink;
+  ctx.font = `600 ${Math.round(lay.r * 0.68)}px ${MONO}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(fmt(textOf(k, i)), x, y + 0.5);
+}
+function eachHidden(lay, fn) {
+  for (let k = 0; k < lay.sizes.length - 1; k++) for (let i = 0; i < lay.sizes[k]; i++) fn(k, i);
 }
 
-// ── C: только сильные сигналы, лентами; нейроны — столбики ──
-function drawFlow(ctx, W, H) {
-  const lay = layout(W, H, false);
-  const brain = brainOf();
-  brain.layers.forEach((L, k) => {
-    const sig = signals(k);
-    const strong = [];
-    sig.forEach((row, i) => row.forEach((v, j) => { if (Math.abs(v) > 0.2) strong.push({ i, j, v }); }));
-    strong.sort((a, b) => Math.abs(a.v) - Math.abs(b.v));
-    for (const e of strong) {
-      ctx.globalAlpha = 0.25 + 0.6 * Math.abs(e.v);
-      ctx.lineWidth = 1 + 12 * Math.abs(e.v);
-      ctx.strokeStyle = e.v >= 0 ? C.pos : C.neg;
-      ctx.lineCap = 'round';
-      curve(ctx, lay.pos[k][e.i], lay.pos[k + 1][e.j], false); ctx.stroke();
-    }
-    ctx.globalAlpha = 1;
-  });
-  lay.sizes.forEach((n, k) => {
-    const last = k === lay.sizes.length - 1;
-    for (let i = 0; i < n; i++) {
-      const [x, y] = lay.pos[k][i];
-      const act = trace?.[k]?.[i] ?? 0;
-      if (last) { outButton(ctx, x + 36, y, 116, 30, OUT[i], act, textOf(k, i)); continue; }
-      const h = lay.r * 2, w = 10;
-      ctx.fillStyle = C.off; roundRect(ctx, x - w / 2, y - h / 2, w, h, 3); ctx.fill();
-      const fh = h * Math.min(1, Math.abs(act));
-      ctx.fillStyle = act >= 0 ? C.lamp : C.neg; roundRect(ctx, x - w / 2, y + h / 2 - fh, w, Math.max(1, fh), 3); ctx.fill();
-      ctx.fillStyle = C.ink; ctx.font = '600 11px "JetBrains Mono", monospace'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-      ctx.fillText(fmt(textOf(k, i)), x + 9, y);
-      if (k === 0) { ctx.fillStyle = C.muted; ctx.font = '12px Rubik, sans-serif'; ctx.textAlign = 'right'; ctx.fillText(inputLabel(i, n), x - 10, y); }
-    }
-  });
-  return lay;
-}
-
-// ── «теплота»: вспыхивает быстро, гаснет медленно (для E и F) ──
-const ATTACK = 0.04, DECAY = 0.5; // секунды
-const edgeHeat = new Map(), nodeHeat = new Map();
-function warm(map, key, target, dt) {
-  const h = map.get(key) ?? 0;
-  const tau = target > h ? ATTACK : DECAY;
-  const v = h + (target - h) * (1 - Math.exp(-dt / tau));
-  map.set(key, v);
-  return v;
-}
-let frameDt = 0.016;
-/** огненная шкала: угли → красный → оранжевый → жёлтый → почти белый */
-const FIRE = [[40, 12, 6], [150, 30, 18], [230, 80, 10], [255, 170, 20], [255, 240, 200]];
+// ── огненная шкала: угли → красный → оранжевый → жёлтый → почти белый ──
+const FIRE = [[46, 14, 8], [140, 28, 16], [224, 78, 12], [255, 168, 24], [255, 238, 196]];
 function fire(t, a = 1) {
   t = Math.max(0, Math.min(1, t)) * (FIRE.length - 1);
   const i = Math.min(FIRE.length - 2, Math.floor(t)), f = t - i;
   const c = FIRE[i].map((v, n) => Math.round(v + (FIRE[i + 1][n] - v) * f));
   return `rgb(${c[0]} ${c[1]} ${c[2]} / ${a})`;
 }
+const padColor = (i, h) => (i === 0 ? `rgb(209 31 40 / ${h})` : i === 1 ? `rgb(128 127 131 / ${h})` : `rgb(31 95 224 / ${h})`);
 
-// ── D: все связи в дымке + сильные сигналы лентами + импульсы + лампочки ──
-function drawHybrid(ctx, W, H) {
-  const lay = layout(W, H, false);
-  const brain = brainOf();
-  brain.layers.forEach((L, k) => {
-    const sig = signals(k);
-    L.weights.forEach((row, i) => row.forEach((w, j) => {
-      ctx.globalAlpha = 0.07; ctx.lineWidth = 0.7; ctx.strokeStyle = w >= 0 ? C.pos : C.neg;
-      curve(ctx, lay.pos[k][i], lay.pos[k + 1][j], false); ctx.stroke();
-    }));
-    const strong = [];
-    sig.forEach((row, i) => row.forEach((v, j) => { if (Math.abs(v) > 0.2) strong.push({ i, j, v }); }));
-    strong.sort((a, b) => Math.abs(a.v) - Math.abs(b.v));
-    ctx.lineCap = 'round';
-    for (const e of strong) {
-      ctx.globalAlpha = 0.2 + 0.55 * Math.abs(e.v); ctx.lineWidth = 1 + 9 * Math.abs(e.v);
-      ctx.strokeStyle = e.v >= 0 ? C.pos : C.neg;
-      curve(ctx, lay.pos[k][e.i], lay.pos[k + 1][e.j], false); ctx.stroke();
-    }
-    ctx.lineCap = 'butt'; ctx.globalAlpha = 1;
-    spawnPulses(k, sig);
-  });
-  drawPulses(ctx, lay, false, (p) => '#fff');
-  drawNodes(ctx, lay, (k, i, act) => lamp(ctx, ...lay.pos[k][i], lay.r, act, k > 0 ? brain.layers[k - 1].biases[i] : null, textOf(k, i)));
-  return lay;
-}
+// ── варианты ──
+const VARIANTS = [
+  {
+    key: 'two', name: 'Два цвета',
+    about: 'Цвет — знак веса: красный толкает к действию, синий мешает. Все связи в дымке; те, по которым сейчас идёт сигнал, проступают лентой — чем сильнее, тем толще.',
+    legend: [['#ff5a60', 'вес «+»'], ['#6f9bff', 'вес «−»'], ['#ffd23f', 'нейрон горит · засечка — порог']],
+    bg: '#0f0f11',
+    draw(ctx, lay) {
+      brain().layers.forEach((L, k) => {
+        L.weights.forEach((row, i) => row.forEach((w, j) => {
+          ctx.globalAlpha = 0.09; ctx.lineWidth = 0.8; ctx.strokeStyle = w >= 0 ? '#ff5a60' : '#6f9bff';
+          curve(ctx, lay.pos[k][i], lay.pos[k + 1][j], lay.vertical); ctx.stroke();
+        }));
+        const strong = [];
+        sigs[k].forEach((row, i) => row.forEach((v, j) => {
+          const h = warm(`two-e-${k}-${i}-${j}`, Math.abs(v) > 0.18 ? Math.abs(v) : 0);
+          if (h > 0.05) strong.push({ i, j, v, h });
+        }));
+        strong.sort((a, b) => a.h - b.h);
+        ctx.lineCap = 'round';
+        for (const e of strong) {
+          ctx.globalAlpha = 0.25 + 0.6 * e.h; ctx.lineWidth = 1 + 7 * e.h; ctx.strokeStyle = e.v >= 0 ? '#ff5a60' : '#6f9bff';
+          curve(ctx, lay.pos[k][e.i], lay.pos[k + 1][e.j], lay.vertical); ctx.stroke();
+        }
+        ctx.lineCap = 'butt'; ctx.globalAlpha = 1;
+      });
+      drawPulses(ctx, lay, () => '#ffffff');
+      inputLabels(ctx, lay, '#9d9c98');
+      eachHidden(lay, (k, i) => lampNode(ctx, lay, 'two', k, i, {
+        base: '#1c1c1f', ring: '#3a393d', ink: '#e9e8e4', inkOn: '#1a1405',
+        fill: (h, a) => (a >= 0 ? `rgb(255 210 63 / ${h})` : `rgb(111 155 255 / ${h})`),
+        biasColor: (b) => (b >= 0 ? '#ff5a60' : '#6f9bff'),
+      }));
+      outputs(ctx, lay, { key: 'two', off: '#1c1c1f', ring: '#3a393d', ink: '#e9e8e4', inkOn: () => '#ffffff', on: padColor });
+    },
+  },
+  {
+    key: 'fire', name: 'Огонь',
+    about: 'Один цвет на всё. Связь и нейрон разгораются, когда через них идёт сигнал: вспыхивают быстро, гаснут медленно — видно, какой путь сейчас решает. Знак веса — в формуле.',
+    legend: [['#8c1c10', 'слабый сигнал'], ['#e04e0c', 'сильнее'], ['#ffeec4', 'сильнейший']],
+    bg: '#0e0c0b',
+    draw(ctx, lay) {
+      brain().layers.forEach((L, k) => {
+        const hot = [];
+        L.weights.forEach((row, i) => row.forEach((w, j) => {
+          const h = warm(`fire-e-${k}-${i}-${j}`, Math.abs(sigs[k][i][j]) ** 1.4);
+          ctx.lineWidth = 0.7; ctx.strokeStyle = '#27221e';
+          curve(ctx, lay.pos[k][i], lay.pos[k + 1][j], lay.vertical); ctx.stroke();
+          if (h > 0.03) hot.push({ i, j, h });
+        }));
+        hot.sort((a, b) => a.h - b.h);
+        ctx.lineCap = 'round';
+        for (const e of hot) {
+          ctx.lineWidth = 0.9 + 3.2 * e.h; ctx.strokeStyle = fire(e.h, Math.min(1, 0.25 + e.h));
+          curve(ctx, lay.pos[k][e.i], lay.pos[k + 1][e.j], lay.vertical); ctx.stroke();
+        }
+        ctx.lineCap = 'butt';
+      });
+      drawPulses(ctx, lay, (p) => fire(0.8 + 0.2 * Math.abs(p.v)));
+      inputLabels(ctx, lay, '#9a8f86');
+      eachHidden(lay, (k, i) => lampNode(ctx, lay, 'fire', k, i, { base: '#181412', ring: '#3a322c', ink: '#efe6db', inkOn: '#1f0e04', fill: (h) => fire(h, h) }));
+      outputs(ctx, lay, { key: 'fire', off: '#181412', ring: '#3a322c', ink: '#efe6db', inkOn: () => '#1f0e04', on: (i, h) => fire(h, h) });
+    },
+  },
+  {
+    key: 'chalk', name: 'Мел',
+    about: 'Строгий монохром: сила сигнала — только яркость и толщина. Цвет остаётся одному месту — кнопкам пульта, куда в итоге всё приходит.',
+    legend: [['#4a4a4f', 'связь в покое'], ['#f4f4f2', 'идёт сигнал'], ['#d11f28', 'мозг жмёт газ']],
+    bg: '#111113',
+    draw(ctx, lay) {
+      brain().layers.forEach((L, k) => {
+        L.weights.forEach((row, i) => row.forEach((w, j) => {
+          const h = warm(`chalk-e-${k}-${i}-${j}`, Math.abs(sigs[k][i][j]) ** 1.3);
+          ctx.globalAlpha = 0.12 + 0.8 * h; ctx.lineWidth = 0.6 + 2.4 * h; ctx.strokeStyle = '#f4f4f2';
+          curve(ctx, lay.pos[k][i], lay.pos[k + 1][j], lay.vertical); ctx.stroke();
+        }));
+        ctx.globalAlpha = 1;
+      });
+      drawPulses(ctx, lay, () => '#ffffff', 1.6);
+      inputLabels(ctx, lay, '#8e8d89');
+      eachHidden(lay, (k, i) => lampNode(ctx, lay, 'chalk', k, i, {
+        base: '#1b1b1e', ring: '#47464b', ink: '#d9d8d4', inkOn: '#111113', fill: (h) => `rgb(244 244 242 / ${h * 0.95})`, biasColor: () => '#8e8d89',
+      }));
+      outputs(ctx, lay, { key: 'chalk', off: '#1b1b1e', ring: '#47464b', ink: '#d9d8d4', inkOn: () => '#ffffff', on: padColor });
+    },
+  },
+  {
+    key: 'stars', name: 'Созвездие',
+    about: 'Нейроны — светящиеся точки, связи — тонкие волоски. Всё тихое, пока не пройдёт сигнал: тогда путь теплеет и светится. Числа — рядом с точками.',
+    legend: [['#7d8497', 'тишина'], ['#ffd9a8', 'идёт сигнал']],
+    bg: '#0b0c10',
+    draw(ctx, lay) {
+      brain().layers.forEach((L, k) => {
+        L.weights.forEach((row, i) => row.forEach((w, j) => {
+          const h = warm(`stars-e-${k}-${i}-${j}`, Math.abs(sigs[k][i][j]) ** 1.5);
+          ctx.globalAlpha = 0.07 + 0.75 * h; ctx.lineWidth = 0.5 + 1.5 * h;
+          ctx.strokeStyle = h > 0.06 ? '#ffd9a8' : '#b8c0d8';
+          curve(ctx, lay.pos[k][i], lay.pos[k + 1][j], lay.vertical); ctx.stroke();
+        }));
+        ctx.globalAlpha = 1;
+      });
+      drawPulses(ctx, lay, () => '#fff6e6', 1.6);
+      inputLabels(ctx, lay, '#7d8497');
+      eachHidden(lay, (k, i) => {
+        const [x, y] = lay.pos[k][i];
+        const h = warm(`stars-n-${k}-${i}`, Math.min(1, Math.abs(actOf(k, i))));
+        ctx.save();
+        ctx.shadowColor = `rgb(255 196 120 / ${0.85 * h})`; ctx.shadowBlur = 4 + 16 * h;
+        ctx.beginPath(); ctx.arc(x, y, 3 + 3.5 * h, 0, Math.PI * 2);
+        ctx.fillStyle = h > 0.12 ? `rgb(255 ${Math.round(214 + 34 * h)} ${Math.round(168 + 80 * h)})` : '#7d8497'; ctx.fill();
+        ctx.restore();
+        // число — на тёмной плашке, отодвинуто от связей: вправо (на телефоне — вниз)
+        const tx = lay.vertical ? x : x + 12, ty = lay.vertical ? y + 16 : y;
+        ctx.font = `500 11px ${MONO}`; ctx.textAlign = lay.vertical ? 'center' : 'left'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = 'rgb(11 12 16 / 0.9)'; roundRect(ctx, lay.vertical ? tx - 17 : tx - 3, ty - 8, 34, 16, 4); ctx.fill();
+        ctx.fillStyle = h > 0.3 ? '#fbf3e6' : '#6f7588'; ctx.fillText(fmt(textOf(k, i)), tx, ty);
+      });
+      outputs(ctx, lay, { key: 'stars', off: '#141620', ring: '#2d3142', ink: '#b8c0d8', inkOn: () => '#1a1206', on: (i, h) => `rgb(255 214 168 / ${h})` });
+    },
+  },
+];
 
-// ── E: одного цвета; активность горит огнём ──
-function drawFire(ctx, W, H) {
-  const lay = layout(W, H, false);
-  const brain = brainOf();
-  brain.layers.forEach((L, k) => {
-    const sig = signals(k);
-    const hot = [];
-    L.weights.forEach((row, i) => row.forEach((w, j) => {
-      const h = warm(edgeHeat, `${k}-${i}-${j}`, Math.abs(sig[i][j]) ** 1.3, frameDt);
-      ctx.globalAlpha = 0.35; ctx.lineWidth = 0.6; ctx.strokeStyle = '#2c2a28';
-      curve(ctx, lay.pos[k][i], lay.pos[k + 1][j], false); ctx.stroke();
-      if (h > 0.03) hot.push({ i, j, h });
-    }));
-    hot.sort((a, b) => a.h - b.h);
-    ctx.lineCap = 'round';
-    for (const e of hot) {
-      ctx.globalAlpha = 1; ctx.lineWidth = 0.8 + 3.4 * e.h; ctx.strokeStyle = fire(e.h, Math.min(1, 0.2 + e.h));
-      curve(ctx, lay.pos[k][e.i], lay.pos[k + 1][e.j], false); ctx.stroke();
-    }
-    ctx.lineCap = 'butt';
-    spawnPulses(k, sig);
-  });
-  drawPulses(ctx, lay, false, (p) => fire(0.75 + 0.25 * Math.abs(p.v)));
-  drawNodes(ctx, lay, (k, i, act) => {
-    const [x, y] = lay.pos[k][i];
-    const h = warm(nodeHeat, `${k}-${i}`, Math.min(1, Math.abs(act ?? 0)), frameDt);
-    ctx.beginPath(); ctx.arc(x, y, lay.r, 0, Math.PI * 2);
-    ctx.fillStyle = '#171615'; ctx.fill();
-    ctx.fillStyle = fire(h, h); ctx.fill();
-    ctx.lineWidth = 1.5; ctx.strokeStyle = '#3a3835'; ctx.stroke();
-    if (lay.r >= 11) {
-      ctx.fillStyle = h > 0.55 ? '#1a0e05' : '#e9e4dc'; ctx.font = `600 ${Math.round(lay.r * 0.72)}px "JetBrains Mono", monospace`;
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(fmt(textOf(k, i)), x, y + 1);
-    }
-  }, (x, y, i, act, text) => fireButton(ctx, x + 36, y, 116, 30, OUT[i], warm(nodeHeat, `out-${i}`, act, frameDt), text));
-  return lay;
-}
-function fireButton(ctx, x, y, w, h, o, heat, text) {
-  roundRect(ctx, x - w / 2, y - h / 2, w, h, h / 2);
-  ctx.fillStyle = '#171615'; ctx.fill(); ctx.fillStyle = fire(heat, heat); ctx.fill();
-  ctx.lineWidth = 1.5; ctx.strokeStyle = '#3a3835'; ctx.stroke();
-  ctx.fillStyle = heat > 0.6 ? '#1a0e05' : '#e9e4dc'; ctx.font = '600 13px Rubik, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText(o.label, x - 14, y + 1);
-  ctx.font = '600 12px "JetBrains Mono", monospace';
-  ctx.fillText(`${String(Math.round(text * 100)).padStart(3, ' ')}%`, x + w / 2 - 24, y + 1);
-}
-
-// ── F: созвездие — мелкие светящиеся узлы, волоски-связи, тёплое свечение ──
-function drawStars(ctx, W, H) {
-  const lay = layout(W, H, false);
-  lay.r = 5;
-  const brain = brainOf();
-  brain.layers.forEach((L, k) => {
-    const sig = signals(k);
-    L.weights.forEach((row, i) => row.forEach((w, j) => {
-      const h = warm(edgeHeat, `${k}-${i}-${j}`, Math.abs(sig[i][j]) ** 1.5, frameDt);
-      ctx.globalAlpha = 0.06 + 0.8 * h; ctx.lineWidth = 0.5 + 1.6 * h;
-      ctx.strokeStyle = h > 0.05 ? `rgb(255 ${Math.round(200 + 40 * h)} ${Math.round(150 + 80 * h)})` : '#cfd6e6';
-      curve(ctx, lay.pos[k][i], lay.pos[k + 1][j], false); ctx.stroke();
-    }));
-    ctx.globalAlpha = 1;
-    spawnPulses(k, sig);
-  });
-  drawPulses(ctx, lay, false, () => '#fff4dd');
-  drawNodes(ctx, lay, (k, i, act) => {
-    const [x, y] = lay.pos[k][i];
-    const h = warm(nodeHeat, `${k}-${i}`, Math.min(1, Math.abs(act ?? 0)), frameDt);
-    ctx.save();
-    ctx.shadowColor = `rgb(255 200 120 / ${0.9 * h})`; ctx.shadowBlur = 6 + 18 * h;
-    ctx.beginPath(); ctx.arc(x, y, 2.5 + 3.5 * h, 0, Math.PI * 2);
-    ctx.fillStyle = h > 0.1 ? `rgb(255 ${Math.round(210 + 40 * h)} ${Math.round(160 + 90 * h)})` : '#8b93a6'; ctx.fill();
-    ctx.restore();
-    ctx.font = '500 11px "JetBrains Mono", monospace'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = 'rgb(16 16 18 / 0.85)'; roundRect(ctx, x + 7, y - 8, 36, 16, 4); ctx.fill(); // плашка: число не тонет в связях
-    ctx.fillStyle = h > 0.3 ? '#f4efe6' : '#6d7282'; ctx.fillText(fmt(textOf(k, i)), x + 10, y);
-  }, (x, y, i, act, text) => {
-    const h = warm(nodeHeat, `out-${i}`, act, frameDt);
-    ctx.save(); ctx.shadowColor = `rgb(255 200 120 / ${h})`; ctx.shadowBlur = 20 * h;
-    ctx.beginPath(); ctx.arc(x, y, 4 + 4 * h, 0, Math.PI * 2); ctx.fillStyle = h > 0.5 ? '#fff1d6' : '#8b93a6'; ctx.fill(); ctx.restore();
-    ctx.fillStyle = h > 0.5 ? '#f4efe6' : '#8b93a6'; ctx.font = '600 13px Rubik, sans-serif'; ctx.textAlign = 'left';
-    ctx.fillText(`${OUT[i].label}`, x + 14, y); ctx.font = '500 12px "JetBrains Mono", monospace';
-    ctx.fillText(`${String(Math.round(text * 100)).padStart(3, ' ')}%`, x + 72, y);
-  });
-  return lay;
-}
-
-// общие куски для D, E, F
-function drawPulses(ctx, lay, vertical, colorOf) {
-  for (const p of pulses) {
-    const a = lay.pos[p.k]?.[p.i], b = lay.pos[p.k + 1]?.[p.j];
-    if (!a || !b) continue;
-    const [x, y] = bezier(a, b, p.t, vertical), [tx, ty] = bezier(a, b, Math.max(0, p.t - 0.08), vertical);
-    ctx.strokeStyle = colorOf(p); ctx.lineWidth = 2; ctx.globalAlpha = 0.9;
-    ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(x, y); ctx.stroke();
-    ctx.fillStyle = colorOf(p); ctx.beginPath(); ctx.arc(x, y, 2.2, 0, Math.PI * 2); ctx.fill();
-    ctx.globalAlpha = 1;
-  }
-}
-function drawNodes(ctx, lay, node, output = (x, y, i, act, text) => outButton(ctx, x + 36, y, 116, 30, OUT[i], act, text)) {
-  lay.sizes.forEach((n, k) => {
-    const last = k === lay.sizes.length - 1;
-    for (let i = 0; i < n; i++) {
-      const [x, y] = lay.pos[k][i];
-      const act = trace?.[k]?.[i] ?? 0;
-      if (last) { output(x, y, i, act, textOf(k, i)); continue; }
-      node(k, i, act);
-      if (k === 0) { ctx.fillStyle = C.muted; ctx.font = '12px Rubik, sans-serif'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(inputLabel(i, n), x - Math.max(lay.r, 6) - 8, y); }
-    }
-  });
-}
-
-// ── формула нейрона под курсором ──
-const card = document.getElementById('formula');
-function showFormula(lay, mx, my) {
-  let hit = null;
-  lay.pos.forEach((col, k) => col.forEach(([x, y], i) => { if (k > 0 && Math.hypot(mx - x, my - y) < lay.r + 10) hit = { k, i, x, y }; }));
-  if (!hit || !trace) { card.hidden = true; return; }
-  const L = brainOf().layers[hit.k - 1];
-  const a = trace[hit.k - 1];
-  const terms = a.map((ai, i) => ({ ai, w: L.weights[i][hit.i] })).filter((t) => Math.abs(t.ai * t.w) > 0.02);
-  const sum = a.reduce((s, ai, i) => s + ai * L.weights[i][hit.i], 0);
-  const b = L.biases[hit.i], z = sum - b;
-  const isOut = hit.k === lay.sizes.length - 1;
-  const f = isOut ? `σ(3·${fmt(z)})` : `tanh(2·${fmt(z)})`;
-  card.innerHTML = `<b>${isOut ? OUT[hit.i].label : `Нейрон ${hit.i + 1}, слой ${hit.k}`}</b>
-    <span>${terms.map((t) => `${fmt(t.ai)}·${fmt(t.w)}`).join(' + ') || '0'}</span>
-    <span>− порог ${fmt(b)} = <b>${fmt(z)}</b></span>
-    <span>${f} = <b>${fmt(trace[hit.k][hit.i])}</b></span>`;
-  card.style.left = `${Math.min(hit.x + 16, canvas.clientWidth - 260)}px`;
-  card.style.top = `${hit.y + 16}px`;
-  card.hidden = false;
+// ── формула нейрона ──
+function formulaHTML(lay, k, i) {
+  const L = brain().layers[k - 1];
+  const a = trace[k - 1];
+  const terms = a.map((ai, n) => ({ ai, w: L.weights[n][i] })).filter((t) => Math.abs(t.ai * t.w) > 0.02)
+    .sort((x, y) => Math.abs(y.ai * y.w) - Math.abs(x.ai * x.w));
+  const top = terms.slice(0, 4);
+  const sum = a.reduce((s, ai, n) => s + ai * L.weights[n][i], 0);
+  const b = L.biases[i], z = sum - b;
+  const out = k === lay.sizes.length - 1;
+  const rows = top.map((t) => `<span>${fmt(t.ai)} × ${fmt(t.w)} = ${fmt(t.ai * t.w)}</span>`).join('');
+  const more = terms.length > top.length ? `<span class="more">и ещё ${terms.length - top.length} слабых</span>` : '';
+  return `<b>${out ? OUT[i] : `Нейрон ${i + 1} · слой ${k}`}</b>${rows}${more}
+    <span class="sep">сумма ${fmt(sum)} − порог ${fmt(b)} = <em>${fmt(z)}</em></span>
+    <span>${out ? `σ(3 × ${fmt(z)})` : `tanh(2 × ${fmt(z)})`} = <em>${fmt(trace[k][i])}</em></span>`;
 }
 
-// ── трасса-мини сверху ──
+// ── мини-трасса ──
 const mini = document.getElementById('mini');
 const miniCam = new Camera();
 function drawMini() {
   const dpr = Math.min(devicePixelRatio || 1, 2);
-  const w = mini.clientWidth * dpr, h = mini.clientHeight * dpr;
-  if (mini.width !== w) { mini.width = w; mini.height = h; }
+  const w = Math.round(mini.clientWidth * dpr), h = Math.round(mini.clientHeight * dpr);
+  if (mini.width !== w || mini.height !== h) { mini.width = w; mini.height = h; }
   const ctx = mini.getContext('2d');
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#141415'; ctx.fillRect(0, 0, w, h);
-  miniCam.mode = 'follow'; miniCam.update(mini, track, car, dpr * 0.6);
-  miniCam.apply(ctx, mini);
+  miniCam.mode = 'follow'; miniCam.update(mini, track, car, dpr * 0.6); miniCam.apply(ctx, mini);
   drawTrack(ctx, track, miniCam); drawSensors(ctx, car); drawCar(ctx, car, { color: bot.color, number: 1, cam: miniCam });
 }
 
-// ── кадр ──
-const canvas = document.getElementById('net');
-let variant = VARIANTS[location.hash.slice(1)] ? location.hash.slice(1) : 'A';
-let mouse = null, lastT = performance.now(), lastFormula = 0;
-function frame(t) {
-  const dt = Math.min(0.05, (t - lastT) / 1000); lastT = t;
-  step(); smoothTrace(t, dt); advancePulses(dt); drawMini();
+// ── доски: по одной на вариант ──
+const gallery = document.getElementById('gallery');
+gallery.innerHTML = VARIANTS.map((v) => `
+  <section class="variant" id="board-${v.key}">
+    <header><h2><span>${VARIANTS.indexOf(v) + 1}</span>${v.name}</h2><p>${v.about}</p></header>
+    <div class="board"><canvas aria-label="Схема сети — вариант «${v.name}»"></canvas><div class="formula" hidden></div></div>
+    <p class="legend">${v.legend.map(([c, t]) => `<span><i style="background:${c}"></i>${t}</span>`).join('')}</p>
+  </section>`).join('');
+const boards = VARIANTS.map((v) => {
+  const el = document.getElementById(`board-${v.key}`);
+  const b = { v, canvas: el.querySelector('canvas'), card: el.querySelector('.formula'), mouse: null, lastFormula: 0 };
+  b.canvas.addEventListener('pointermove', (e) => { const r = b.canvas.getBoundingClientRect(); b.mouse = [e.clientX - r.left, e.clientY - r.top]; });
+  b.canvas.addEventListener('pointerleave', () => { b.mouse = null; b.card.hidden = true; });
+  return b;
+});
+function drawBoard(b, t) {
   const dpr = Math.min(devicePixelRatio || 1, 2);
-  const vertical = variant === 'B';
-  canvas.style.height = vertical ? '620px' : '460px';
-  const W = canvas.clientWidth, H = canvas.clientHeight;
-  if (canvas.width !== Math.round(W * dpr) || canvas.height !== Math.round(H * dpr)) { canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr); }
-  const ctx = canvas.getContext('2d');
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
-  frameDt = dt;
-  const draw = { C: drawFlow, D: drawHybrid, E: drawFire, F: drawStars }[variant];
-  const lay = draw ? draw(ctx, W, H) : drawGraph(ctx, W, H, vertical);
-  if (mouse && t - lastFormula > 100) { showFormula(lay, mouse[0], mouse[1]); lastFormula = t; }
+  const vertical = b.canvas.clientWidth < 640;
+  b.canvas.style.height = vertical ? '580px' : '470px';
+  const W = b.canvas.clientWidth, H = b.canvas.clientHeight;
+  if (b.canvas.width !== Math.round(W * dpr) || b.canvas.height !== Math.round(H * dpr)) { b.canvas.width = Math.round(W * dpr); b.canvas.height = Math.round(H * dpr); }
+  const ctx = b.canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.fillStyle = b.v.bg; ctx.fillRect(0, 0, W, H);
+  const lay = layout(W, H, vertical);
+  b.v.draw(ctx, lay);
+  if (!b.mouse || !trace || t - b.lastFormula < 100) return;
+  b.lastFormula = t;
+  let hit = null;
+  lay.pos.forEach((col, k) => col.forEach(([x, y], i) => {
+    if (k > 0 && Math.hypot(b.mouse[0] - x, b.mouse[1] - y) < lay.r + 12) hit = { k, i, x, y };
+  }));
+  if (!hit) { b.card.hidden = true; return; }
+  b.card.innerHTML = formulaHTML(lay, hit.k, hit.i);
+  b.card.hidden = false;
+  const cw = b.card.offsetWidth, ch = b.card.offsetHeight;
+  b.card.style.left = `${Math.max(8, Math.min(hit.x - cw / 2, W - cw - 8))}px`;
+  b.card.style.top = `${hit.y + 22 + ch > H ? hit.y - ch - 22 : hit.y + 22}px`;
+}
+
+let lastT = performance.now();
+function frame(t) {
+  frameDt = Math.min(0.05, (t - lastT) / 1000); lastT = t;
+  step();
+  sigs = brain().layers.map((_, k) => signals(k));
+  smooth(t, frameDt); spawnPulses(); advancePulses(frameDt);
+  drawMini();
+  for (const b of boards) {
+    const r = b.canvas.getBoundingClientRect();
+    if (r.bottom > 0 && r.top < innerHeight) drawBoard(b, t); // рисуем только видимые доски
+  }
   requestAnimationFrame(frame);
 }
 
-// ── управление ──
-canvas.addEventListener('pointermove', (e) => { const r = canvas.getBoundingClientRect(); mouse = [e.clientX - r.left, e.clientY - r.top]; });
-canvas.addEventListener('pointerleave', () => { mouse = null; card.hidden = true; });
-function setVariant(v) {
-  variant = v; pulses.length = 0; edgeHeat.clear(); nodeHeat.clear();
-  try { history.replaceState(null, '', `#${v}`); } catch { /* превью */ }
-  document.getElementById('vLabel').textContent = `${v} — ${VARIANTS[v]}`;
-}
-const keys = Object.keys(VARIANTS);
-const shift = (d) => setVariant(keys[(keys.indexOf(variant) + d + keys.length) % keys.length]);
-document.getElementById('vPrev').onclick = () => shift(-1);
-document.getElementById('vNext').onclick = () => shift(1);
-addEventListener('hashchange', () => { const v = location.hash.slice(1); if (VARIANTS[v] && v !== variant) setVariant(v); });
-addEventListener('keydown', (e) => { if (e.target.closest('input, textarea, select')) return; if (e.key === 'ArrowLeft') shift(-1); if (e.key === 'ArrowRight') shift(1); });
-document.getElementById('pause').onclick = (e) => { paused = !paused; e.currentTarget.textContent = paused ? 'Ехать' : 'Пауза'; e.currentTarget.setAttribute('aria-pressed', String(paused)); };
+document.getElementById('pause').onclick = (e) => {
+  paused = !paused;
+  e.currentTarget.textContent = paused ? 'Поехали' : 'Пауза';
+  e.currentTarget.setAttribute('aria-pressed', String(paused));
+};
 const botSel = document.getElementById('bot');
 botSel.innerHTML = BOTS.filter((b) => b.think !== 'step').map((b) => `<option>${b.name}</option>`).join('');
 botSel.onchange = () => loadBot(botSel.value);
 
 readPalette();
 loadBot('Сквозняк');
-setVariant(variant);
 requestAnimationFrame(frame);
