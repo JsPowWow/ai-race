@@ -4,3 +4,5 @@ tools/preview.html
 tools/shot*.mjs
 demo-entries/
 entries/
+*private-key*.json
+*.private-key.json

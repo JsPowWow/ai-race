@@ -6,7 +6,7 @@
 // (например, выгрузка сабмитов из RS App). Нужен GitHub CLI (`gh auth login`) с доступом к этим репозиториям —
 // подойдут и приватные репозитории студентов.
 //
-// Из каждого PR берём добавленные или изменённые .json-файлы машины (format "ai-race/car@1")
+// Из каждого PR берём добавленные или изменённые .json-файлы машины — запечатанные (car.sealed.json) или открытые —
 // и кладём в <папка>/<логин автора PR>/<имя файла>. Эту папку потом открываем на вкладке «Финал».
 import { execFile } from 'child_process';
 import { promisify } from 'util';
@@ -41,7 +41,7 @@ async function collect({ owner, repo, number, url }) {
     const text = await gh(`repos/${headRepo}/contents/${encodeURI(f.filename)}?ref=${pr.head.sha}`, true);
     let json;
     try { json = JSON.parse(text); } catch { continue; }
-    if (typeof json?.format !== 'string' || !json.format.includes('car@')) continue;
+    if (typeof json?.format !== 'string' || !/car@|sealed@/.test(json.format)) continue;
     mkdirSync(join(outDir, login), { recursive: true });
     writeFileSync(join(outDir, login, basename(f.filename)), text);
     saved++;

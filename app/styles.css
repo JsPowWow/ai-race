@@ -560,6 +560,11 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 }
 .colors .custom-color.on { box-shadow: 0 0 0 2px var(--ink); }
 .colors .custom-color input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+.gh-check { display: flex; align-items: center; gap: 10px; min-height: 22px; font-size: 13px; color: var(--muted); }
+.gh-check img { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line); }
+.gh-check.good { color: var(--ink); }
+.gh-check.good b { color: var(--good); }
+.gh-check.bad { color: var(--bad); }
 .avatar-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .avatar { width: 22px; height: 22px; object-fit: contain; flex: none; border-radius: 50%; background: var(--bg-2); }
 .avatar.big { width: 48px; height: 48px; border: 1px solid var(--line); }
@@ -618,6 +623,8 @@ details .btn { margin-top: 6px; }
 .fboard li.found { outline: 2px solid var(--accent); outline-offset: -2px; background: color-mix(in srgb, var(--accent) 12%, var(--bg-2)); }
 .fboard li.gap { background: transparent; justify-content: center; color: var(--muted); padding: 0; }
 .notes summary { cursor: pointer; font-size: 13px; color: var(--muted); }
+.notes summary.warn, .warn { color: var(--bad); }
+.notes li .btn { margin-left: 6px; padding: 2px 8px; }
 .notes ul { margin: 8px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; max-height: 220px; overflow-y: auto; }
 .notes code { font-size: 11.5px; overflow-wrap: anywhere; }
 .check { display: flex; gap: 8px; align-items: center; font-size: 13px; cursor: pointer; }

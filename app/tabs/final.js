@@ -7,7 +7,9 @@ import {
   standings, superfinalists, finalStandings, nominations,
 } from '../../engine/rally.js';
 import { getTrainingTrack } from '../../engine/track.js';
-import { buildEntries, readFileList, readDrop } from '../final/entries.js';
+import { buildEntries, openSealedFiles, readFileList, readDrop } from '../final/entries.js';
+import { generateCourseKeys, importPrivateKey } from '../../engine/seal.js';
+import { COURSE_KEY } from '../generated/course-key.js';
 import { runJobs, computeMode } from '../final/pool.js';
 import { StageReplay, countStatuses, drawStage, drawProgressStrip } from '../final/show.js';
 import { resultText, toMarkdown, toCsv, toJson } from '../final/export.js';
@@ -21,8 +23,19 @@ const STAGE_COUNT = STAGES + 1; // этапы и суперфинал
 const BOARD_EVERY = 6;          // обновлять таблицу раз в столько кадров
 const LIVE_ROWS = 10;
 
-/** Загруженные работы */
-let pool = { entries: [], problems: [], twins: [], skipped: 0 };
+/** Загруженные файлы и секретный ключ курса (только в памяти вкладки) */
+let files = [];
+let courseKey = null;
+/** Работы, собранные из файлов */
+let pool = emptyPool();
+/** Чужие файлы, которые куратор всё-таки допустил */
+const allowed = new Set();
+
+function emptyPool() {
+  return { entries: [], problems: [], twins: [], similar: [], foreign: [], skipped: 0, sealed: 0, opened: 0, locked: 0 };
+}
+/** Кто едет: все, кроме «чужих» файлов, которые куратор не допустил */
+const racers = () => pool.entries.filter((e) => !e.foreign || allowed.has(e.id));
 /** Посчитанный финал: { secret, tracks, results[этап] → Map, after[k] — зачёт после k+1 этапов, final, awards } */
 let calc = null;
 let computing = null;
@@ -52,8 +65,17 @@ export const finalTab = {
 
 // ── 1. работы ──
 
-async function loadFiles(files) {
-  pool = buildEntries(await files);
+async function loadFiles(list) {
+  files = await list;
+  allowed.clear();
+  await rebuild();
+}
+
+/** Собрать работы заново: после новой папки или выбранного ключа */
+async function rebuild() {
+  const opened = await openSealedFiles(files, courseKey);
+  pool = { ...buildEntries(opened.files), sealed: opened.sealed, opened: opened.opened, locked: opened.locked };
+  pool.problems.unshift(...opened.problems);
   calc = null;
   show.replay = null;
   show.found = null;
@@ -66,6 +88,34 @@ async function loadFiles(files) {
   renderStages();
   renderBoard();
 }
+
+$('#fKey').addEventListener('change', async (e) => {
+  const [file] = e.target.files;
+  e.target.value = '';
+  if (!file) return;
+  try {
+    courseKey = await importPrivateKey(JSON.parse(await file.text()));
+    const match = !COURSE_KEY || COURSE_KEY.kid === courseKey.kid;
+    $('#fKeyNote').textContent = `Ключ курса ${courseKey.kid} выбран${match ? '' : ` — но сайт шифрует ключом ${COURSE_KEY.kid}: это ключ от другого набора`}.`;
+    $('#fKeyNote').classList.toggle('error', !match);
+    await rebuild();
+  } catch (err) {
+    courseKey = null;
+    $('#fKeyNote').textContent = `Не подошло: ${err.message}`;
+    $('#fKeyNote').classList.add('error');
+  }
+});
+
+$('#fNewKeys').addEventListener('click', async () => {
+  try {
+    const { publicFile, privateFile } = await generateCourseKeys();
+    await saveFile(`ai-race-private-key-${privateFile.kid}.json`, JSON.stringify(privateFile, null, 2));
+    await saveFile('course-key.json', `${JSON.stringify(publicFile, null, 2)}\n`);
+    $('#fNewKeysNote').textContent = `Готово, ключ ${publicFile.kid}. Секретный — сохраните у кураторов. course-key.json — замените в репозитории и пересоберите сайт.`;
+  } catch (e) {
+    $('#fNewKeysNote').textContent = `Не получилось: ${e.message}`;
+  }
+});
 
 $('#fFolder').addEventListener('change', (e) => {
   loadFiles(readFileList(e.target.files));
@@ -89,8 +139,8 @@ viewport.addEventListener('drop', (e) => {
 });
 
 function renderSetup() {
-  const { entries, problems, twins, skipped } = pool;
-  $('#fCount').textContent = entries.length;
+  const { entries, problems, twins, similar, foreign, skipped, sealed, opened, locked } = pool;
+  $('#fCount').textContent = racers().length;
   $('#fCode').textContent = entries.filter((e) => e.code).length;
   $('#fTwins').textContent = twins.reduce((n, g) => n + g.length, 0);
   const notes = [];
@@ -102,9 +152,25 @@ function renderSetup() {
       <p class="hint">Одинаковые файлы едут одинаково и делят место. Обычно это скопированный или несданный «по умолчанию» мозг.</p>
       <ul>${twins.map((g) => `<li>${g.length} × ${g.map((e) => esc(e.author)).join(', ')}</li>`).join('')}</ul></details>`);
   }
+  if (foreign.length) {
+    notes.push(`<details class="notes" open><summary class="warn">Чужой файл? ${foreign.length}</summary>
+      <p class="hint">Логин внутри печати не совпадает с автором работы. Это кража чужого файла или опечатка в логине. Такие работы не едут, пока вы их не допустите.</p>
+      <ul>${foreign.map((e) => `<li><b>${esc(e.author)}</b> сдал файл, запечатанный для <b>${esc(e.claimed)}</b>
+        <button class="btn small" data-allow="${esc(e.id)}">${allowed.has(e.id) ? 'Снять допуск' : 'Допустить'}</button></li>`).join('')}</ul></details>`);
+  }
+  if (similar.length) {
+    notes.push(`<details class="notes"><summary>Похожие мозги: пар ${similar.length}</summary>
+      <p class="hint">Веса почти совпадают (сходство выше 97%): похоже, один файл скопировали и чуть-чуть поправили. Независимо обученные сети так не совпадают.</p>
+      <ul>${similar.slice(0, 100).map((p) => `<li>${esc(p.a.author)} ~ ${esc(p.b.author)} — ${Math.floor(p.similarity * 1000) / 10}%</li>`).join('')}</ul></details>`);
+  }
   if (skipped) notes.push(`<p class="hint">Пропущено файлов, не похожих на машину: ${skipped}.</p>`);
+  if (sealed || entries.length) {
+    const open = entries.filter((e) => !e.sealed).length;
+    const waiting = locked ? ` · <b class="warn">ждут секретный ключ: ${locked}</b>` : '';
+    notes.unshift(`<p class="hint">Запечатанных файлов: ${sealed}, открыто: ${opened}${waiting}. Незапечатанных работ: ${open}.</p>`);
+  }
   $('#fNotes').innerHTML = notes.join('');
-  $('#fCompute').disabled = !entries.length || !!computing;
+  $('#fCompute').disabled = !racers().length || !!computing;
 
   const withAvatar = entries.filter((e) => e.avatar);
   $('#fGalleryBox').hidden = !withAvatar.length;
@@ -114,6 +180,17 @@ function renderSetup() {
     </button>`).join('');
   $('#fNames').innerHTML = entries.map((e) => `<option value="${esc(e.author)}">${esc(e.name)}</option>`).join('');
 }
+
+delegate('#fNotes', 'click', '[data-allow]', (b) => {
+  const id = b.dataset.allow;
+  if (allowed.has(id)) allowed.delete(id);
+  else allowed.add(id);
+  calc = null;
+  show.replay = null;
+  renderSetup();
+  renderStages();
+  renderBoard();
+});
 
 delegate('#fGallery', 'click', '[data-av]', (b) => {
   const id = b.dataset.av;
@@ -131,7 +208,7 @@ const avatarOf = (entry) => (show.avatars && !show.hiddenAvatars.has(entry.id) ?
 // ── 2. расчёт ──
 
 $('#fSecret').addEventListener('input', () => {
-  $('#fCompute').disabled = !pool.entries.length || !!computing;
+  $('#fCompute').disabled = !racers().length || !!computing;
 });
 
 $('#fCompute').addEventListener('click', compute);
@@ -139,7 +216,7 @@ $('#fCompute').addEventListener('click', compute);
 async function compute() {
   const secret = $('#fSecret').value.trim();
   if (!secret) return showBanner('Сначала придумайте секретную фразу', 2500);
-  const { entries } = pool;
+  const entries = racers();
   computing?.abort();
   const run = (computing = new AbortController());
   entries.forEach((e) => delete e.dq);
@@ -198,8 +275,8 @@ async function compute() {
 }
 
 function renderDq() {
-  const dq = pool.entries.filter((e) => e.dq);
-  const broken = pool.entries.filter((e) => !e.dq && calc.results.some((m) => m.get(e.id)?.status === 'error'));
+  const dq = racers().filter((e) => e.dq);
+  const broken = racers().filter((e) => !e.dq && calc.results.some((m) => m.get(e.id)?.status === 'error'));
   const list = (title, items, why) => (items.length
     ? `<details class="notes"><summary>${title}: ${items.length}</summary><ul>${items.map((e) => `<li><b>${esc(e.author)}</b> — ${esc(why(e))}</li>`).join('')}</ul></details>`
     : '');
@@ -223,7 +300,7 @@ function selectStage(i) {
   show.counting = false;
   show.stage = i;
   const rows = [];
-  for (const entry of pool.entries) {
+  for (const entry of racers()) {
     const result = calc.results[i].get(entry.id);
     if (result && !entry.dq) rows.push({ entry, result });
   }
@@ -283,7 +360,7 @@ function stageEnded() {
 function draw() {
   if (!show.replay) {
     drawScene(getTrainingTrack('warmup'));
-    setHud(['<b>Финал курса</b>', pool.entries.length ? `участников <b>${pool.entries.length}</b>` : 'загрузите работы', calc ? '' : 'потом — «Посчитать финал»'].filter(Boolean));
+    setHud(['<b>Финал курса</b>', racers().length ? `участников <b>${racers().length}</b>` : 'загрузите работы', calc ? '' : 'потом — «Посчитать финал»'].filter(Boolean));
     return;
   }
   const { replay, tick } = show;
@@ -327,8 +404,8 @@ function renderBoard() {
   if (!calc || !show.replay) {
     $('#fBoardTitle').textContent = 'Участники';
     $('#fCounts').textContent = '';
-    board.innerHTML = pool.entries.length
-      ? pool.entries.map((e) => `<li class="${rowClass(e, 99)}">${who(e)}</li>`).join('')
+    board.innerHTML = racers().length
+      ? racers().map((e) => `<li class="${rowClass(e, 99)}">${who(e)}</li>`).join('')
       : '<li class="empty">Загрузите работы участников</li>';
     return;
   }
@@ -396,9 +473,9 @@ async function save(filename, data, type) {
     $('#fSaveNote').textContent = e?.code === 'declined' ? 'Скачивание отменено.' : `Не получилось сохранить: ${e.message}`;
   }
 }
-$('#fSaveMd').addEventListener('click', () => save('RESULTS.md', toMarkdown(calc, pool.entries), 'text/markdown'));
+$('#fSaveMd').addEventListener('click', () => save('RESULTS.md', toMarkdown(calc, racers()), 'text/markdown'));
 $('#fSaveCsv').addEventListener('click', () => save('ai-race-results.csv', toCsv(calc), 'text/csv'));
-$('#fSaveJson').addEventListener('click', () => save('results.json', toJson(calc, pool.entries)));
+$('#fSaveJson').addEventListener('click', () => save('results.json', toJson(calc, racers())));
 
 // ── режим трансляции: только трасса и таблица, на весь экран ──
 

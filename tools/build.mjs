@@ -1,5 +1,5 @@
 // Сборка: app/sources.js, app/bots.js, index.html (для разработки) и dist/ai-race.html (один файл).
-import { readFileSync, writeFileSync, mkdirSync } from 'fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
 import { build } from 'esbuild';
 import { transform } from 'esbuild';
 
@@ -8,6 +8,9 @@ const w = (p, s) => writeFileSync(new URL(`../${p}`, import.meta.url), s);
 
 const SOURCES = Object.fromEntries(['controls', 'think', 'mutate', 'fitness', 'crossover'].map((id) => [id, r(`student/${id}.js`)]));
 w('app/generated/sources.js', `// Сгенерировано tools/build.mjs: исходники student/*.js для вкладки «Код».\nexport const SOURCES = ${JSON.stringify(SOURCES, null, 1)};\n`);
+// Открытый ключ курса: им «Экзамен» запечатывает файл для сдачи (секретный ключ есть только у кураторов)
+const courseKey = existsSync(new URL('../course-key.json', import.meta.url)) ? r('course-key.json').trim() : 'null';
+w('app/generated/course-key.js', `// Сгенерировано tools/build.mjs из course-key.json: открытый ключ курса.\nexport const COURSE_KEY = ${courseKey};\n`);
 w('app/generated/bots.js', `// Сгенерировано из tools/bots.json (tools/train-bots.mjs): боты-соперники для гонки.\nexport const BOTS = ${r('tools/bots.json')};\n`);
 
 // Парсер acorn: нужен вкладке «Код», чтобы показывать номер строки у синтаксических ошибок

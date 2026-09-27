@@ -385,10 +385,20 @@
         </div>
         <p class="hint">Аватар — необязательная SVG-картинка до 8 КБ: её покажут в таблице гонки и на стриме. Без скриптов и ссылок на другие сайты.</p>
         <div class="error" id="pAvatarError" hidden></div>
+        <div class="field wide"><label for="pLogin">Логин GitHub</label><input type="text" id="pLogin" maxlength="39" placeholder="например, JsPowWow" autocomplete="username" autocapitalize="off" spellcheck="false"></div>
+        <div class="gh-check" id="pLoginCheck" role="status"></div>
         <div class="row">
-          <button class="btn primary" id="pCopy">Скопировать JSON</button>
-          <button class="btn" id="pDownload">Скачать .json</button>
+          <button class="btn primary" id="pSeal">Скачать для сдачи</button>
         </div>
+        <p class="hint">Файл для сдачи запечатан ключом курса: открыть его могут только кураторы. Поэтому его можно спокойно выкладывать в пул-реквест — никто не подсмотрит твои веса и код.</p>
+        <details>
+          <summary>Открытый файл — для себя</summary>
+          <p class="hint">Обычный JSON: чтобы после финала перепроверить свой заезд на вкладке «Гонка» или поделиться с кем-то нарочно.</p>
+          <div class="row">
+            <button class="btn small" id="pCopy">Скопировать JSON</button>
+            <button class="btn small" id="pDownload">Скачать car.json</button>
+          </div>
+        </details>
         <p class="note" id="pMsg" role="status"></p>
         <details>
           <summary>Что внутри файла</summary>
@@ -450,8 +460,10 @@
         <div class="row">
           <label class="btn small file">Открыть папку<input type="file" id="fFolder" webkitdirectory multiple></label>
           <label class="btn small file">Файлы .json<input type="file" id="fFiles" accept=".json,application/json" multiple></label>
+          <label class="btn small file">🔑 Секретный ключ<input type="file" id="fKey" accept=".json,application/json"></label>
         </div>
-        <p class="hint">Папка с работами: после <code>tools/collect-entries.mjs</code> или <code>gh classroom clone</code> — «ник/car.json». Можно перетащить её прямо на трассу.</p>
+        <p class="note" id="fKeyNote" role="status"></p>
+        <p class="hint">Папка с работами: после <code>tools/collect-entries.mjs</code> или <code>gh classroom clone</code> — «ник/car.sealed.json». Можно перетащить её прямо на трассу. Запечатанные работы откроются, когда выберете секретный ключ курса.</p>
         <dl class="stats">
           <div><dt>Участников</dt><dd id="fCount">0</dd></div>
           <div><dt>Свой код</dt><dd id="fCode">0</dd></div>
@@ -459,6 +471,13 @@
         </dl>
         <div id="fNotes"></div>
         <label class="check"><input type="checkbox" id="fAvatars" checked> Показывать аватары</label>
+        <details class="notes">
+          <summary>Ключи курса</summary>
+          <p class="hint">Студенты запечатывают файл для сдачи открытым ключом курса из <code>course-key.json</code> в репозитории. Открыть его можно только секретным ключом — он хранится у кураторов, в репозиторий его не кладут. Секретный ключ используется только здесь, в браузере, и никуда не отправляется.</p>
+          <p class="hint">Новые ключи нужны, только если секретный потерялся или утёк. После этого замените <code>course-key.json</code>, пересоберите сайт (<code>npm run build</code>), а студенты пересдают работы.</p>
+          <button class="btn small" id="fNewKeys">Создать новые ключи курса</button>
+          <p class="note" id="fNewKeysNote" role="status"></p>
+        </details>
         <details id="fGalleryBox" hidden>
           <summary>Аватары — проверить перед стримом</summary>
           <p class="hint">Щёлкни картинку, чтобы скрыть её на трансляции.</p>

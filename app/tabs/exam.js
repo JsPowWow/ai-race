@@ -8,11 +8,15 @@ import { toCarFile } from '../car-file.js';
 import { drawScene, paintCar, trafficOn, setHud, showBanner } from '../stage.js';
 import { $, $$, esc, secs, pct, delegate, showError } from '../ui.js';
 import { canDownload, saveFile } from '../download.js';
+import { sealCar, GITHUB_LOGIN } from '../../engine/seal.js';
+import { COURSE_KEY } from '../generated/course-key.js';
 import { checkAvatar, avatarUrl } from '../../engine/car-file.js';
 
 const UNKNOWN_SEEDS = ['экзамен-1', 'экзамен-2', 'экзамен-3'];
 const REPLAY_SPEED = 3;
 const CAR_FILE_NAME = 'car.json';
+const SEALED_FILE_NAME = 'car.sealed.json';
+const LOGIN_CHECK_DELAY_MS = 700;
 
 let results = [];
 let replay = null; // { index, car, pauseUntil }
@@ -116,6 +120,8 @@ function renderExport() {
   const file = toCarFile();
   $('#pJson').value = file ? JSON.stringify(file) : 'Сначала обучи мозг.';
   $('#pCopy').disabled = $('#pDownload').disabled = !file;
+  renderSealButton();
+  if (loginLooksValid() && !loginChecks.has(currentLogin().toLowerCase())) checkLogin(); // раз за сессию, чтобы не тратить лимит GitHub
   renderResults();
 }
 
@@ -171,17 +177,96 @@ $('#pCopy').addEventListener('click', async () => {
   }
 });
 
-canDownload().then((ok) => ($('#pDownload').hidden = !ok));
+canDownload().then((ok) => ($('#pDownload').hidden = $('#pSeal').hidden = !ok));
 $('#pDownload').addEventListener('click', async () => {
   const file = toCarFile();
   if (!file) return;
   try {
     await saveFile(CAR_FILE_NAME, JSON.stringify(file, null, 1));
-    $('#pMsg').textContent = `Сохранено: ${CAR_FILE_NAME}. Его и сдаём (например, пул-реквестом).`;
+    $('#pMsg').textContent = `Сохранено: ${CAR_FILE_NAME}. Это открытый файл — для себя. Сдавай запечатанный.`;
   } catch (e) {
     $('#pMsg').textContent = e?.code === 'declined' ? 'Скачивание отменено.' : 'Не получилось скачать. Используй «Скопировать JSON».';
   }
 });
+
+// ── сдача: логин на GitHub и запечатанный файл ──
+// Логин нужен, чтобы в финале сверить: файл сдал тот, кто его сделал.
+// Проверка на GitHub — подсказка против опечаток: если GitHub недоступен или кончился лимит, она не мешает.
+
+const loginChecks = new Map(); // логин → { status: 'found' | 'missing' | 'unknown', user }
+let loginTimer = 0;
+
+$('#pLogin').value = state.profile.login ?? '';
+const currentLogin = () => (state.profile.login ?? '').trim();
+const loginLooksValid = () => GITHUB_LOGIN.test(currentLogin());
+
+$('#pLogin').addEventListener('input', (e) => {
+  state.profile.login = e.target.value.trim();
+  persist();
+  clearTimeout(loginTimer);
+  loginTimer = setTimeout(checkLogin, LOGIN_CHECK_DELAY_MS);
+  renderLoginCheck();
+  renderSealButton();
+});
+
+async function checkLogin() {
+  const login = currentLogin();
+  if (!GITHUB_LOGIN.test(login) || loginChecks.has(login.toLowerCase())) return renderLoginCheck();
+  loginChecks.set(login.toLowerCase(), { status: 'checking' });
+  renderLoginCheck();
+  let result = { status: 'unknown' };
+  try {
+    const res = await fetch(`https://api.github.com/users/${encodeURIComponent(login)}`, { headers: { Accept: 'application/vnd.github+json' } });
+    if (res.status === 404) result = { status: 'missing' };
+    else if (res.ok) result = { status: 'found', user: await res.json() };
+  } catch { /* нет сети или GitHub не пустил — не страшно */ }
+  loginChecks.set(login.toLowerCase(), result);
+  // GitHub знает, как логин пишется правильно (регистр букв) — подставим
+  if (result.status === 'found' && result.user.login !== login && result.user.login.toLowerCase() === login.toLowerCase()) {
+    state.profile.login = $('#pLogin').value = result.user.login;
+    persist();
+  }
+  renderLoginCheck();
+}
+
+function renderLoginCheck() {
+  const login = currentLogin();
+  const box = $('#pLoginCheck');
+  const check = loginChecks.get(login.toLowerCase());
+  box.className = 'gh-check';
+  if (!login) box.textContent = 'Впиши логин — без него файл для сдачи не скачать.';
+  else if (!loginLooksValid()) {
+    box.textContent = 'Так логин на GitHub не пишется: латиница, цифры и дефис, до 39 символов.';
+    box.classList.add('bad');
+  } else if (!check || check.status === 'checking') box.textContent = 'Проверяем на GitHub…';
+  else if (check.status === 'found') {
+    const { avatar_url: avatar, name, login: canonical } = check.user;
+    box.innerHTML = `${/^https:\/\/avatars\.githubusercontent\.com\//.test(avatar) ? `<img src="${esc(avatar)}&s=64" alt="" onerror="this.remove()">` : ''}<span>Это ты? <b>${esc(name || canonical)}</b> @${esc(canonical)}</span>`;
+    box.classList.add('good');
+  } else if (check.status === 'missing') {
+    box.textContent = 'Такого пользователя на GitHub нет — проверь, нет ли опечатки.';
+    box.classList.add('bad');
+  } else box.textContent = 'Не получилось проверить на GitHub — просто убедись, что логин верный.';
+}
+
+function renderSealButton() {
+  $('#pSeal').disabled = !toCarFile() || !loginLooksValid() || !COURSE_KEY;
+  $('#pSeal').title = !COURSE_KEY ? 'В этой сборке нет ключа курса (course-key.json)' : !loginLooksValid() ? 'Впиши логин на GitHub' : '';
+}
+
+$('#pSeal').addEventListener('click', async () => {
+  const file = toCarFile();
+  if (!file) return;
+  try {
+    const sealed = await sealCar(file, currentLogin(), COURSE_KEY);
+    await saveFile(SEALED_FILE_NAME, JSON.stringify(sealed));
+    $('#pMsg').textContent = `Сохранено: ${SEALED_FILE_NAME}. Его и сдавай пул-реквестом. Открыть его могут только кураторы.`;
+  } catch (e) {
+    $('#pMsg').textContent = e?.code === 'declined' ? 'Скачивание отменено.' : `Не получилось: ${e.message}`;
+  }
+});
+
+renderLoginCheck();
 
 on('champion', () => {
   results = [];
