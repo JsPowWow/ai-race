@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "start": "npx serve .",
+    "dev": "node tools/build.mjs --watch",
     "build": "node tools/build.mjs",
     "lint": "eslint .",
     "bots": "node tools/train-bots.mjs",

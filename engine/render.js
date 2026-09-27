@@ -15,10 +15,10 @@ export function readPalette() {
 }
 export const getPalette = () => palette || readPalette();
 
-/** Подогнать размер canvas под CSS-размер с учётом плотности пикселей */
-export function fitCanvas(canvas) {
+/** Подогнать размер canvas под CSS-размер size = { width, height } с учётом плотности пикселей */
+export function fitCanvas(canvas, size) {
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  const w = Math.round(canvas.clientWidth * dpr), h = Math.round(canvas.clientHeight * dpr);
+  const w = Math.round(size.width * dpr), h = Math.round(size.height * dpr);
   if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
   return dpr;
 }
@@ -32,7 +32,7 @@ export class Camera {
       const s = Math.min(W / (b.maxX - b.minX + pad * 2), H / (b.maxY - b.minY + pad * 2));
       this.scale = s; this.x = (b.minX + b.maxX) / 2; this.y = (b.minY + b.maxY) / 2; this.ready = true;
     } else {
-      const s = dpr * (canvas.clientWidth < 520 ? 0.75 : 1.05);
+      const s = dpr * (W / dpr < 520 ? 0.75 : 1.05); // на узком экране — дальше, чтобы видеть поворот
       // Смотрим вперёд по ходу: водителю важна дорога впереди, а не позади
       const lead = (0.25 * Math.min(W, H)) / s;
       const aim = { x: target.x + Math.cos(target.angle ?? 0) * lead, y: target.y + Math.sin(target.angle ?? 0) * lead };

@@ -15,16 +15,21 @@ import { examTab } from './tabs/exam.js';
 import { raceTab } from './tabs/race.js';
 import { introTab, redrawIntro } from './tabs/intro.js';
 import { teachTab, redrawLoss, renderNetwork } from './tabs/teach.js';
-import { finalTab, leaveFinal } from './tabs/final.js';
 
-const TABS = { intro: introTab, teach: teachTab, train: trainTab, code: codeTab, exam: examTab, race: raceTab, final: finalTab };
+const TABS = { intro: introTab, teach: teachTab, train: trainTab, code: codeTab, exam: examTab, race: raceTab };
+/** Финал нужен только кураторам: его код (Worker, печать, экспорт) грузим, когда вкладку открыли */
+let finalModule = null;
+const loadFinal = async () => (finalModule ??= await import('./tabs/final.js'));
+/** Вкладка, которая сейчас рисует кадры */
+let current = null;
 /** Старые адреса вкладок: «Гараж» и «Учитель» стали одной вкладкой «Я учу» */
 const ALIASES = { garage: 'teach' };
-const tabId = (id) => ALIASES[id] ?? (id in TABS ? id : null);
+const tabId = (id) => ALIASES[id] ?? (id in TABS || id === 'final' ? id : null);
 /** У финала нет своей кнопки в шапке: он живёт внутри «Гонки» */
 const TAB_BUTTON = { final: 'race' };
 
-function openTab(id) {
+async function openTab(id) {
+  const tab = id === 'final' ? (await loadFinal()).finalTab : TABS[id];
   state.tab = id;
   save('lastTab', id); // в следующий раз откроем там же
   document.body.dataset.tab = id;
@@ -39,8 +44,9 @@ function openTab(id) {
   $('#editor').hidden = id !== 'code';
   hideBanner();
   steerWith(null); // рулить руками можно только там, где вкладка это разрешит
-  if (id !== 'final') leaveFinal();
-  TABS[id].enter();
+  if (id !== 'final') finalModule?.leaveFinal();
+  current = tab;
+  tab.enter();
   try {
     history.replaceState(null, '', `#${id}`);
   } catch { /* в превью истории может не быть */ }
@@ -86,7 +92,7 @@ function frame() {
   try {
     beginFrame();
     updateTraining(); // эволюция идёт в фоне на любой вкладке
-    TABS[state.tab].frame(frameNo);
+    current?.frame(frameNo);
     if (frameNo % 30 === 0) renderChampion();
   } catch (e) {
     console.error(e);

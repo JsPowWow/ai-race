@@ -6,7 +6,7 @@ import { Car, maxTicksFor } from '../../engine/car.js';
 import { fromCarFile } from '../car-file.js';
 import { seedTrack } from '../tracks.js';
 import { BOTS } from '../generated/bots.js';
-import { $ } from '../ui.js';
+import { $, liveSize } from '../ui.js';
 
 const DEMO_SEED = 'витрина';
 const DEMO_SPEED = 3; // тиков за кадр
@@ -14,6 +14,7 @@ const demoBot = fromCarFile(BOTS.find((b) => b.name === 'Сквозняк') ?? B
 const smallBot = BOTS.reduce((a, b) => (JSON.stringify(a).length <= JSON.stringify(b).length ? a : b));
 
 const canvas = $('#introCanvas');
+const canvasSize = liveSize(canvas);
 const ctx = canvas.getContext('2d');
 const cam = new Camera();
 const track = withTraffic(seedTrack(DEMO_SEED), 'all');
@@ -26,7 +27,7 @@ export const introTab = {
     renderBrain();
   },
   frame() {
-    const dpr = fitCanvas(canvas);
+    const dpr = fitCanvas(canvas, canvasSize);
     if (!car.done) {
       for (let k = 0; k < DEMO_SPEED && !car.done; k++) car.step(track, maxTicksFor(track), trafficAt(track, track.traffic, car.ticks));
     } else {

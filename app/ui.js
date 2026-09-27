@@ -20,6 +20,19 @@ export function setPressed(selector, isOn) {
   for (const button of $$(selector)) button.setAttribute('aria-pressed', String(isOn(button)));
 }
 
+/**
+ * CSS-размер элемента, который обновляется сам, когда элемент меняет размер.
+ * Читать clientWidth в каждом кадре дорого: браузер каждый раз пересчитывает вёрстку.
+ */
+export function liveSize(el) {
+  const size = { width: el.clientWidth, height: el.clientHeight };
+  new ResizeObserver(([entry]) => {
+    size.width = entry.contentRect.width;
+    size.height = entry.contentRect.height;
+  }).observe(el);
+  return size;
+}
+
 /** Обработчик на контейнере для его динамических детей */
 export function delegate(root, event, selector, handler) {
   $(root).addEventListener(event, (e) => {

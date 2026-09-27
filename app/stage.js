@@ -1,22 +1,35 @@
 // Холст с трассой: камера, отрисовка сцены, подсказки поверх (HUD, баннер).
 import { Camera, fitCanvas, clear, drawTrack, drawTraffic, drawCar, drawSensors, drawPack } from '../engine/render.js';
 import { trafficAt } from '../engine/traffic.js';
-import { $ } from './ui.js';
+import { clamp } from '../engine/utils.js';
+import { $, liveSize } from './ui.js';
 
 export const canvas = $('#stage');
 const ctx = canvas.getContext('2d');
+const canvasSize = liveSize(canvas);
 const cam = new Camera();
 let dpr = 1;
 
 export function beginFrame() {
-  dpr = fitCanvas(canvas);
+  dpr = fitCanvas(canvas, canvasSize);
 }
 
 /** Положение машин трафика на тике tick (или null, если трафика нет) */
 export const trafficOn = (track, tick) => (track.traffic ? trafficAt(track, track.traffic, tick) : null);
 
+// На телефоне «вся трасса» — холст по пропорциям трассы: иначе длинная трасса — тонкая полоска среди пустоты
+const viewport = $('#viewport');
+const phone = matchMedia('(max-width: 700px)');
+let viewportRatio = '';
+function fitViewport(track, camera) {
+  const b = track.bbox;
+  const ratio = camera === 'fit' && phone.matches ? clamp((b.maxX - b.minX + 80) / (b.maxY - b.minY + 80), 0.9, 2.2).toFixed(2) : '';
+  if (ratio !== viewportRatio) viewport.style.aspectRatio = viewportRatio = ratio;
+}
+
 /** Трасса и трафик. camera: 'fit' — вся трасса, 'follow' — за машиной follow */
 export function drawScene(track, { camera = 'fit', follow = null, traffic = null } = {}) {
+  fitViewport(track, camera);
   cam.mode = camera;
   cam.update(canvas, track, follow, dpr);
   clear(ctx, canvas);

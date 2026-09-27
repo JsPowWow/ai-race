@@ -6,7 +6,7 @@ import * as fitness from '../student/fitness.js';
 import * as crossover from '../student/crossover.js';
 import { SOURCES } from './generated/sources.js';
 import { compileSource } from '../engine/compile.js';
-import * as acorn from './vendor/acorn.js';
+import * as acorn from 'acorn';
 import { load, save, remove } from './storage.js';
 
 export const FILES = [

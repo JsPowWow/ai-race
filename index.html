@@ -3,13 +3,23 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>AI Race</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;600&family=Unbounded:wght@600;700;800;900&display=swap">
-<link rel="stylesheet" href="app/styles.css">
+<title>AI Race — научи машину ездить без водителя</title>
+<meta name="description" content="Курс JavaScript: машинка с лучами-сенсорами и маленькой нейросетью учится ездить — на твоих примерах и сама, эволюцией. В конце — гонка на секретной трассе.">
+<meta name="theme-color" content="#0b0d12">
+<meta property="og:title" content="AI Race — научи машину ездить без водителя">
+<meta property="og:description" content="Курс JavaScript: машинка с лучами-сенсорами и маленькой нейросетью учится ездить — на твоих примерах и сама, эволюцией. В конце — гонка на секретной трассе.">
+<meta property="og:type" content="website">
+<link rel="icon" href="app/icon.svg" type="image/svg+xml">
+<link rel="preload" href="app/fonts/unbounded-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="app/fonts/golos-text-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="modulepreload" href="app/generated/chunks/chunk-JEQDTIDB.js">
+<link rel="stylesheet" href="app/generated/app.css">
+<script type="module" src="app/generated/app.js"></script>
 </head>
 <body>
+<a class="skip-link" href="#content">К содержимому</a>
 <header class="topbar">
-  <a class="brand" href="#intro" data-home aria-label="AI Race — на главную"><span class="ai"><span>AI</span></span><span class="race"><span>Race</span></span><span class="lines" aria-hidden="true"></span></a>
+  <a class="brand" href="#intro" data-home title="На главную"><span class="ai"><span>AI</span></span> <span class="race"><span>Race</span></span><span class="lines" aria-hidden="true"></span></a>
   <nav class="tabs" role="tablist" aria-label="Разделы">
     <button role="tab" id="tab-intro" data-tab="intro" aria-selected="false"><span class="t"><span class="n">★</span>Старт</span></button>
     <button role="tab" id="tab-teach" data-tab="teach" aria-selected="false"><span class="t"><span class="n">01</span>Я учу</span></button>
@@ -21,8 +31,9 @@
   <div class="champ" id="champChip">Мозг не обучен</div>
 </header>
 <div class="kerb" aria-hidden="true"></div>
+<div id="content" tabindex="-1"></div>
 
-<section class="intro" id="introPage" hidden>
+<main class="intro" id="introPage" hidden>
   <div class="intro-hero">
     <div class="intro-copy">
       <p class="intro-kicker">Курс JavaScript · 4 урока и гонка</p>
@@ -109,7 +120,7 @@
     <button class="btn primary big" data-start>Поехали →</button>
     <span class="note">Начнём с урока 1 — «Я учу»</span>
   </div>
-</section>
+</main>
 
 <section class="lesson" id="lesson" aria-labelledby="lessonTitle"></section>
 
@@ -479,6 +490,5 @@
   </aside>
 </main>
 
-<script type="module" src="app/main.js"></script>
 </body>
 </html>
