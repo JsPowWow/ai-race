@@ -1,7 +1,10 @@
 #!/bin/bash
 # Облачная сессия Claude Code: ставим зависимости, чтобы сразу работали npm run build / lint / test.
 # Локально не запускается — там всё ставится обычным npm install.
+# Асинхронно: сессия стартует сразу, npm install идёт в фоне (обычно несколько секунд).
 set -euo pipefail
+
+echo '{"async": true, "asyncTimeout": 300000}'
 
 if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ]; then
   exit 0
