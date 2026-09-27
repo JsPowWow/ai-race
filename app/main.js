@@ -5,18 +5,27 @@ import { state, on } from './state.js';
 import { restoreEdits } from './student-code.js';
 import { renderLesson } from './lesson.js';
 import { beginFrame, showBanner, hideBanner } from './stage.js';
-import { $, $$, secs, pct } from './ui.js';
+import { $, $$, secs, pct, delegate } from './ui.js';
+import { load, save } from './storage.js';
 import { garageTab, renderNetwork } from './tabs/garage.js';
 import { trainTab, updateTraining, isTraining } from './tabs/train.js';
 import { codeTab, runAllTests } from './tabs/code.js';
 import { examTab } from './tabs/exam.js';
 import { raceTab } from './tabs/race.js';
+import { introTab, redrawIntro } from './tabs/intro.js';
 
-const TABS = { garage: garageTab, train: trainTab, code: codeTab, exam: examTab, race: raceTab };
+const TABS = { intro: introTab, garage: garageTab, train: trainTab, code: codeTab, exam: examTab, race: raceTab };
 
 function openTab(id) {
   state.tab = id;
-  renderLesson(id);
+  document.body.dataset.tab = id;
+  const isIntro = id === 'intro';
+  $('#introPage').hidden = !isIntro;
+  $('#lesson').hidden = $('.work').hidden = isIntro;
+  if (!isIntro) {
+    renderLesson(id);
+    save('introSeen', true);
+  }
   for (const b of $$('.tabs button')) b.setAttribute('aria-selected', String(b.dataset.tab === id));
   for (const el of $$('[data-panel]')) el.hidden = el.dataset.panel !== id;
   for (const el of $$('.toolbar')) el.hidden = el.dataset.for !== id;
@@ -27,9 +36,18 @@ function openTab(id) {
   try {
     history.replaceState(null, '', `#${id}`);
   } catch { /* в превью истории может не быть */ }
+  if (isIntro) window.scrollTo(0, 0);
 }
 
 for (const b of $$('.tabs button')) b.addEventListener('click', () => openTab(b.dataset.tab));
+$('[data-home]').addEventListener('click', (e) => {
+  e.preventDefault();
+  openTab('intro');
+});
+delegate('#introPage', 'click', '[data-start], [data-go]', (b) => {
+  openTab(b.dataset.go ?? 'garage');
+  window.scrollTo(0, 0);
+});
 
 // ── строка чемпиона в шапке ──
 
@@ -67,6 +85,7 @@ function frame() {
 // Холсты с графиками перерисовываем при смене размера и после загрузки шрифтов
 function redrawCharts() {
   readPalette();
+  if (state.tab === 'intro') redrawIntro();
   if (state.tab === 'garage') renderNetwork();
   if (state.tab === 'train') drawChart($('#chart'), state.history);
 }
@@ -80,6 +99,6 @@ runAllTests();
 readPalette();
 renderChampion();
 const fromHash = location.hash.slice(1);
-openTab(fromHash in TABS ? fromHash : 'garage');
+openTab(fromHash in TABS ? fromHash : load('introSeen', false) ? 'garage' : 'intro');
 if (failedEdits.length) showBanner(`Сохранённые правки не применились: ${failedEdits[0]}`, 4000);
 requestAnimationFrame(frame);
