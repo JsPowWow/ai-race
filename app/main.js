@@ -6,6 +6,7 @@ import { restoreEdits, endCodeStartup } from './student-code.js';
 import { renderLesson } from './lesson.js';
 import { beginFrame, showBanner, hideBanner } from './stage.js';
 import { steerWith } from './manual-drive.js';
+import { onStorageFull } from './storage.js';
 import { $, $$, secs, pct, delegate } from './ui.js';
 import { garageTab, renderNetwork } from './tabs/garage.js';
 import { trainTab, updateTraining, isTraining } from './tabs/train.js';
@@ -47,6 +48,8 @@ delegate('#introPage', 'click', '[data-start], [data-go]', (b) => {
   openTab(b.dataset.go ?? 'garage');
   window.scrollTo(0, 0);
 });
+
+onStorageFull(() => showBanner('Память браузера переполнена: новое не сохранится. Очисти примеры на вкладке «Учитель».', 6000));
 
 // ── строка чемпиона в шапке ──
 

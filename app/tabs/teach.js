@@ -3,10 +3,10 @@ import { TRAINING_TRACKS, getTrainingTrack } from '../../engine/track.js';
 import { Car, carReport } from '../../engine/car.js';
 import { createBrain, cloneBrain } from '../../engine/brain.js';
 import { TRAFFIC_LEVELS, withTraffic } from '../../engine/traffic.js';
-import { sampleOf, trainEpoch, agreement, TEACH_THINK } from '../../engine/imitation.js';
+import { sampleOf, trainEpoch, agreement, packSample, unpackSample, TEACH_THINK } from '../../engine/imitation.js';
 import { drawSeries } from '../../engine/netviz.js';
 import { state, persist, sizesOf, thinkFn, setChampion } from '../state.js';
-import { load, save } from '../storage.js';
+import { load, save, remove, usedBytes } from '../storage.js';
 import { steerWith } from '../manual-drive.js';
 import { drawScene, paintCar, trafficOn, setHud, showBanner } from '../stage.js';
 import { $, secs, pct, options, setPressed, delegate } from '../ui.js';
@@ -17,7 +17,7 @@ const MIN_SAMPLES = 200;
 const RESTART_DELAY = 1100;
 
 const settings = { trackId: 'warmup', traffic: 'none', epochs: 30, rate: 0.05, ...load('teach', {}) };
-let samples = load('teachSamples', []).map(([x, y]) => ({ x, y }));
+let samples = loadSamples();
 let runs = load('teachRuns', 0);
 
 let mode = 'me';      // 'me' — рулю я, 'student' — рулит ученик
@@ -33,6 +33,7 @@ let training = null;  // { epoch, total } — пока идёт обучение
 
 export const teachTab = {
   enter() {
+    saveSamples();
     resetCar();
     renderStats();
     renderTraining();
@@ -108,10 +109,20 @@ function setRecording(on, message = null, { quiet = false } = {}) {
   else if (!on && !quiet && samples.length >= MIN_SAMPLES) showBanner(`Записано ${samples.length} примеров — жми «▶ Обучить ученика»`, 3000);
 }
 
+function loadSamples() {
+  const packed = load('teachPacked', []).map(unpackSample);
+  const legacy = load('teachSamples', null); // старый формат (массивы чисел) — переносим один раз
+  if (!legacy) return packed;
+  remove('teachSamples');
+  return [...packed, ...legacy.map(([x, y]) => ({ x, y }))];
+}
+
 function saveSamples() {
-  const round = (v) => Math.round(v * 1000) / 1000;
-  save('teachSamples', samples.map(({ x, y }) => [x.map(round), y]));
+  const saved = save('teachPacked', samples.map(packSample));
   save('teachRuns', runs);
+  $('#exMemory').textContent = saved
+    ? `В памяти браузера: ${(usedBytes() / 1024).toFixed(0)} КБ из примерно 5000.`
+    : 'Не хватило места в памяти браузера: примеры живут до перезагрузки. Очисти их или другие данные сайта.';
 }
 
 $('#rec').addEventListener('click', () => setRecording(!recording));

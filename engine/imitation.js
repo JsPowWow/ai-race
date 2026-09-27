@@ -83,3 +83,24 @@ export function agreement(brain, samples) {
   }
   return same / samples.length;
 }
+
+// ── компактное хранение примеров ──
+// Пример → строка: первый символ — какие кнопки нажаты (4 бита), дальше по символу на каждый вход.
+// Входы лежат в диапазоне −1…1 и хранятся с шагом 0,01. 8000 примеров × 6 входов ≈ 160 КБ вместо ~770 КБ.
+
+const BASE = 0x100; // символы от U+0100: их не нужно экранировать в JSON
+const STEPS = 100;
+
+export function packSample({ x, y }) {
+  const buttons = y.reduce((bits, v, i) => bits | ((v ? 1 : 0) << i), 0);
+  const inputs = x.map((v) => String.fromCharCode(BASE + Math.round((Math.max(-1, Math.min(1, v)) + 1) * STEPS)));
+  return String.fromCharCode(BASE + buttons) + inputs.join('');
+}
+
+export function unpackSample(text) {
+  const buttons = text.charCodeAt(0) - BASE;
+  return {
+    x: [...text.slice(1)].map((c) => (c.charCodeAt(0) - BASE) / STEPS - 1),
+    y: [0, 1, 2, 3].map((i) => (buttons >> i) & 1),
+  };
+}
