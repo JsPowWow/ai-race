@@ -1,7 +1,10 @@
 /* База: сброс, текст, фокус, выделение, прокрутка — даже то, что рисует браузер, в цветах набора */
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-html { background: var(--bg); accent-color: var(--brain); scrollbar-color: var(--line-strong) transparent; }
+html {
+  background: var(--bg); accent-color: var(--brain); scrollbar-color: var(--line-strong) transparent;
+  -webkit-text-size-adjust: 100%; text-size-adjust: 100%; /* телефон не раздувает шрифт в отдельных блоках — страница не уезжает вбок */
+}
 body {
   margin: 0;
   background: var(--bg);
