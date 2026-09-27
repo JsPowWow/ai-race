@@ -292,7 +292,7 @@ function renderStages() {
   $('#fPlay').disabled = !calc || show.counting;
   $('#fPlay').textContent = show.counting ? '3… 2… 1…'
     : show.running ? '⏸ Пауза'
-    : show.replay && show.tick > 0 && show.tick < show.replay.length ? '▶ Дальше' : '▶ Старт этапа';
+    : show.replay && show.tick > 0 && show.tick < show.replay.length ? 'Дальше' : 'Старт этапа';
 }
 
 function selectStage(i) {

@@ -1,0 +1,470 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-27T00:00:00Z",
+  "title": "Design System: AI Race",
+  "extensions": {
+    "colorMeta": {
+      "action": {
+        "role": "primary",
+        "displayName": "Красный пластик газа",
+        "canonical": "#d11f28",
+        "tonalRamp": [
+          "oklch(15% 0.19 26)",
+          "oklch(25% 0.19 26)",
+          "oklch(37% 0.19 26)",
+          "oklch(49% 0.19 26)",
+          "oklch(61% 0.19 26)",
+          "oklch(73% 0.19 26)",
+          "oklch(85% 0.19 26)",
+          "oklch(95% 0.19 26)"
+        ]
+      },
+      "you": {
+        "role": "secondary",
+        "displayName": "Жёлтый пластик «ты»",
+        "canonical": "#ffc814",
+        "tonalRamp": [
+          "oklch(15% 0.17 88)",
+          "oklch(25% 0.17 88)",
+          "oklch(37% 0.17 88)",
+          "oklch(49% 0.17 88)",
+          "oklch(61% 0.17 88)",
+          "oklch(73% 0.17 88)",
+          "oklch(85% 0.17 88)",
+          "oklch(95% 0.17 88)"
+        ]
+      },
+      "brain": {
+        "role": "tertiary",
+        "displayName": "Синий пластик мозга",
+        "canonical": "#1f5fe0",
+        "tonalRamp": [
+          "oklch(15% 0.19 262)",
+          "oklch(25% 0.19 262)",
+          "oklch(37% 0.19 262)",
+          "oklch(49% 0.19 262)",
+          "oklch(61% 0.19 262)",
+          "oklch(73% 0.19 262)",
+          "oklch(85% 0.19 262)",
+          "oklch(95% 0.19 262)"
+        ]
+      },
+      "bg": {
+        "role": "neutral",
+        "displayName": "Бумага инструкции / чёрный картон",
+        "canonical": "light-dark(#ffffff, #0c0c0d)",
+        "tonalRamp": [
+          "oklch(15% 0.003 100)",
+          "oklch(25% 0.003 100)",
+          "oklch(37% 0.003 100)",
+          "oklch(49% 0.003 100)",
+          "oklch(61% 0.003 100)",
+          "oklch(73% 0.003 100)",
+          "oklch(85% 0.003 100)",
+          "oklch(95% 0.003 100)"
+        ]
+      },
+      "bg-2": {
+        "role": "neutral",
+        "displayName": "Лоток",
+        "canonical": "light-dark(#efefed, #121213)",
+        "tonalRamp": [
+          "oklch(15% 0.003 100)",
+          "oklch(25% 0.003 100)",
+          "oklch(37% 0.003 100)",
+          "oklch(49% 0.003 100)",
+          "oklch(61% 0.003 100)",
+          "oklch(73% 0.003 100)",
+          "oklch(85% 0.003 100)",
+          "oklch(95% 0.003 100)"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Деталь",
+        "canonical": "light-dark(#ffffff, #171718)",
+        "tonalRamp": [
+          "oklch(15% 0.003 100)",
+          "oklch(25% 0.003 100)",
+          "oklch(37% 0.003 100)",
+          "oklch(49% 0.003 100)",
+          "oklch(61% 0.003 100)",
+          "oklch(73% 0.003 100)",
+          "oklch(85% 0.003 100)",
+          "oklch(95% 0.003 100)"
+        ]
+      },
+      "surface-2": {
+        "role": "neutral",
+        "displayName": "Утопленная деталь",
+        "canonical": "light-dark(#f5f5f3, #201f21)",
+        "tonalRamp": [
+          "oklch(15% 0.003 100)",
+          "oklch(25% 0.003 100)",
+          "oklch(37% 0.003 100)",
+          "oklch(49% 0.003 100)",
+          "oklch(61% 0.003 100)",
+          "oklch(73% 0.003 100)",
+          "oklch(85% 0.003 100)",
+          "oklch(95% 0.003 100)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Линия печати",
+        "canonical": "light-dark(#d9d9d5, #2f2e31)",
+        "tonalRamp": [
+          "oklch(15% 0.004 100)",
+          "oklch(25% 0.004 100)",
+          "oklch(37% 0.004 100)",
+          "oklch(49% 0.004 100)",
+          "oklch(61% 0.004 100)",
+          "oklch(73% 0.004 100)",
+          "oklch(85% 0.004 100)",
+          "oklch(95% 0.004 100)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Чернила",
+        "canonical": "light-dark(#161616, #f4f4f2)",
+        "tonalRamp": [
+          "oklch(15% 0.003 100)",
+          "oklch(25% 0.003 100)",
+          "oklch(37% 0.003 100)",
+          "oklch(49% 0.003 100)",
+          "oklch(61% 0.003 100)",
+          "oklch(73% 0.003 100)",
+          "oklch(85% 0.003 100)",
+          "oklch(95% 0.003 100)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Подпись",
+        "canonical": "light-dark(#5f5f5b, #9d9c98)",
+        "tonalRamp": [
+          "oklch(15% 0.006 100)",
+          "oklch(25% 0.006 100)",
+          "oklch(37% 0.006 100)",
+          "oklch(49% 0.006 100)",
+          "oklch(61% 0.006 100)",
+          "oklch(73% 0.006 100)",
+          "oklch(85% 0.006 100)",
+          "oklch(95% 0.006 100)"
+        ]
+      },
+      "rail": {
+        "role": "neutral",
+        "displayName": "Медный рельс",
+        "canonical": "#c98a4b",
+        "tonalRamp": [
+          "oklch(15% 0.1 62)",
+          "oklch(25% 0.1 62)",
+          "oklch(37% 0.1 62)",
+          "oklch(49% 0.1 62)",
+          "oklch(61% 0.1 62)",
+          "oklch(73% 0.1 62)",
+          "oklch(85% 0.1 62)",
+          "oklch(95% 0.1 62)"
+        ]
+      },
+      "kerb": {
+        "role": "primary",
+        "displayName": "Бордюр",
+        "canonical": "#d11f28",
+        "tonalRamp": [
+          "oklch(15% 0.19 26)",
+          "oklch(25% 0.19 26)",
+          "oklch(37% 0.19 26)",
+          "oklch(49% 0.19 26)",
+          "oklch(61% 0.19 26)",
+          "oklch(73% 0.19 26)",
+          "oklch(85% 0.19 26)",
+          "oklch(95% 0.19 26)"
+        ]
+      },
+      "road": {
+        "role": "neutral",
+        "displayName": "Серая секция трассы",
+        "canonical": "light-dark(#5b5c60, #3c3d41)",
+        "tonalRamp": [
+          "oklch(15% 0.006 270)",
+          "oklch(25% 0.006 270)",
+          "oklch(37% 0.006 270)",
+          "oklch(49% 0.006 270)",
+          "oklch(61% 0.006 270)",
+          "oklch(73% 0.006 270)",
+          "oklch(85% 0.006 270)",
+          "oklch(95% 0.006 270)"
+        ]
+      },
+      "hud-bg": {
+        "role": "neutral",
+        "displayName": "Тёмный пластик табло",
+        "canonical": "rgb(17 18 20 / 0.9)",
+        "tonalRamp": [
+          "oklch(15% 0.005 260)",
+          "oklch(25% 0.005 260)",
+          "oklch(37% 0.005 260)",
+          "oklch(49% 0.005 260)",
+          "oklch(61% 0.005 260)",
+          "oklch(73% 0.005 260)",
+          "oklch(85% 0.005 260)",
+          "oklch(95% 0.005 260)"
+        ]
+      },
+      "hud-digit": {
+        "role": "secondary",
+        "displayName": "Жёлтая цифра табло",
+        "canonical": "#ffd23f",
+        "tonalRamp": [
+          "oklch(15% 0.16 90)",
+          "oklch(25% 0.16 90)",
+          "oklch(37% 0.16 90)",
+          "oklch(49% 0.16 90)",
+          "oklch(61% 0.16 90)",
+          "oklch(73% 0.16 90)",
+          "oklch(85% 0.16 90)",
+          "oklch(95% 0.16 90)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Крышка коробки",
+        "purpose": "Заголовок титульной; вес 800 также у отсчёта и цифры шага."
+      },
+      "headline": {
+        "displayName": "Название урока",
+        "purpose": "Заголовок урока над трассой."
+      },
+      "step": {
+        "displayName": "Фраза шага",
+        "purpose": "Одна фраза текущего шага урока, до 72ch."
+      },
+      "title": {
+        "displayName": "Заголовок детали",
+        "purpose": "Заголовки блоков панели."
+      },
+      "body": {
+        "displayName": "Текст",
+        "purpose": "Основной текст интерфейса."
+      },
+      "label": {
+        "displayName": "Подпись",
+        "purpose": "Кнопки, вкладки, подписи полей, подсказки, табло."
+      },
+      "digit": {
+        "displayName": "Цифры табло",
+        "purpose": "JetBrains Mono: цифры табло, значения ползунков, время, код."
+      }
+    },
+    "shadows": [
+      {
+        "name": "shadow-part",
+        "value": "0 1px 2px rgb(0 0 0 / 0.12), 0 2px 6px rgb(0 0 0 / 0.08)",
+        "purpose": "Деталь лежит на столе: блоки, карточка урока, трасса, выбранная вкладка."
+      },
+      {
+        "name": "shadow-lift",
+        "value": "0 4px 10px rgb(0 0 0 / 0.16), 0 1px 3px rgb(0 0 0 / 0.1)",
+        "purpose": "Приподнятая деталь: табло, баннер, пульт, наведение на деталь пути."
+      },
+      {
+        "name": "cast-edge",
+        "value": "inset 0 -2px 0 rgb(0 0 0 / 0.18)",
+        "purpose": "Нижняя грань литья у красной кнопки (−3px и 0.15 у цифры шага, 0.35 у пульта); при нажатии — inset сверху."
+      }
+    ],
+    "motion": [
+      {
+        "name": "state",
+        "value": "0.15s",
+        "purpose": "Цвет, рамка, тень у кнопок и вкладок."
+      },
+      {
+        "name": "press",
+        "value": "0.08s–0.1s translateY(1–2px)",
+        "purpose": "Деталь утапливается при нажатии."
+      },
+      {
+        "name": "pop",
+        "value": "0.45s cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Цифры отсчёта «3 — 2 — 1»."
+      },
+      {
+        "name": "rec",
+        "value": "1s steps(2, start) infinite",
+        "purpose": "Мигание лампочки записи."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "prefers-reduced-motion: reduce → none",
+        "purpose": "Все переходы и анимации выключаются."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "phone",
+        "value": "700px"
+      },
+      {
+        "name": "intro-narrow",
+        "value": "560px"
+      },
+      {
+        "name": "one-column",
+        "value": "1000px"
+      },
+      {
+        "name": "teach-tall-track",
+        "value": "1001px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Главная кнопка",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Красный пластик: одно главное действие экрана.",
+      "html": "<button class=\"ds-btn ds-btn-primary\">Учить на заездах</button>",
+      "css": ".ds-btn{display:inline-flex;align-items:center;justify-content:center;min-block-size:36px;padding:8px 16px;border:1px solid var(--line-strong);border-radius:var(--r-m);background:var(--surface);color:var(--ink);font:500 14px/1.1 var(--font);cursor:pointer;transition:background-color .15s,border-color .15s,box-shadow .15s,transform .1s}.ds-btn:active{transform:translateY(1px)}.ds-btn:focus-visible{outline:2px solid var(--brain-text);outline-offset:2px}.ds-btn-primary{background:var(--action);border-color:var(--action);color:var(--on-action);font-weight:600;padding-inline:20px;box-shadow:inset 0 -2px 0 rgb(0 0 0 / .18),var(--shadow-part)}.ds-btn-primary:hover{background:var(--action-hover);border-color:var(--action-hover)}.ds-btn-primary:active{box-shadow:inset 0 1px 0 rgb(0 0 0 / .18)}"
+    },
+    {
+      "name": "Обычная кнопка",
+      "kind": "button",
+      "refersTo": "button",
+      "description": "Нейтральная литая деталь с рамкой.",
+      "html": "<button class=\"ds-btn2\">Заново</button>",
+      "css": ".ds-btn2{display:inline-flex;align-items:center;min-block-size:36px;padding:8px 16px;border:1px solid var(--line-strong);border-radius:var(--r-m);background:var(--surface);color:var(--ink);font:500 14px/1.1 var(--font);cursor:pointer;transition:border-color .15s,transform .1s}.ds-btn2:hover{border-color:var(--ink-2)}.ds-btn2:active{transform:translateY(1px)}.ds-btn2:focus-visible{outline:2px solid var(--brain-text);outline-offset:2px}"
+    },
+    {
+      "name": "Лоток вкладок",
+      "kind": "nav",
+      "refersTo": "tabs-tray",
+      "description": "Ряд деталей в лотке; выбранная приподнята, номер жёлтый.",
+      "html": "<div class=\"ds-tabs\"><button>Старт</button><button aria-selected=\"true\"><span class=\"ds-n\">1</span>Я учу</button><button><span class=\"ds-n\">2</span>Учится само</button></div>",
+      "css": ".ds-tabs{display:inline-flex;gap:4px;padding:4px;background:var(--bg-2);border-radius:var(--r-m)}.ds-tabs button{display:inline-flex;gap:6px;align-items:baseline;border:0;border-radius:var(--r-s);background:transparent;padding:8px 14px;font:500 14px/1 var(--font);color:var(--muted);cursor:pointer;transition:color .15s,background-color .15s}.ds-tabs button:hover{color:var(--ink)}.ds-tabs button:focus-visible{outline:2px solid var(--brain-text);outline-offset:2px}.ds-tabs button[aria-selected=true]{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:var(--shadow-part)}.ds-n{font-weight:700;font-size:12px;color:var(--muted)}.ds-tabs [aria-selected=true] .ds-n{color:var(--you-text)}"
+    },
+    {
+      "name": "Переключатель",
+      "kind": "chip",
+      "refersTo": "seg-selected",
+      "description": "«Еду я / Едет мозг»: тот же лоток, выбранное приподнято.",
+      "html": "<div class=\"ds-seg\"><button aria-pressed=\"true\">Еду я</button><button aria-pressed=\"false\">Едет мозг</button></div>",
+      "css": ".ds-seg{display:inline-flex;gap:2px;padding:3px;background:var(--bg-2);border-radius:var(--r-m)}.ds-seg button{border:0;border-radius:var(--r-s);background:transparent;padding:7px 12px;font:500 13px/1.1 var(--font);color:var(--muted);cursor:pointer}.ds-seg button:hover{color:var(--ink)}.ds-seg button:focus-visible{outline:2px solid var(--brain-text);outline-offset:2px}.ds-seg button[aria-pressed=true]{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:var(--shadow-part)}"
+    },
+    {
+      "name": "Поле выбора",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Поле и список: деталь с рамкой, скругление 6px.",
+      "html": "<label class=\"ds-inline\">Трасса <select class=\"ds-input\"><option>Разминка</option></select></label>",
+      "css": ".ds-inline{display:inline-flex;align-items:center;gap:8px;color:var(--muted);font:400 13px var(--font)}.ds-input{background:var(--surface);color:var(--ink);border:1px solid var(--line-strong);border-radius:var(--r-s);padding:7px 10px;min-block-size:36px;font:400 15px var(--font)}.ds-input:hover{border-color:var(--ink-2)}.ds-input:focus-visible{outline:2px solid var(--brain-text);outline-offset:2px}"
+    },
+    {
+      "name": "Блок панели",
+      "kind": "card",
+      "refersTo": "block",
+      "description": "Деталь набора на столе: рамка, скругление 16px, мягкая тень.",
+      "html": "<section class=\"ds-block\"><h2>Мозг</h2><p>Мозга пока нет — начнём с нуля (6-6-4).</p></section>",
+      "css": ".ds-block{display:flex;flex-direction:column;gap:12px;padding:16px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-l);box-shadow:var(--shadow-part);color:var(--ink);font:400 15px/1.5 var(--font)}.ds-block h2{margin:0;font:600 15px/1.3 var(--font)}.ds-block p{margin:0;color:var(--muted);font-size:13px}"
+    },
+    {
+      "name": "Строка шага",
+      "kind": "custom",
+      "refersTo": "step-num",
+      "description": "Номер шага на жёлтой литой детали, одна фраза, контурное «Готово».",
+      "html": "<div class=\"ds-step\"><span class=\"ds-num\">1</span><p><b>Прокатись по «Разминке» стрелками.</b><span>Заезд записывается сам.</span></p><button class=\"ds-done\">Готово</button></div>",
+      "css": ".ds-step{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:16px;align-items:center;font-family:var(--font);color:var(--ink)}.ds-num{inline-size:48px;block-size:48px;border-radius:var(--r-m);display:grid;place-items:center;background:var(--you);color:var(--on-you);font:800 26px/1 var(--font);box-shadow:inset 0 -3px 0 rgb(0 0 0 / .15),var(--shadow-part)}.ds-step p{margin:0;line-height:1.45}.ds-step b{display:block;font-size:18px;font-weight:600}.ds-step span{display:block;font-size:14px;color:var(--muted)}.ds-done{min-block-size:36px;padding:8px 16px;border:2px solid var(--ink-2);border-radius:var(--r-m);background:var(--surface);color:var(--ink);font:600 14px/1.1 var(--font);cursor:pointer}.ds-done:hover{border-color:var(--ink)}.ds-done:focus-visible{outline:2px solid var(--brain-text);outline-offset:2px}"
+    },
+    {
+      "name": "Табло",
+      "kind": "custom",
+      "refersTo": "hud",
+      "description": "Счётчик поверх трассы: тёмный пластик, жёлтые моно-цифры, лампочка записи.",
+      "html": "<div class=\"ds-hud\"><span class=\"ds-rec\">запись <b>74</b></span><span>скорость <b>3.4</b></span><span>время <b>1,9 с</b></span></div>",
+      "css": ".ds-hud{display:inline-flex;background:var(--hud-bg);color:color-mix(in srgb,var(--hud-ink) 70%,transparent);border-radius:var(--r-m);box-shadow:var(--shadow-lift);font:500 12px/1.3 var(--font)}.ds-hud span{padding:6px 10px}.ds-hud span+span{border-inline-start:1px solid rgb(255 255 255 / .12)}.ds-hud b{font:600 13px/1.3 var(--mono);font-variant-numeric:tabular-nums;color:var(--hud-digit)}.ds-rec{display:inline-flex;align-items:center;gap:6px;color:var(--hud-ink)}.ds-rec::before{content:'';inline-size:8px;block-size:8px;border-radius:50%;background:var(--action)}"
+    },
+    {
+      "name": "Кнопки пульта",
+      "kind": "custom",
+      "refersTo": "pad-gas",
+      "description": "Круглые кнопки тёмного пластика; «Газ» — красный курок.",
+      "html": "<div class=\"ds-pad\"><button class=\"ds-pb\" aria-label=\"Влево\"><svg viewBox=\"0 0 24 24\"><path d=\"M15 5l-7 7 7 7\"/></svg></button><button class=\"ds-pb\">Тормоз</button><button class=\"ds-pb ds-gas\">Газ</button></div>",
+      "css": ".ds-pad{display:flex;gap:12px;align-items:center}.ds-pb{inline-size:64px;block-size:64px;border-radius:50%;display:grid;place-items:center;border:0;background:var(--hud-bg);color:var(--hud-ink);font:700 12px/1 var(--font);box-shadow:inset 0 -3px 0 rgb(0 0 0 / .35),var(--shadow-lift);cursor:pointer;transition:transform .08s,box-shadow .08s}.ds-pb svg{inline-size:28px;block-size:28px;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.ds-pb:active{transform:translateY(2px);box-shadow:inset 0 2px 4px rgb(0 0 0 / .4)}.ds-pb:focus-visible{outline:2px solid var(--brain-text);outline-offset:2px}.ds-gas{inline-size:78px;block-size:78px;background:var(--action);color:var(--on-action);font-size:14px}.ds-gas:active{background:var(--action-hover)}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Инструкция к игрушечной трассе",
+    "overview": "Сайт — это набор-конструктор гоночной трассы и страница инструкции к нему. Всё на экране — литые пластиковые детали: скруглённые, с мягкой тенью детали, лежащей на столе, трёх основных цветов. Красный — действие и газ. Жёлтый — твоя машина и текущий шаг. Синий — мозг и всё про ИИ. Цвет всегда что-то значит: по цвету ученик понимает, где он, где мозг и что нажать.\n\nСветлая тема — белая бумага инструкции с тонкими серыми линиями печати. Тёмная — глянцевый чёрный картон коробки: нейтральный чёрный, без синевы. Главный герой экрана — трасса на холсте: серые секции со швами, прорези с медными рельсами, красно-белые бордюры, слот-кар с номером в кружке. Поверх трассы — табло и пульт из тёмного пластика, одинаковые в обеих темах.\n\nПлотность спокойная: один шаг урока, одна фраза, одна кнопка. Остальное — рядом, в панели «Детали набора» или под «Зачем этот урок». Отказ, подтверждённый направлением: никакого неонового гоночного HUD и никаких колонок текста над трассой.",
+    "keyCharacteristics": [
+      "Три пластиковых цвета с закреплёнными ролями: красный — действие, жёлтый — ты, синий — мозг.",
+      "Детали со скруглениями литья (6 / 10 / 16 px) и мягкой тенью, а не плоские карточки и не стекло.",
+      "Одно семейство шрифта — Rubik; цифры табло и код — JetBrains Mono.",
+      "Трасса — игрушка на столе, а не спутниковая карта и не гоночный симулятор.",
+      "Табло и пульт над трассой всегда из тёмного пластика."
+    ],
+    "rules": [
+      {
+        "name": "Правило трёх пластиков",
+        "body": "У каждого основного цвета одна роль: красный — действие, жёлтый — ты и текущий шаг, синий — мозг. Цвет не берут «для красоты» в чужую роль.",
+        "section": "colors"
+      },
+      {
+        "name": "Правило одной красной детали",
+        "body": "Сплошная красная заливка — только у главного действия экрана. Пока его нельзя нажать, это тихая серая деталь (`surface-2`, текст `muted`), а не бледный красный.",
+        "section": "colors"
+      },
+      {
+        "name": "Правило трёх имён цвета",
+        "body": "Для каждого пластика есть заливка (`action`), текст на заливке (`on-action`) и текст на фоне (`action-text`); текст всегда берут из пары с контрастом ≥ 4,5 в обеих темах.",
+        "section": "colors"
+      },
+      {
+        "name": "Правило двух тем",
+        "body": "Каждый цвет — `light-dark(светлая, тёмная)` в `app/styles/tokens.css`; тема задаётся `data-theme` на `<html>` (`app/theme.js`: авто → светлая → тёмная). В компонентах — только токены.",
+        "section": "colors"
+      },
+      {
+        "name": "Правило одного шрифта",
+        "body": "Весь интерфейс и подписи на холсте — Rubik (`UI_FONT` в `engine/render.js`). Второе семейство — только моно для кода и цифр.",
+        "section": "typography"
+      },
+      {
+        "name": "Правило ровных цифр",
+        "body": "Всё, что считает (счётчики, номера, места, время), — `font-variant-numeric: tabular-nums`, чтобы цифры не прыгали при смене.",
+        "section": "typography"
+      },
+      {
+        "name": "Правило приподнятого выбора",
+        "body": "Выбранное в лотке (вкладка, сегмент) — светлая деталь с `--shadow-part`; невыбранное лежит в лотке без тени.",
+        "section": "elevation"
+      },
+      {
+        "name": "Правило тёмного табло",
+        "body": "Всё, что лежит поверх трассы (табло, пульт, отсчёт), — тёмный пластик `hud-*` с `--shadow-lift` в обеих темах: трасса под ним бывает любой.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** бери цвета только из `app/styles/tokens.css` в виде `light-dark(светлая, тёмная)` и проверяй обе темы (контраст AA).",
+      "**Do** давай сплошную красную заливку (`action`) одному главному действию экрана; неактивное главное действие — серая деталь `surface-2`.",
+      "**Do** отмечай жёлтым (`you`) то, что относится к ученику: его машину, текущий шаг, выбор; синим (`brain`) — всё про мозг и ИИ.",
+      "**Do** собирай новые экраны из деталей: блок 16px с рамкой `line` и `--shadow-part`, лоток `bg-2` для выбора, строки `surface-2` 6px.",
+      "**Do** клади поверх трассы только тёмный пластик `hud-*` с `--shadow-lift`.",
+      "**Do** пиши цифры счётчиков табличными, а на табло — моноширинным JetBrains Mono.",
+      "**Do** уважай `prefers-reduced-motion`: переходы 0.15s и мигание лампочки выключаются."
+    ],
+    "donts": [
+      "**Don't** делай неоновый гоночный HUD: свечение, цветные тени, «кибер» градиенты.",
+      "**Don't** ставь колонки текста над трассой: над ней — одна строка шага, теория свёрнута.",
+      "**Don't** бери красный, жёлтый или синий в чужую роль и не заливай большие площади цветами состояний.",
+      "**Don't** подключай второй шрифт для заголовков и системные шрифты вместо Rubik.",
+      "**Don't** пиши `#fff` или `rgba()` для заливки, текста и рамок в компонентах: цвет — через токен. (Нижняя грань литья и затемнение под отсчётом пока записаны литералом чёрного с прозрачностью — одинаково в обеих темах; новые такие места не плодить.)",
+      "**Don't** делай иконки из символов текста (▶, ⛶): иконка — SVG или рисунок CSS, как у пульта и переключателя темы."
+    ]
+  }
+}
