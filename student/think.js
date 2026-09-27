@@ -47,7 +47,7 @@ export const thinkVariants = {
 
   step: {
     title: 'Ступенька',
-    hint: 'Как у Раду: сумма больше порога — 1, иначе 0. Едет, но руль только «до упора» или «никак».',
+    hint: 'Классика: сумма больше порога — 1, иначе 0. Едет, но руль только «до упора» или «никак».',
     think(inputs, brain) {
       return feedForward(inputs, brain, (sum, bias) => (sum > bias ? 1 : 0));
     },
