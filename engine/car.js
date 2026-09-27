@@ -65,11 +65,12 @@ export class Car {
     this.ticks++;
     this.sense(track, traffic);
 
+    // что «видит» машина на этом тике: лучи и скорость до шага (так же записывает пример «Учитель»)
+    const inputs = this.readings.slice();
+    inputs.push(this.speed / CAR.maxSpeed);
+    this.lastInputs = inputs;
     if (this.brain && this.think) {
-      const inputs = this.readings.slice();
-      inputs.push(this.speed / CAR.maxSpeed);
       const out = this.think(inputs, this.brain) || [];
-      this.lastInputs = inputs;
       this.lastOutputs = out;
       const c = this.controls;
       c.gas = safe(out[0]);

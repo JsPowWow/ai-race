@@ -3,13 +3,13 @@ import { TRAINING_TRACKS, getTrainingTrack } from '../../engine/track.js';
 import { Car, carReport } from '../../engine/car.js';
 import { createBrain, cloneBrain } from '../../engine/brain.js';
 import { TRAFFIC_LEVELS, withTraffic } from '../../engine/traffic.js';
-import { sampleOf, trainEpoch, agreement, packSample, unpackSample, TEACH_THINK } from '../../engine/imitation.js';
+import { sampleOf, worthLearning, trainEpoch, agreement, packSample, unpackSample, TEACH_THINK } from '../../engine/imitation.js';
 import { drawSeries } from '../../engine/netviz.js';
 import { state, persist, sizesOf, thinkFn, setChampion } from '../state.js';
 import { load, save, remove, usedBytes } from '../storage.js';
 import { steerWith } from '../manual-drive.js';
 import { drawScene, paintCar, trafficOn, setHud, showBanner } from '../stage.js';
-import { $, secs, pct, options, setPressed, delegate } from '../ui.js';
+import { $, $$, secs, pct, options, setPressed, delegate } from '../ui.js';
 
 const MAX_SAMPLES = 8000;
 const DROP_BEFORE_CRASH = 45;   // тиков перед аварией не учим (0,75 с)
@@ -85,7 +85,8 @@ function setMode(next) {
 
 function record() {
   if (samples.length >= MAX_SAMPLES) return setRecording(false, 'Хватит: записано максимум примеров');
-  samples.push(sampleOf(car));
+  const sample = sampleOf(car);
+  if (worthLearning(sample)) samples.push(sample);
   if (car.ticks % 30 === 0) renderStats();
 }
 
@@ -106,15 +107,15 @@ function setRecording(on, message = null, { quiet = false } = {}) {
   if (!on) saveSamples();
   renderStats();
   if (message) showBanner(message, 2400);
-  else if (!on && !quiet && samples.length >= MIN_SAMPLES) showBanner(`Записано ${samples.length} примеров — жми «▶ Обучить ученика»`, 3000);
+  else if (!on && !quiet && samples.length >= MIN_SAMPLES) showBanner(`Записано ${samples.length} примеров — жми «Обучить»`, 3000);
 }
 
 function loadSamples() {
   const packed = load('teachPacked', []).map(unpackSample);
   const legacy = load('teachSamples', null); // старый формат (массивы чисел) — переносим один раз
-  if (!legacy) return packed;
-  remove('teachSamples');
-  return [...packed, ...legacy.map(([x, y]) => ({ x, y }))];
+  if (legacy) remove('teachSamples');
+  const all = [...packed, ...(legacy ?? []).map(([x, y]) => ({ x, y }))];
+  return all.filter(worthLearning); // старые записи могли содержать «стою и жду» — выбрасываем
 }
 
 function saveSamples() {
@@ -150,17 +151,31 @@ for (const [select, key, items] of [
   });
 }
 
+/** Три шага в панели и кнопки: что уже сделано и что дальше */
 function renderStats() {
-  $('#exCount').textContent = samples.length;
-  $('#exTurns').textContent = samples.filter(({ y }) => y[2] || y[3]).length;
-  $('#exRuns').textContent = runs;
-  $('#rec').textContent = recording ? `■ Стоп · ${samples.length}` : `● Записывать${samples.length ? ` · ${samples.length}` : ''}`;
-  const blocked = samples.length < MIN_SAMPLES || !!training;
-  $('#teachTrain').disabled = $('#teachGo').disabled = blocked;
-  $('#teachGo').textContent = training ? `Учится… ${training.epoch}/${training.total}`
-    : samples.length < MIN_SAMPLES ? `▶ Обучить (нужно ${MIN_SAMPLES} примеров)`
-    : student ? '↻ Обучить заново' : '▶ Обучить ученика';
+  const enough = samples.length >= MIN_SAMPLES;
+  const turns = samples.filter(({ y }) => y[2] || y[3]).length;
+  $('#rec').textContent = recording ? `■ Стоп · ${samples.length}` : `● Записать${samples.length ? ` · ${samples.length}` : ''}`;
+  $('#teachGo').disabled = !enough || !!training;
+  $('#teachGo').textContent = training ? `Учится… ${training.epoch}/${training.total}` : student ? 'Обучить заново' : 'Обучить';
   $('#teachStudent').classList.toggle('off', !student);
+
+  $('#stepRecord').textContent = samples.length
+    ? `${samples.length} примеров${enough ? '' : ` — нужно хотя бы ${MIN_SAMPLES}`}, с поворотом ${turns}, заездов ${runs}`
+    : 'Нажми «● Записать» и проедь трассу 2–3 раза.';
+  $('#stepTrain').textContent = training ? `Учится: эпоха ${training.epoch} из ${training.total}…`
+    : student ? `Готов: повторяет за тобой в ${pct(agreement(student, trainSet) * 100)} примеров.`
+    : enough ? 'Нажми «Обучить».' : 'Сначала запиши примеры.';
+  $('#stepAdopt').textContent = student && !training
+    ? 'Нажми «Едет ученик». Понравилось — сделай его своим мозгом, дальше его можно доучить на «Треке».'
+    : 'Появится после обучения.';
+  $('#teachAdopt').disabled = !student || !!training;
+  const current = !enough ? 'record' : !student || training ? 'train' : 'adopt';
+  for (const li of $$('#teachSteps li')) {
+    const order = ['record', 'train', 'adopt'];
+    li.classList.toggle('done', order.indexOf(li.dataset.step) < order.indexOf(current));
+    li.classList.toggle('current', li.dataset.step === current);
+  }
 }
 
 // ── обучение ──
@@ -192,7 +207,6 @@ function startTraining() {
   if (mode === 'student') setMode('me');
   renderStats();
 }
-$('#teachTrain').addEventListener('click', startTraining);
 $('#teachGo').addEventListener('click', startTraining);
 
 /** Одна эпоха за кадр — видно, как падает ошибка */
@@ -213,10 +227,9 @@ function trainStep() {
 function renderTraining() {
   setPressed('[data-lr]', (b) => +b.dataset.lr === settings.rate);
   const loss = losses.at(-1);
-  $('#lrEpoch').textContent = losses.length ? `${losses.length}/${training?.total ?? losses.length}` : '—';
-  $('#lrLoss').textContent = loss === undefined ? '—' : loss.toFixed(3);
-  $('#lrMatch').textContent = student && !training ? pct(agreement(student, trainSet) * 100) : '—';
-  $('#teachAdopt').disabled = !student || !!training;
+  $('#lrSummary').textContent = loss === undefined
+    ? 'Здесь появится график ошибки: чем ниже, тем точнее ученик повторяет за тобой.'
+    : `Эпоха ${losses.length}${training ? ` из ${training.total}` : ''} · ошибка ${loss.toFixed(3)}`;
   drawSeries($('#lossChart'), losses, { label: 'Здесь появится график ошибки' });
 }
 

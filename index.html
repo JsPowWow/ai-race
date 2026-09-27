@@ -164,15 +164,13 @@
     </div>
 
     <div class="toolbar" data-for="teach" hidden>
-      <button class="btn" id="rec">● Записывать</button>
-      <button class="btn primary" id="teachGo" disabled>▶ Обучить ученика</button>
+      <button class="btn" id="rec">● Записать</button>
+      <button class="btn primary" id="teachGo" disabled>Обучить</button>
       <div class="seg" role="group" aria-label="Кто рулит">
-        <button id="teachMe" aria-pressed="true">Рулю я</button>
-        <button id="teachStudent" aria-pressed="false">Рулит ученик</button>
+        <button id="teachMe" aria-pressed="true">Еду сам</button>
+        <button id="teachStudent" aria-pressed="false">Едет ученик</button>
       </div>
       <button class="btn" id="teachRestart">Заново</button>
-      <label class="inline">Трасса <select id="teachTrack"></select></label>
-      <label class="inline">Машины <select id="teachTraffic"></select></label>
     </div>
 
     <div class="toolbar" data-for="train" hidden>
@@ -272,37 +270,36 @@
     <!-- УЧИТЕЛЬ -->
     <div data-panel="teach" hidden>
       <section class="block">
-        <h2>Примеры</h2>
-        <dl class="stats">
-          <div><dt>Примеров</dt><dd id="exCount">0</dd></div>
-          <div><dt>С поворотом</dt><dd id="exTurns">0</dd></div>
-          <div><dt>Заездов</dt><dd id="exRuns">0</dd></div>
-        </dl>
-        <p class="hint">Пока идёт запись, каждый тик сохраняется пара: что видят сенсоры → что ты нажал. Перед аварией последние 0,75 с выбрасываются — плохому не учим. Покажи и то, как выруливать от бордюра.</p>
+        <h2>Три шага</h2>
+        <ol class="steps" id="teachSteps">
+          <li data-step="record"><b>Запиши, как ты ездишь</b><span class="status" id="stepRecord"></span></li>
+          <li data-step="train"><b>Обучи ученика</b><span class="status" id="stepTrain"></span></li>
+          <li data-step="adopt"><b>Посмотри, как он едет</b><span class="status" id="stepAdopt"></span>
+            <button class="btn small" id="teachAdopt" disabled>Сделать чемпионом</button></li>
+        </ol>
+      </section>
+      <section class="block">
+        <h2>Трасса для записи</h2>
+        <div class="field wide"><label for="teachTrack">Трасса</label><select id="teachTrack"></select></div>
+        <div class="field wide"><label for="teachTraffic">Машины</label><select id="teachTraffic"></select></div>
+        <p class="hint">Каждый тик записи — пример «что видят сенсоры → что ты нажал». Пока стоишь и ничего не жмёшь — не записываем, а перед аварией последние 0,75 с выбрасываем: плохому не учим. Покажи и то, как выруливать от бордюра.</p>
         <p class="hint" id="exMemory"></p>
         <div class="row"><button class="btn small danger" id="exClear">Очистить примеры</button></div>
       </section>
       <section class="block">
-        <h2>Обучение</h2>
-        <div class="field"><label for="epochs">Эпох</label><input type="range" id="epochs" min="5" max="100" step="5"><output id="epochsOut"></output></div>
-        <div class="field wide"><span class="lbl">Шаг обучения</span>
-          <div class="seg" role="group" aria-label="Шаг обучения">
-            <button data-lr="0.01">0,01</button><button data-lr="0.05">0,05</button><button data-lr="0.2">0,2</button><button data-lr="1">1</button>
-          </div>
-        </div>
-        <button class="btn primary" id="teachTrain">Учить на примерах</button>
-        <dl class="stats">
-          <div><dt>Эпоха</dt><dd id="lrEpoch">—</dd></div>
-          <div><dt>Ошибка</dt><dd id="lrLoss">—</dd></div>
-          <div><dt>Совпадение</dt><dd id="lrMatch">—</dd></div>
-        </dl>
+        <h2>Как учится</h2>
         <canvas id="lossChart" class="chart" aria-label="Ошибка по эпохам"></canvas>
-        <p class="hint" id="teachNote">Ученик — сеть той же формы, что в Гараже, с вариантом мозга «Плавный». Каждое нажатие «Учить» начинает с чистого листа.</p>
-      </section>
-      <section class="block">
-        <h2>Результат</h2>
-        <p class="hint">Понравилось, как ездит ученик? Сделай его своим мозгом: дальше его можно проверить на «Экзамене» или доучить эволюцией на «Треке».</p>
-        <div class="row"><button class="btn" id="teachAdopt" disabled>Сделать чемпионом</button></div>
+        <p class="note" id="lrSummary">Здесь появится график ошибки: чем ниже, тем точнее ученик повторяет за тобой.</p>
+        <details>
+          <summary>Настройки обучения</summary>
+          <div class="field"><label for="epochs">Эпох</label><input type="range" id="epochs" min="5" max="100" step="5"><output id="epochsOut"></output></div>
+          <div class="field wide"><span class="lbl">Шаг обучения</span>
+            <div class="seg" role="group" aria-label="Шаг обучения">
+              <button data-lr="0.01">0,01</button><button data-lr="0.05">0,05</button><button data-lr="0.2">0,2</button><button data-lr="1">1</button>
+            </div>
+          </div>
+          <p class="hint">Эпоха — один проход по всем примерам. Шаг — насколько сильно двигать веса за раз. Ученик — сеть той же формы, что в Гараже, с вариантом мозга «Плавный»; каждое обучение начинается с чистого листа.</p>
+        </details>
       </section>
     </div>
 

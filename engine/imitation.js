@@ -10,14 +10,21 @@ import { CAR } from './car.js';
 
 export const TEACH_THINK = 'smooth';
 
-/** Снимок одного тика: входы сети и то, что нажал водитель */
+/** Снимок одного тика (после car.step): что видела сеть на входе и что нажал водитель */
 export function sampleOf(car) {
   const c = car.controls;
   return {
-    x: [...car.readings, car.speed / CAR.maxSpeed],
+    x: car.lastInputs ?? [...car.readings, car.speed / CAR.maxSpeed],
     y: [c.gas, c.brake, c.left, c.right].map((v) => (v > 0.5 ? 1 : 0)),
   };
 }
+
+/**
+ * Стоит ли учиться на этом примере. Машина стоит, а водитель ничего не жмёт — это он ещё
+ * не тронулся после рестарта. Таких тиков набирается много, а «газ с места» — всего один-два,
+ * и ученик выучит главное: «стоишь — стой». Поэтому такие примеры выбрасываем.
+ */
+export const worthLearning = ({ x, y }) => y.some(Boolean) || Math.abs(x[x.length - 1]) > 0.02;
 
 const sigmoid = (z) => 1 / (1 + Math.exp(-z));
 
