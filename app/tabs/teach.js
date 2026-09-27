@@ -27,7 +27,7 @@ let car = null;
 let track = null;
 let restartAt = 0;
 
-let student = null;   // обученная сеть
+let student = load('teachStudent', null); // обученная сеть (сохраняется в браузере)
 let losses = [];
 let training = null;  // { epoch, total } — пока идёт обучение
 
@@ -98,13 +98,14 @@ function finishRun() {
   renderStats();
 }
 
-function setRecording(on, message) {
+function setRecording(on, message = null, { quiet = false } = {}) {
   recording = on;
-  $('#rec').textContent = on ? '■ Стоп' : '● Записывать';
   $('#rec').classList.toggle('on', on);
   if (on && mode !== 'me') setMode('me');
   if (!on) saveSamples();
+  renderStats();
   if (message) showBanner(message, 2400);
+  else if (!on && !quiet && samples.length >= MIN_SAMPLES) showBanner(`Записано ${samples.length} примеров — жми «▶ Обучить ученика»`, 3000);
 }
 
 function saveSamples() {
@@ -142,7 +143,13 @@ function renderStats() {
   $('#exCount').textContent = samples.length;
   $('#exTurns').textContent = samples.filter(({ y }) => y[2] || y[3]).length;
   $('#exRuns').textContent = runs;
-  $('#teachTrain').disabled = samples.length < MIN_SAMPLES || !!training;
+  $('#rec').textContent = recording ? `■ Стоп · ${samples.length}` : `● Записывать${samples.length ? ` · ${samples.length}` : ''}`;
+  const blocked = samples.length < MIN_SAMPLES || !!training;
+  $('#teachTrain').disabled = $('#teachGo').disabled = blocked;
+  $('#teachGo').textContent = training ? `Учится… ${training.epoch}/${training.total}`
+    : samples.length < MIN_SAMPLES ? `▶ Обучить (нужно ${MIN_SAMPLES} примеров)`
+    : student ? '↻ Обучить заново' : '▶ Обучить ученика';
+  $('#teachStudent').classList.toggle('off', !student);
 }
 
 // ── обучение ──
@@ -160,11 +167,12 @@ delegate('[data-panel="teach"]', 'click', '[data-lr]', (b) => {
   renderTraining();
 });
 
-let trainSet = [];
+const usableSamples = () => samples.filter(({ x }) => x.length === sizesOf()[0]);
+let trainSet = usableSamples();
 
-$('#teachTrain').addEventListener('click', () => {
-  const inputs = sizesOf()[0];
-  trainSet = samples.filter(({ x }) => x.length === inputs);
+function startTraining() {
+  if (recording) setRecording(false, null, { quiet: true });
+  trainSet = usableSamples();
   if (trainSet.length < samples.length) showBanner('Часть примеров записана с другим числом лучей — они пропущены', 2600);
   if (trainSet.length < MIN_SAMPLES) return showBanner(`Нужно хотя бы ${MIN_SAMPLES} примеров с текущими сенсорами — запиши заезд`);
   student = createBrain(sizesOf()); // каждый раз с чистого листа: так честнее сравнивать настройки
@@ -172,14 +180,18 @@ $('#teachTrain').addEventListener('click', () => {
   training = { epoch: 0, total: settings.epochs };
   if (mode === 'student') setMode('me');
   renderStats();
-});
+}
+$('#teachTrain').addEventListener('click', startTraining);
+$('#teachGo').addEventListener('click', startTraining);
 
 /** Одна эпоха за кадр — видно, как падает ошибка */
 function trainStep() {
   losses.push(trainEpoch(student, trainSet, settings.rate));
   training.epoch++;
+  if (training.epoch % 5 === 0) renderStats();
   if (training.epoch >= training.total) {
     training = null;
+    save('teachStudent', student);
     renderStats();
     setMode('student');
     showBanner('Ученик готов — смотри, как он едет', 2400);

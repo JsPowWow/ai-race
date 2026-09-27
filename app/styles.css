@@ -391,6 +391,8 @@ select:hover, input[type="text"]:hover { border-color: var(--muted); }
 @keyframes rec { to { opacity: 0.35; } }
 @media (prefers-reduced-motion: reduce) { .rec-badge { animation: none; } }
 #rec.on { background: var(--bad); border-color: var(--bad); color: #fff; }
+#rec { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 60%, var(--line)); }
+.seg button.off { opacity: 0.45; }
 
 /* Кнопки управления поверх трассы: руль под левый большой палец, педали под правый */
 .pad {
@@ -421,6 +423,7 @@ body:not([data-tab="garage"]):not([data-tab="teach"]) .pad { display: none; }
   :is(body[data-tab="garage"], body[data-tab="teach"]) .viewport { aspect-ratio: 4 / 4.5; max-height: 74vh; }
   :is(body[data-tab="garage"], body[data-tab="teach"]) .viewport canvas { bottom: 96px; height: calc(100% - 96px); }
   :is(body[data-tab="garage"], body[data-tab="teach"]) .viewport::after { bottom: 104px; }
+  :is(body[data-tab="garage"], body[data-tab="teach"]) .banner { bottom: 110px; }
   .pad {
     left: 0; right: 0; bottom: 0; height: 96px; padding-inline: 12px;
     align-items: center; background: var(--bg-2); border-top: 1px solid var(--line);
