@@ -25,7 +25,11 @@
 .hud:empty { display: none; }
 .hud span { padding: 6px 10px; }
 .hud span + span { border-inline-start: 1px solid rgb(255 255 255 / 0.12); }
-.hud span b { font: 600 13px/1.3 var(--mono); font-variant-numeric: tabular-nums; color: var(--hud-digit); }
+.hud span b {
+  /* место под самое длинное значение и выравнивание вправо — соседние надписи не прыгают, когда цифр становится больше */
+  display: inline-block; min-inline-size: 5ch; text-align: end;
+  font: 600 13px/1.3 var(--mono); font-variant-numeric: tabular-nums; color: var(--hud-digit);
+}
 /* идёт запись заезда — мигающая красная лампочка, как у счётчика */
 .hud .rec { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font); color: var(--hud-ink); }
 .hud .rec::before { content: ""; inline-size: 8px; block-size: 8px; border-radius: 50%; background: var(--action); animation: rec 1s steps(2, start) infinite; }

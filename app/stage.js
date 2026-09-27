@@ -69,9 +69,15 @@ export function carAt(event, cars, radiusPx = 28) {
 // ── HUD и баннер ──
 
 const hud = $('#hud');
+const HUD_EVERY_MS = 100; // цифры меняются 10 раз в секунду — их успеваешь прочитать, и они не дребезжат
+let hudAt = 0, hudCount = 0;
 export function setHud(items) {
+  const now = performance.now();
+  if (items.length === hudCount && now - hudAt < HUD_EVERY_MS) return; // набор полей тот же — ждём следующего «тика» табло
   const html = items.map((item) => `<span>${item}</span>`).join('');
   if (hud.innerHTML !== html) hud.innerHTML = html;
+  hudAt = now;
+  hudCount = items.length;
 }
 
 const banner = $('#banner');
