@@ -6,3 +6,8 @@ demo-entries/
 entries/
 *private-key*.json
 *.private-key.json
+
+# Локальные настройки Claude Code и impeccable — у каждого свои
+.claude/settings.local.json
+.impeccable/config.local.json
+.impeccable/cache/
