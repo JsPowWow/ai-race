@@ -181,7 +181,7 @@ const readFiles = (files) => [...files].forEach((f) => f.text().then(addFromText
 
 $('#rAddMine').addEventListener('click', () => {
   const file = toCarFile();
-  if (!file) return showBanner('Сначала обучи мозг на вкладке «Трек»');
+  if (!file) return showBanner('Сначала обучи мозг: на «Я учу» или «Учится само»');
   addEntrant(file, 'mine');
 });
 $('#rFiles').addEventListener('change', (e) => {

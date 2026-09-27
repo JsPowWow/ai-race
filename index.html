@@ -12,12 +12,11 @@
   <a class="brand" href="#intro" data-home aria-label="AI Race — на главную"><span class="ai"><span>AI</span></span><span class="race"><span>Race</span></span><span class="lines" aria-hidden="true"></span></a>
   <nav class="tabs" role="tablist" aria-label="Разделы">
     <button role="tab" id="tab-intro" data-tab="intro" aria-selected="false"><span class="t"><span class="n">★</span>Старт</span></button>
-    <button role="tab" id="tab-garage" data-tab="garage" aria-selected="true"><span class="t"><span class="n">01</span>Гараж</span></button>
-    <button role="tab" id="tab-teach" data-tab="teach" aria-selected="false"><span class="t"><span class="n">02</span>Учитель</span></button>
-    <button role="tab" id="tab-train" data-tab="train" aria-selected="false"><span class="t"><span class="n">03</span>Трек</span></button>
+    <button role="tab" id="tab-teach" data-tab="teach" aria-selected="false"><span class="t"><span class="n">01</span>Я учу</span></button>
+    <button role="tab" id="tab-train" data-tab="train" aria-selected="false"><span class="t"><span class="n">02</span>Учится само</span></button>
     <button role="tab" id="tab-code" data-tab="code" aria-selected="false"><span class="t"><span class="n">{ }</span>Код</span></button>
-    <button role="tab" id="tab-exam" data-tab="exam" aria-selected="false"><span class="t"><span class="n">04</span>Экзамен</span></button>
-    <button role="tab" id="tab-race" data-tab="race" aria-selected="false"><span class="t"><span class="n">05</span>Гонка</span></button>
+    <button role="tab" id="tab-exam" data-tab="exam" aria-selected="false"><span class="t"><span class="n">03</span>Экзамен</span></button>
+    <button role="tab" id="tab-race" data-tab="race" aria-selected="false"><span class="t"><span class="n">04</span>Гонка</span></button>
   </nav>
   <div class="champ" id="champChip">Мозг не обучен</div>
 </header>
@@ -26,7 +25,7 @@
 <section class="intro" id="introPage" hidden>
   <div class="intro-hero">
     <div class="intro-copy">
-      <p class="intro-kicker">Курс JavaScript · 5 уроков и гонка</p>
+      <p class="intro-kicker">Курс JavaScript · 4 урока и гонка</p>
       <h1 class="intro-title">Научи машину <span>ездить без водителя</span></h1>
       <p class="intro-lead">Маленькая нейросеть смотрит на дорогу лучами-сенсорами и каждую долю секунды решает: газ, тормоз, влево или вправо. Ты пишешь код на JavaScript, эволюция подбирает машине «мозг», а в конце — гонка на трассе, которую никто не видел.</p>
       <ul class="intro-promise">
@@ -50,7 +49,7 @@
       <h2>Что делаем</h2>
       <ol class="intro-steps">
         <li><b>Даём машине «глаза» и «мозг».</b> Лучи меряют расстояние до бордюров и машин, нейросеть превращает эти числа в руль и педали.</li>
-        <li><b>Учим её ездить.</b> Сначала на твоих примерах — «повторяй за мной». Потом без подсказок: сто машин пробуют, лучшие становятся родителями следующего поколения.</li>
+        <li><b>Учим её ездить.</b> Сначала сам: ты ездишь, сеть повторяет за тобой. Потом она учится сама: рой из ста машин пробует, лучшие становятся родителями следующего поколения.</li>
         <li><b>Проверяем и соревнуемся.</b> Экзамен на незнакомых трассах, потом общая гонка по секретному seed.</li>
       </ol>
     </section>
@@ -98,18 +97,17 @@
   <section class="intro-block">
     <h2>Как проходят уроки</h2>
     <ol class="intro-path">
-      <li><button data-go="garage"><span class="n">01</span><b>Гараж</b><span>Катаемся сами, даём машине глаза и настраиваем нейрон руками.</span></button></li>
-      <li><button data-go="teach"><span class="n">02</span><b>Учитель</b><span>Записываем свои заезды и учим сеть повторять за нами.</span></button></li>
-      <li><button data-go="train"><span class="n">03</span><b>Трек</b><span>Запускаем эволюцию: сто машин, отбор лучших, мутации.</span></button></li>
+      <li><button data-go="teach"><span class="n">01</span><b>Я учу</b><span>Катаемся сами, даём машине глаза и учим сеть повторять за нами.</span></button></li>
+      <li><button data-go="train"><span class="n">02</span><b>Учится само</b><span>Рой из ста машин: отбор лучших, мутации — без подсказок человека.</span></button></li>
       <li><button data-go="code"><span class="n">{ }</span><b>Код</b><span>Пишем пять функций, которые решают, как машина учится.</span></button></li>
-      <li><button data-go="exam"><span class="n">04</span><b>Экзамен</b><span>Проверяем на незнакомых трассах: выучил или понял?</span></button></li>
-      <li><button data-go="race"><span class="n">05</span><b>Гонка</b><span>Финал на секретной трассе со встречными машинами.</span></button></li>
+      <li><button data-go="exam"><span class="n">03</span><b>Экзамен</b><span>Проверяем на незнакомых трассах: выучил или понял?</span></button></li>
+      <li><button data-go="race"><span class="n">04</span><b>Гонка</b><span>Финал на секретной трассе со встречными машинами.</span></button></li>
     </ol>
   </section>
 
   <div class="intro-cta">
     <button class="btn primary big" data-start>Get started →</button>
-    <span class="note">Начнём с урока 1 — Гараж</span>
+    <span class="note">Начнём с урока 1 — «Я учу»</span>
   </div>
 </section>
 
@@ -149,28 +147,14 @@
       </div>
     </div>
 
-    <div class="toolbar" data-for="garage">
-      <div class="seg" role="group" aria-label="Кто рулит">
-        <button id="gManual" aria-pressed="true">Еду сам</button>
-        <button id="gAuto" aria-pressed="false">Рулит мозг</button>
-      </div>
-      <button class="btn" id="gRestart">Заново</button>
-      <label class="inline">Трасса
-        <select id="gTrack"></select>
-      </label>
-      <label class="inline">Машины
-        <select id="gTraffic"></select>
-      </label>
-    </div>
-
     <div class="toolbar" data-for="teach" hidden>
-      <button class="btn" id="rec">● Записать</button>
-      <button class="btn primary" id="teachGo" disabled>Обучить</button>
       <div class="seg" role="group" aria-label="Кто рулит">
-        <button id="teachMe" aria-pressed="true">Еду сам</button>
-        <button id="teachStudent" aria-pressed="false">Едет ученик</button>
+        <button id="dMe" aria-pressed="true">Еду я</button>
+        <button id="dBrain" aria-pressed="false">Едет мозг</button>
       </div>
-      <button class="btn" id="teachRestart">Заново</button>
+      <button class="btn" id="dRestart">Заново</button>
+      <label class="inline">Трасса <select id="dTrack"></select></label>
+      <label class="inline">Машины <select id="dTraffic"></select></label>
     </div>
 
     <div class="toolbar" data-for="train" hidden>
@@ -221,33 +205,50 @@
   </section>
 
   <aside class="panel">
-    <!-- ГАРАЖ -->
-    <div data-panel="garage">
+    <!-- Я УЧУ -->
+    <div data-panel="teach" hidden>
       <section class="block">
-        <h2>Сенсоры</h2>
+        <h2>Мои заезды</h2>
+        <p class="hint" id="runsHint">Просто езди: заезд записывается сам — от старта до финиша или аварии. Каждый тик — пример «что видят лучи → что ты нажал».</p>
+        <ol class="runs" id="runsList"></ol>
+        <div class="seg" role="group" aria-label="С чего начать обучение">
+          <button data-from="scratch" aria-pressed="true">С нуля</button>
+          <button data-from="current" aria-pressed="false">Дообучить текущий</button>
+        </div>
+        <p class="hint" id="fromHint"></p>
+        <button class="btn primary" id="teachGo" disabled>Обучить на отмеченных</button>
+        <p class="note" id="teachStatus" role="status"></p>
+        <details class="learn-box">
+          <summary>Как учится</summary>
+          <canvas id="lossChart" class="chart" aria-label="Ошибка по эпохам"></canvas>
+          <p class="note" id="lrSummary"></p>
+          <div class="field"><label for="epochs">Эпох</label><input type="range" id="epochs" min="5" max="100" step="5"><output id="epochsOut"></output></div>
+          <div class="field wide"><span class="lbl">Шаг обучения</span>
+            <div class="seg" role="group" aria-label="Шаг обучения">
+              <button data-lr="0.01">0,01</button><button data-lr="0.05">0,05</button><button data-lr="0.2">0,2</button><button data-lr="1">1</button>
+            </div>
+          </div>
+          <p class="hint">Эпоха — один проход по всем примерам. Шаг — насколько сильно двигать веса за раз. «С нуля» — сеть той же формы со случайными весами, вариант «Плавный». «Дообучить» — берём веса текущего мозга и подвигаем их, поэтому шаг поменьше, чтобы сеть не забыла то, что уже умела.</p>
+        </details>
+        <p class="hint" id="exMemory"></p>
+      </section>
+      <section class="block library" data-library></section>
+      <details class="block fold" open>
+        <summary><h2>Глаза</h2></summary>
         <div class="field"><label for="sCount">Лучей</label><input type="range" id="sCount" min="3" max="15" step="1"><output id="sCountOut"></output></div>
         <div class="field"><label for="sSpread">Угол обзора</label><input type="range" id="sSpread" min="30" max="180" step="10"><output id="sSpreadOut"></output></div>
         <div class="field"><label for="sLength">Дальность</label><input type="range" id="sLength" min="80" max="260" step="10"><output id="sLengthOut"></output></div>
-      </section>
-      <section class="block">
-        <h2>Слои сети</h2>
+        <p class="hint">Числа лучей видно вверху трассы: 0 — пусто, 1 — препятствие вплотную.</p>
+      </details>
+      <details class="block fold">
+        <summary><h2>Сеть</h2></summary>
         <div class="layers" id="layersEditor"></div>
         <button class="btn small" id="addLayer">+ Скрытый слой</button>
-        <div class="pending" id="pending" hidden>
-          <p id="pendingText"></p>
-          <div class="row">
-            <button class="btn primary small" id="pendingApply">Применить и сбросить</button>
-            <button class="btn small" id="pendingCancel">Отменить</button>
-          </div>
-        </div>
-      </section>
-      <section class="block">
-        <h2>Как думает</h2>
-        <select id="thinkSelect" aria-label="Вариант мозга"></select>
+        <div class="field wide"><label for="thinkSelect">Как думает</label><select id="thinkSelect" aria-label="Вариант мозга"></select></div>
         <p class="hint" id="thinkHint"></p>
-      </section>
-      <section class="block">
-        <h2>Сеть · редактор</h2>
+      </details>
+      <details class="block fold" open>
+        <summary><h2>Мозг под микроскопом</h2></summary>
         <canvas id="netCanvas" class="net" aria-label="Схема нейросети: щёлкни связь или нейрон, чтобы поменять вес"></canvas>
         <p class="legend"><span class="sw pos"></span>положительный вес <span class="sw neg"></span>отрицательный <span class="sw act"></span>нейрон сработал</p>
         <div class="wedit" id="wEdit">
@@ -264,43 +265,7 @@
           </div>
         </div>
         <p class="hint" id="netNote"></p>
-      </section>
-    </div>
-
-    <!-- УЧИТЕЛЬ -->
-    <div data-panel="teach" hidden>
-      <section class="block">
-        <h2>Три шага</h2>
-        <ol class="steps" id="teachSteps">
-          <li data-step="record"><b>Запиши, как ты ездишь</b><span class="status" id="stepRecord"></span></li>
-          <li data-step="train"><b>Обучи ученика</b><span class="status" id="stepTrain"></span></li>
-          <li data-step="adopt"><b>Посмотри, как он едет</b><span class="status" id="stepAdopt"></span>
-            <button class="btn small" id="teachAdopt" disabled>Сделать чемпионом</button></li>
-        </ol>
-      </section>
-      <section class="block">
-        <h2>Трасса для записи</h2>
-        <div class="field wide"><label for="teachTrack">Трасса</label><select id="teachTrack"></select></div>
-        <div class="field wide"><label for="teachTraffic">Машины</label><select id="teachTraffic"></select></div>
-        <p class="hint">Каждый тик записи — пример «что видят сенсоры → что ты нажал». Пока стоишь и ничего не жмёшь — не записываем, а перед аварией последние 0,75 с выбрасываем: плохому не учим. Покажи и то, как выруливать от бордюра.</p>
-        <p class="hint" id="exMemory"></p>
-        <div class="row"><button class="btn small danger" id="exClear">Очистить примеры</button></div>
-      </section>
-      <section class="block">
-        <h2>Как учится</h2>
-        <canvas id="lossChart" class="chart" aria-label="Ошибка по эпохам"></canvas>
-        <p class="note" id="lrSummary">Здесь появится график ошибки: чем ниже, тем точнее ученик повторяет за тобой.</p>
-        <details>
-          <summary>Настройки обучения</summary>
-          <div class="field"><label for="epochs">Эпох</label><input type="range" id="epochs" min="5" max="100" step="5"><output id="epochsOut"></output></div>
-          <div class="field wide"><span class="lbl">Шаг обучения</span>
-            <div class="seg" role="group" aria-label="Шаг обучения">
-              <button data-lr="0.01">0,01</button><button data-lr="0.05">0,05</button><button data-lr="0.2">0,2</button><button data-lr="1">1</button>
-            </div>
-          </div>
-          <p class="hint">Эпоха — один проход по всем примерам. Шаг — насколько сильно двигать веса за раз. Ученик — сеть той же формы, что в Гараже, с вариантом мозга «Плавный»; каждое обучение начинается с чистого листа.</p>
-        </details>
-      </section>
+      </details>
     </div>
 
     <!-- ТРЕК -->
@@ -339,14 +304,15 @@
         <canvas id="chart" class="chart" aria-label="График фитнеса по поколениям"></canvas>
         <p class="legend"><span class="sw line"></span>лучший фитнес <span class="sw dash"></span>медиана <span class="sw dot"></span>родитель доехал</p>
       </section>
+      <section class="block library" data-library></section>
       <section class="block">
-        <h2>Зал чемпионов</h2>
+        <h2>Рекорды роя</h2>
         <ol class="hall" id="hall"></ol>
         <div class="row">
-          <button class="btn small danger" id="tReset">Сбросить обучение</button>
+          <button class="btn small danger" id="tReset">Начать с нуля</button>
         </div>
         <div class="pending" id="resetConfirm" hidden>
-          <p>Удалить обученный мозг, график и зал чемпионов?</p>
+          <p>Начать рой с нуля? График и рекорды роя удалятся, а текущий мозг можно будет вернуть в блоке «Мозг».</p>
           <div class="row">
             <button class="btn small danger" id="tResetYes">Да, сбросить</button>
             <button class="btn small" id="tResetNo">Оставить</button>

@@ -1,45 +1,42 @@
-// Схема нейросети в Гараже: подсветка работы нейронов и ручная правка весов.
+// «Мозг под микроскопом» на вкладке «Я учу»: подсветка работы нейронов и ручная правка весов.
 import { createBrain, OUTPUT_LABELS } from '../../engine/brain.js';
 import { drawNetwork, hitNetwork } from '../../engine/netviz.js';
 import { mulberry32 } from '../../engine/utils.js';
-import { state, sizesOf, sameSizes, setChampion } from '../state.js';
-import { showBanner } from '../stage.js';
+import { state, sizesOf, setChampion } from '../state.js';
+import { stashCurrent } from '../library.js';
 import { $ } from '../ui.js';
 
 /**
- * getDraft()  — архитектура, которую сейчас собирают в Гараже
  * getTrace()  — что «горит» в сети прямо сейчас (или null)
  * onEdit()    — вызывается после ручной правки веса
  */
-export function createNetworkEditor({ getDraft, getTrace, onEdit }) {
+export function createNetworkEditor({ getTrace, onEdit }) {
   const canvas = $('#netCanvas');
   let preview = null; // случайная сеть, пока своего мозга нет
   let layout = null;
   let selected = null;
   let hovered = null;
+  let stashed = false; // прежний мозг уже отложен в этой серии правок
 
   /** Какой мозг показываем и можно ли его править */
   function current() {
-    const draft = getDraft();
-    const applied = sameSizes(draft, state.config);
-    if (applied && state.champion) return { brain: state.champion, editable: true };
-    preview ??= createBrain(sizesOf(draft), mulberry32(7));
-    return { brain: preview, editable: applied };
+    if (state.champion) return { brain: state.champion, editable: true };
+    preview ??= createBrain(sizesOf(), mulberry32(7));
+    return { brain: preview, editable: true };
   }
 
   function render() {
     const { brain, editable } = current();
     layout = drawNetwork(canvas, brain, getTrace(), editable ? selected : null, editable ? hovered : null);
-    $('#netNote').textContent = note(editable);
+    $('#netNote').textContent = note();
     $('#wZero').disabled = $('#wRandom').disabled = !editable;
     renderSlider(brain, editable ? selected : null);
   }
 
-  function note(editable) {
-    if (!editable) return 'Архитектура изменена: примени её, чтобы править веса.';
-    if (!state.champion) return 'Пока мозга нет — это случайные веса. Поменяй любой вес, и он станет твоим мозгом. Или обучи его на вкладке «Трек».';
-    if (state.handEdited) return 'Мозг поправлен руками. На «Треке» эволюция продолжит с него.';
-    return getTrace() ? 'Мозг чемпиона. Кружки загораются, когда нейрон срабатывает.' : 'Мозг чемпиона. Включи «Рулит мозг», чтобы увидеть, как он думает.';
+  function note() {
+    if (!state.champion) return 'Пока мозга нет — это случайные веса. Поменяй любой вес, и он станет твоим мозгом. Или обучи его на своих заездах.';
+    if (state.handEdited) return 'Мозг поправлен руками. Рой на «Учится само» продолжит с него.';
+    return getTrace() ? 'Текущий мозг. Кружки загораются, когда нейрон срабатывает.' : 'Текущий мозг. Включи «Едет мозг», чтобы увидеть, как он думает.';
   }
 
   function renderSlider(brain, sel) {
@@ -55,6 +52,12 @@ export function createNetworkEditor({ getDraft, getTrace, onEdit }) {
   }
 
   /** Правка руками превращает показанную сеть в «мой мозг» */
+  /** Первая правка обученного мозга: сперва отложим его целым, чтобы можно было вернуть */
+  function beforeEdit() {
+    if (state.champion && !state.handEdited && !stashed) stashCurrent();
+    stashed = true;
+  }
+
   function commit(brain) {
     setChampion(brain, { by: 'editor', handEdited: true });
     if (brain === preview) preview = null;
@@ -93,13 +96,14 @@ export function createNetworkEditor({ getDraft, getTrace, onEdit }) {
   $('#wVal').addEventListener('input', (e) => {
     const { brain, editable } = current();
     if (!editable || !selected) return;
+    beforeEdit();
     write(brain, selected, +e.target.value);
     commit(brain);
   });
 
   $('#wZero').addEventListener('click', () => {
     const { brain } = current();
-    warnTrainedLost();
+    beforeEdit();
     for (const layer of brain.layers) {
       layer.biases.fill(0);
       for (const row of layer.weights) row.fill(0);
@@ -109,7 +113,7 @@ export function createNetworkEditor({ getDraft, getTrace, onEdit }) {
 
   $('#wRandom').addEventListener('click', () => {
     const { brain } = current();
-    warnTrainedLost();
+    beforeEdit();
     const fresh = createBrain(sizesOf());
     brain.layers.forEach((layer, k) => Object.assign(layer, fresh.layers[k]));
     commit(brain);
@@ -121,6 +125,7 @@ export function createNetworkEditor({ getDraft, getTrace, onEdit }) {
     reset() {
       preview = null;
       selected = hovered = null;
+      stashed = false;
     },
   };
 }
@@ -165,8 +170,4 @@ function describe(brain, sel, value, trace) {
       ? `Чем сильнее сигнал «${from}», тем сильнее он толкает «${to}» сработать.`
       : `Сигнал «${from}» мешает «${to}» сработать.`;
   return { title: `Связь ${from} → ${to}`, explain: meaning + now };
-}
-
-function warnTrainedLost() {
-  if (state.generation > 0 && !state.handEdited) showBanner('Обученный мозг остался в «Зале чемпионов» на вкладке «Трек»', 2600);
 }

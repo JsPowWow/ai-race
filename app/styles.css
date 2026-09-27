@@ -258,7 +258,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
   background: #07090c; border: 1px solid var(--line); border-left: 3px solid var(--accent);
   font: 12.5px/1.6 var(--mono); color: #cfe7ff;
 }
-.intro-path { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+.intro-path { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
 .intro-path button {
   width: 100%; height: 100%; text-align: left; cursor: pointer;
   display: flex; flex-direction: column; gap: 6px;
@@ -405,7 +405,7 @@ select:hover, input[type="text"]:hover { border-color: var(--muted); }
   display: flex; justify-content: space-between; align-items: flex-end;
   pointer-events: none;
 }
-body:not([data-tab="garage"]):not([data-tab="teach"]) .pad { display: none; }
+body:not([data-tab="teach"]) .pad { display: none; }
 .pad > div { display: flex; gap: 12px; pointer-events: auto; }
 .pad-pedals { flex-direction: column; align-items: center; }
 .pad button {
@@ -425,10 +425,10 @@ body:not([data-tab="garage"]):not([data-tab="teach"]) .pad { display: none; }
 .pad .brake.on { background: var(--ai); border-color: var(--ai); color: #fff; }
 /* На телефоне кнопки не закрывают дорогу: отдельная полоса под трассой, педали рядом */
 @media (max-width: 700px) {
-  :is(body[data-tab="garage"], body[data-tab="teach"]) .viewport { aspect-ratio: 4 / 4.5; max-height: 74vh; }
-  :is(body[data-tab="garage"], body[data-tab="teach"]) .viewport canvas { bottom: 96px; height: calc(100% - 96px); }
-  :is(body[data-tab="garage"], body[data-tab="teach"]) .viewport::after { bottom: 104px; }
-  :is(body[data-tab="garage"], body[data-tab="teach"]) .banner { bottom: 110px; }
+  body[data-tab="teach"] .viewport { aspect-ratio: 4 / 4.5; max-height: 74vh; }
+  body[data-tab="teach"] .viewport canvas { bottom: 96px; height: calc(100% - 96px); }
+  body[data-tab="teach"] .viewport::after { bottom: 104px; }
+  body[data-tab="teach"] .banner { bottom: 110px; }
   .pad {
     left: 0; right: 0; bottom: 0; height: 96px; padding-inline: 12px;
     align-items: center; background: var(--bg-2); border-top: 1px solid var(--line);
@@ -603,6 +603,33 @@ details .btn { margin-top: 6px; }
 .board .empty::before { content: none; }
 .board .avatar, .entrants .avatar { width: 20px; height: 20px; }
 .awards { display: flex; flex-direction: column; gap: 6px; }
+
+/* ── «Я учу»: заезды, свёрнутые секции, библиотека мозгов ── */
+.runs { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; max-height: 260px; overflow-y: auto; }
+.runs li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 8px; align-items: center; padding: 6px 8px; background: var(--bg-2); font-size: 13px; }
+.runs li.off { opacity: 0.5; }
+.runs li.bad .res { color: var(--bad); }
+.runs li.good .res { color: var(--good); }
+.runs li.recording { outline: 1px dashed var(--bad); outline-offset: -1px; }
+.runs input { width: 16px; height: 16px; accent-color: var(--ai); cursor: pointer; }
+.runs .meta { color: var(--muted); font-size: 12px; }
+.runs .res { font-family: var(--mono); font-size: 12px; }
+.runs button, .lib-del { border: 0; background: transparent; cursor: pointer; color: var(--muted); width: 26px; height: 26px; }
+.runs button:hover, .lib-del:hover { background: var(--surface-2); color: var(--bad); }
+.runs .empty { background: transparent; grid-template-columns: 1fr; color: var(--muted); padding: 0; }
+details.fold > summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
+details.fold > summary::-webkit-details-marker { display: none; }
+details.fold > summary::after { content: "+"; font: 700 18px var(--display); color: var(--muted); }
+details.fold[open] > summary::after { content: "–"; }
+details.fold[open] > summary { margin-bottom: 4px; }
+.library .lib-current { margin: 0; display: flex; flex-direction: column; gap: 2px; }
+.library .meta, .lib-list .meta { color: var(--muted); font-size: 12px; }
+.lib-save input { flex: 1; min-width: 120px; }
+.lib-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; max-height: 240px; overflow-y: auto; }
+.lib-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; align-items: center; padding: 6px 8px; background: var(--bg-2); border-left: 2px solid transparent; }
+.lib-list li.active { border-left-color: var(--accent); }
+.lib-name { display: flex; flex-direction: column; min-width: 0; }
+.lib-name b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 
 /* ── учитель: три шага ── */
 .steps { margin: 0; padding: 0; list-style: none; counter-reset: step; display: flex; flex-direction: column; gap: 10px; }

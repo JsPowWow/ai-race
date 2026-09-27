@@ -1,4 +1,4 @@
-// Вкладка «Трек» (урок 2): эволюция — поколения, отбор, мутация, кроссовер.
+// Вкладка «Учится само» (урок 2): рой и эволюция — поколения, отбор, мутация, кроссовер.
 import { TRAINING_TRACKS, getTrainingTrack } from '../../engine/track.js';
 import { Car } from '../../engine/car.js';
 import { cloneBrain, checkBrain } from '../../engine/brain.js';
@@ -6,6 +6,7 @@ import { Evolution } from '../../engine/evolution.js';
 import { TRAFFIC_LEVELS, withTraffic } from '../../engine/traffic.js';
 import { drawChart } from '../../engine/netviz.js';
 import { state, persist, sizesOf, thinkFn, setChampion, resetProgress, on } from '../state.js';
+import { setBrain, stashCurrent, renderLibrary } from '../library.js';
 import { live, errorLine } from '../student-code.js';
 import { seedTrack } from '../tracks.js';
 import { canvas, drawScene, paintCar, trafficOn, carAt, setHud, showBanner } from '../stage.js';
@@ -24,6 +25,7 @@ export const isTraining = () => running;
 export const trainTab = {
   enter() {
     renderPanel();
+    renderLibrary();
   },
   frame() {
     if (!evo) return drawIdle();
@@ -115,7 +117,7 @@ function endGeneration() {
   startGeneration();
 }
 
-/** Зал чемпионов: лучший результат на каждой трассе */
+/** Рекорды роя: лучший результат на каждой трассе */
 function addToHall(entry, report) {
   const candidate = {
     gen: entry.gen, trackName: entry.trackName, finished: report.finished, ticks: report.ticks,
@@ -211,7 +213,7 @@ function renderPicked() {
     : `Выбрано вручную: ${picked.length} из 2. ${picked.length === 2 ? 'Эти двое станут родителями.' : 'Второго родителя возьмём лучшего по фитнесу — или щёлкни ещё одну машину.'}`;
 }
 
-// ── статистика, график, зал чемпионов ──
+// ── статистика, график, рекорды роя ──
 
 export function renderPanel() {
   syncControls();
@@ -224,7 +226,7 @@ export function renderPanel() {
     ? state.hall.map((h, i) => `
         <li>
           <span><span class="meta">пок. ${h.gen}</span> · ${esc(h.trackName)} · <span class="meta">${h.finished ? secs(h.ticks) : pct(h.progressPct)}</span></span>
-          <button class="btn small" data-hall="${i}">Загрузить</button>
+          <button class="btn small" data-hall="${i}">Взять</button>
         </li>`).join('')
     : '<li class="empty">Здесь появятся рекорды: лучший результат на каждой трассе.</li>';
 }
@@ -232,8 +234,8 @@ export function renderPanel() {
 delegate('#hall', 'click', '[data-hall]', (button) => {
   const record = state.hall[+button.dataset.hall];
   if (checkBrain(record.brain, sizesOf())) return showBanner('Этот мозг от другой архитектуры сети');
-  setChampion(cloneBrain(record.brain), { by: 'hall', generation: record.gen });
-  showBanner(`Загружен чемпион поколения ${record.gen}`);
+  setBrain(cloneBrain(record.brain), { by: 'hall', generation: record.gen });
+  showBanner(`Текущий мозг — рекорд поколения ${record.gen}. Прежний можно вернуть в блоке «Мозг»`, 2800);
 });
 
 // ── сброс ──
@@ -242,6 +244,7 @@ $('#tReset').addEventListener('click', () => ($('#resetConfirm').hidden = false)
 $('#tResetNo').addEventListener('click', () => ($('#resetConfirm').hidden = true));
 $('#tResetYes').addEventListener('click', () => {
   $('#resetConfirm').hidden = true;
+  stashCurrent(); // на всякий случай: прежний мозг можно вернуть
   resetProgress();
 });
 
@@ -249,7 +252,7 @@ $('#tResetYes').addEventListener('click', () => {
 
 on('champion', ({ by }) => {
   if (by === 'train' || !evo || !state.champion) return;
-  evo.parent = cloneBrain(state.champion); // мозг поправили руками или загрузили из зала
+  evo.parent = cloneBrain(state.champion); // мозг обучили на «Я учу», поправили руками или взяли из библиотеки
   startGeneration();
 });
 on('reset', () => {

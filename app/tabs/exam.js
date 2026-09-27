@@ -57,7 +57,7 @@ const examTracks = () => [
 const championCar = (track) => new Car(track, { brain: state.champion, think: thinkFn(), sensors: state.config.sensors });
 
 function runExam() {
-  if (!state.champion) return showBanner('Сначала обучи мозг на вкладке «Трек»');
+  if (!state.champion) return showBanner('Сначала обучи мозг: на «Я учу» или «Учится само»');
   results = examTracks().map(({ track, known }) => {
     const car = championCar(track);
     const maxTicks = maxTicksFor(track);

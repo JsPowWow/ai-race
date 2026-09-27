@@ -1,243 +1,360 @@
-// Вкладка «Учитель» (урок 2): записываем свои заезды и учим сеть повторять за нами.
+// Вкладка «Я учу» (урок 1): ездишь сам — заезды записываются, сеть учится повторять за тобой.
+// Здесь же «глаза» (лучи), форма сети и «мозг под микроскопом» — ручная правка весов.
 import { TRAINING_TRACKS, getTrainingTrack } from '../../engine/track.js';
 import { Car, carReport } from '../../engine/car.js';
-import { createBrain, cloneBrain } from '../../engine/brain.js';
+import { createBrain, cloneBrain, LIMITS } from '../../engine/brain.js';
 import { TRAFFIC_LEVELS, withTraffic } from '../../engine/traffic.js';
-import { sampleOf, worthLearning, trainEpoch, agreement, packSample, unpackSample, TEACH_THINK } from '../../engine/imitation.js';
+import { sampleOf, worthLearning, trainEpoch, agreement, TEACH_THINK } from '../../engine/imitation.js';
 import { drawSeries } from '../../engine/netviz.js';
-import { state, persist, sizesOf, thinkFn, setChampion } from '../state.js';
-import { load, save, remove, usedBytes } from '../storage.js';
+import { state, persist, sizesOf, thinkFn, thinkVariant, on } from '../state.js';
+import { load, save } from '../storage.js';
+import { live } from '../student-code.js';
+import { runs, addRun, toggleRun, removeRun, trainingSamples, sampleCount, saveRuns, memoryNote, MAX_SAMPLES } from '../runs.js';
+import { setBrain, changeShape, renderLibrary } from '../library.js';
 import { steerWith } from '../manual-drive.js';
 import { drawScene, paintCar, trafficOn, setHud, showBanner } from '../stage.js';
-import { $, $$, secs, pct, options, setPressed, delegate } from '../ui.js';
+import { $, esc, secs, pct, options, setPressed, delegate } from '../ui.js';
+import { createNetworkEditor } from './network-editor.js';
 
-const MAX_SAMPLES = 8000;
-const DROP_BEFORE_CRASH = 45;   // тиков перед аварией не учим (0,75 с)
 const MIN_SAMPLES = 200;
 const RESTART_DELAY = 1100;
 
-const settings = { trackId: 'warmup', traffic: 'none', epochs: 30, rate: 0.05, ...load('teach', {}) };
-let samples = loadSamples();
-let runs = load('teachRuns', 0);
+/** С нуля — побольше эпох и шаг покрупнее; дообучение — поменьше, чтобы не забыть выученное */
+const PRESETS = { scratch: { epochs: 30, rate: 0.05 }, current: { epochs: 10, rate: 0.01 } };
+const learning = { from: 'scratch', ...PRESETS.scratch, ...load('teach', {}) };
 
-let mode = 'me';      // 'me' — рулю я, 'student' — рулит ученик
-let recording = false;
-let runStart = 0;     // с какого примера начался текущий заезд
+let mode = 'me';      // 'me' — еду я (и записываю), 'brain' — едет текущий мозг
 let car = null;
 let track = null;
 let restartAt = 0;
-
-let student = load('teachStudent', null); // обученная сеть (сохраняется в браузере)
+let recording = null; // идущий заезд: [{ x, y }] — начинается, как только машина тронулась
+let trace = null;     // что «горит» в сети на этом кадре
 let losses = [];
-let training = null;  // { epoch, total } — пока идёт обучение
+let training = null;  // { epoch, total, brain, samples, runs } — пока идёт обучение
+
+const editor = createNetworkEditor({
+  getTrace: () => (mode === 'brain' ? trace : null),
+  onEdit: () => (mode === 'brain' ? resetCar() : setMode('brain')),
+});
 
 export const teachTab = {
   enter() {
-    saveSamples();
     resetCar();
-    renderStats();
+    renderShape();
+    renderFrom();
+    renderRuns();
     renderTraining();
+    renderLibrary();
+    editor.render();
   },
-  frame() {
+  frame(frameNo) {
     if (training) trainStep();
-    const traffic = trafficOn(track, car.ticks);
+    let traffic = trafficOn(track, car.ticks);
     if (!car.done) {
+      if (mode === 'brain') live.think.feedForward.lastTrace = null;
       car.step(track, Infinity, traffic);
-      if (recording && mode === 'me') record();
+      trace = mode === 'brain' ? live.think.feedForward.lastTrace : null;
+      if (mode === 'me') record();
+      traffic = trafficOn(track, car.ticks);
     } else if (!restartAt) {
       restartAt = performance.now() + RESTART_DELAY;
       finishRun();
     } else if (performance.now() > restartAt) {
       resetCar();
     }
-    drawScene(track, { camera: 'follow', follow: car, traffic: trafficOn(track, car.ticks) });
+    drawScene(track, { camera: 'follow', follow: car, traffic });
     paintCar(car, { color: mode === 'me' ? state.profile.color : '#ff3d7f', sensors: true, glow: true });
     setHud([
-      mode === 'me' ? 'рулишь <b>ты</b>' : 'рулит <b>ученик</b>',
+      mode === 'me' ? (recording ? `<b>● запись</b> ${recording.length}` : 'рулишь <b>ты</b>') : 'рулит <b>мозг</b>',
       `скорость <b>${car.speed.toFixed(1)}</b>`,
       `пройдено <b>${pct(carReport(car, track).progressPct)}</b>`,
       `время <b>${secs(car.ticks)}</b>`,
+      `лучи <b>${[...car.readings].map((v) => v.toFixed(2)).join(' ')}</b>`,
     ]);
-    $('#recBadge').hidden = !(recording && mode === 'me');
+    $('#recBadge').hidden = !recording;
+    if (mode === 'brain' && frameNo % 3 === 0) editor.render();
   },
 };
 
-// ── заезд ──
+// ── машина ──
 
 function resetCar() {
-  track = withTraffic(getTrainingTrack(settings.trackId), settings.traffic);
-  const driver = mode === 'student' && student ? { brain: student, think: thinkFn(TEACH_THINK) } : {};
+  if (recording && car && !car.done) finishRun({ interrupted: true });
+  track = withTraffic(getTrainingTrack(state.drive.trackId), state.drive.traffic);
+  const driver = mode === 'brain' && state.champion ? { brain: state.champion, think: thinkFn() } : {};
   car = new Car(track, { ...driver, sensors: state.config.sensors });
   restartAt = 0;
-  runStart = samples.length;
+  recording = null;
+  trace = null;
   steerWith(mode === 'me' ? car.controls : null, { onTouch: () => setMode('me') });
 }
 
 function setMode(next) {
-  if (next === 'student' && !student) {
-    showBanner('Сначала обучи ученика на своих примерах');
+  if (next === 'brain' && !state.champion) {
+    showBanner('Мозга пока нет: запиши пару заездов и нажми «Обучить» — или поправь веса в «Мозге под микроскопом»', 3200);
     next = 'me';
   }
   mode = next;
-  setPressed('#teachMe, #teachStudent', (b) => b.id === (mode === 'me' ? 'teachMe' : 'teachStudent'));
+  setPressed('#dMe, #dBrain', (b) => b.id === (mode === 'me' ? 'dMe' : 'dBrain'));
   resetCar();
 }
 
-function record() {
-  if (samples.length >= MAX_SAMPLES) return setRecording(false, 'Хватит: записано максимум примеров');
-  const sample = sampleOf(car);
-  if (worthLearning(sample)) samples.push(sample);
-  if (car.ticks % 30 === 0) renderStats();
-}
-
-function finishRun() {
-  const text = car.status === 'finished' ? `Финиш! ${secs(car.finishTick)}` : car.status === 'crashed' ? 'Авария!' : 'Заглох';
-  showBanner(text, RESTART_DELAY);
-  if (!(recording && mode === 'me')) return;
-  if (car.status === 'crashed') samples.splice(Math.max(runStart, samples.length - DROP_BEFORE_CRASH));
-  if (samples.length > runStart) runs++;
-  saveSamples();
-  renderStats();
-}
-
-function setRecording(on, message = null, { quiet = false } = {}) {
-  recording = on;
-  $('#rec').classList.toggle('on', on);
-  if (on && mode !== 'me') setMode('me');
-  if (!on) saveSamples();
-  renderStats();
-  if (message) showBanner(message, 2400);
-  else if (!on && !quiet && samples.length >= MIN_SAMPLES) showBanner(`Записано ${samples.length} примеров — жми «Обучить»`, 3000);
-}
-
-function loadSamples() {
-  const packed = load('teachPacked', []).map(unpackSample);
-  const legacy = load('teachSamples', null); // старый формат (массивы чисел) — переносим один раз
-  if (legacy) remove('teachSamples');
-  const all = [...packed, ...(legacy ?? []).map(([x, y]) => ({ x, y }))];
-  return all.filter(worthLearning); // старые записи могли содержать «стою и жду» — выбрасываем
-}
-
-function saveSamples() {
-  const saved = save('teachPacked', samples.map(packSample));
-  save('teachRuns', runs);
-  $('#exMemory').textContent = saved
-    ? `В памяти браузера: ${(usedBytes() / 1024).toFixed(0)} КБ из примерно 5000.`
-    : 'Не хватило места в памяти браузера: примеры живут до перезагрузки. Очисти их или другие данные сайта.';
-}
-
-$('#rec').addEventListener('click', () => setRecording(!recording));
-$('#teachMe').addEventListener('click', () => setMode('me'));
-$('#teachStudent').addEventListener('click', () => setMode('student'));
-$('#teachRestart').addEventListener('click', resetCar);
-$('#exClear').addEventListener('click', () => {
-  samples = [];
-  runs = 0;
-  saveSamples();
-  resetCar();
-  renderStats();
-});
+$('#dMe').addEventListener('click', () => setMode('me'));
+$('#dBrain').addEventListener('click', () => setMode('brain'));
+$('#dRestart').addEventListener('click', resetCar);
 
 for (const [select, key, items] of [
-  ['#teachTrack', 'trackId', TRAINING_TRACKS.map(({ id, name }) => ({ id, title: name }))],
-  ['#teachTraffic', 'traffic', TRAFFIC_LEVELS],
+  ['#dTrack', 'trackId', TRAINING_TRACKS.map(({ id, name }) => ({ id, title: name }))],
+  ['#dTraffic', 'traffic', TRAFFIC_LEVELS],
 ]) {
   $(select).innerHTML = options(items);
-  $(select).value = settings[key];
+  $(select).value = state.drive[key];
   $(select).addEventListener('change', (e) => {
-    settings[key] = e.target.value;
-    save('teach', settings);
+    state.drive[key] = e.target.value;
+    persist();
     resetCar();
   });
 }
 
-/** Три шага в панели и кнопки: что уже сделано и что дальше */
-function renderStats() {
-  const enough = samples.length >= MIN_SAMPLES;
-  const turns = samples.filter(({ y }) => y[2] || y[3]).length;
-  $('#rec').textContent = recording ? `■ Стоп · ${samples.length}` : `● Записать${samples.length ? ` · ${samples.length}` : ''}`;
-  $('#teachGo').disabled = !enough || !!training;
-  $('#teachGo').textContent = training ? `Учится… ${training.epoch}/${training.total}` : student ? 'Обучить заново' : 'Обучить';
-  $('#teachStudent').classList.toggle('off', !student);
+// ── запись: заезд начинается, когда машина тронулась, и заканчивается финишем или аварией ──
 
-  $('#stepRecord').textContent = samples.length
-    ? `${samples.length} примеров${enough ? '' : ` — нужно хотя бы ${MIN_SAMPLES}`}, с поворотом ${turns}, заездов ${runs}`
-    : 'Нажми «● Записать» и проедь трассу 2–3 раза.';
-  $('#stepTrain').textContent = training ? `Учится: эпоха ${training.epoch} из ${training.total}…`
-    : student ? `Готов: повторяет за тобой в ${pct(agreement(student, trainSet) * 100)} примеров.`
-    : enough ? 'Нажми «Обучить».' : 'Сначала запиши примеры.';
-  $('#stepAdopt').textContent = student && !training
-    ? 'Нажми «Едет ученик». Понравилось — сделай его своим мозгом, дальше его можно доучить на «Треке».'
-    : 'Появится после обучения.';
-  $('#teachAdopt').disabled = !student || !!training;
-  const current = !enough ? 'record' : !student || training ? 'train' : 'adopt';
-  for (const li of $$('#teachSteps li')) {
-    const order = ['record', 'train', 'adopt'];
-    li.classList.toggle('done', order.indexOf(li.dataset.step) < order.indexOf(current));
-    li.classList.toggle('current', li.dataset.step === current);
-  }
+function record() {
+  const sample = sampleOf(car);
+  if (!worthLearning(sample)) return; // стоишь и ничего не жмёшь — не учим
+  recording ??= [];
+  recording.push(sample);
+  if (sampleCount() + recording.length === MAX_SAMPLES) showBanner('Заездов много: при сохранении самые старые уйдут', 2400);
 }
 
-// ── обучение ──
+const RESULT_TEXT = { crashed: 'Авария!', stalled: 'Заглох', timeout: 'Время вышло' };
 
-$('#epochs').value = settings.epochs;
-$('#epochsOut').textContent = settings.epochs;
+function finishRun({ interrupted = false } = {}) {
+  const status = interrupted ? 'stopped' : car.status;
+  const saved = recording && addRun(recording, {
+    trackName: track.name, traffic: state.drive.traffic, status,
+    progressPct: carReport(car, track).progressPct, ticks: car.ticks,
+  });
+  recording = null;
+  if (!interrupted) {
+    const head = status === 'finished' ? `Финиш! ${secs(car.finishTick)}.` : RESULT_TEXT[status] ?? '';
+    showBanner(saved ? `${head} Заезд записан: ${saved.packed.length} примеров` : head, RESTART_DELAY + 400);
+  }
+  if (saved) renderRuns();
+}
+
+// ── «Мои заезды» ──
+
+const STATUS_LABEL = { finished: 'финиш', crashed: 'авария', stalled: 'заглох', timeout: 'время вышло', stopped: 'прервал' };
+
+function renderRuns() {
+  const inputs = sizesOf()[0];
+  const { samples, runs: used } = trainingSamples(inputs);
+  $('#runsList').innerHTML = runs.length
+    ? runs.map((r) => {
+      const fits = r.inputs === inputs;
+      const res = r.status === 'finished' ? secs(r.ticks) : `${STATUS_LABEL[r.status]}${r.progressPct ? ` ${pct(r.progressPct)}` : ''}`;
+      return `
+        <li class="${r.on && fits ? '' : 'off'} ${r.status === 'finished' ? 'good' : r.status === 'crashed' ? 'bad' : ''}">
+          <input type="checkbox" data-run="${r.id}" ${r.on ? 'checked' : ''} ${fits ? '' : 'disabled'} aria-label="Учить на этом заезде">
+          <span>${esc(r.trackName)}<span class="meta"> · ${r.packed.length} прим.${fits ? '' : ` · записан с ${r.inputs - 1} лучами`}</span></span>
+          <span class="res">${res}</span>
+          <button data-del-run="${r.id}" aria-label="Удалить заезд">×</button>
+        </li>`;
+    }).join('')
+    : '<li class="empty">Пока пусто. Нажми газ — запись начнётся сама.</li>';
+  $('#teachGo').disabled = samples.length < MIN_SAMPLES || !!training;
+  $('#teachGo').textContent = training ? `Учится… ${training.epoch}/${training.total}` : 'Обучить на отмеченных';
+  $('#teachStatus').textContent = training ? ''
+    : samples.length < MIN_SAMPLES ? `Нужно хотя бы ${MIN_SAMPLES} примеров в отмеченных заездах (сейчас ${samples.length}) — это пара кругов по «Разминке».`
+    : `Отмечено: ${used.length} ${used.length === 1 ? 'заезд' : 'заездов'}, ${samples.length} примеров. Новый мозг сразу поедет сам, а прежний можно будет вернуть.`;
+  $('#exMemory').textContent = memoryNote(saveRuns());
+}
+
+delegate('#runsList', 'change', '[data-run]', (box) => {
+  toggleRun(box.dataset.run);
+  renderRuns();
+});
+delegate('#runsList', 'click', '[data-del-run]', (b) => {
+  removeRun(b.dataset.delRun);
+  renderRuns();
+});
+
+// ── обучение на заездах ──
+
+$('#epochs').value = learning.epochs;
+$('#epochsOut').textContent = learning.epochs;
 $('#epochs').addEventListener('input', (e) => {
-  settings.epochs = +e.target.value;
-  $('#epochsOut').textContent = settings.epochs;
-  save('teach', settings);
+  learning.epochs = +e.target.value;
+  $('#epochsOut').textContent = learning.epochs;
+  save('teach', learning);
 });
 delegate('[data-panel="teach"]', 'click', '[data-lr]', (b) => {
-  settings.rate = +b.dataset.lr;
-  save('teach', settings);
+  learning.rate = +b.dataset.lr;
+  save('teach', learning);
   renderTraining();
 });
 
-const usableSamples = () => samples.filter(({ x }) => x.length === sizesOf()[0]);
-let trainSet = usableSamples();
-
-function startTraining() {
-  if (recording) setRecording(false, null, { quiet: true });
-  trainSet = usableSamples();
-  if (trainSet.length < samples.length) showBanner('Часть примеров записана с другим числом лучей — они пропущены', 2600);
-  if (trainSet.length < MIN_SAMPLES) return showBanner(`Нужно хотя бы ${MIN_SAMPLES} примеров с текущими сенсорами — запиши заезд`);
-  student = createBrain(sizesOf()); // каждый раз с чистого листа: так честнее сравнивать настройки
-  losses = [];
-  training = { epoch: 0, total: settings.epochs };
-  if (mode === 'student') setMode('me');
-  renderStats();
+/** Дообучать можно только «Плавный»: обучение на примерах считает именно его плавные кривые */
+function fineTuneBlocker() {
+  if (!state.champion) return 'Текущего мозга пока нет — учим с нуля.';
+  if (state.config.think !== TEACH_THINK) return `Дообучать можно мозг с вариантом «Плавный», а у текущего — «${thinkVariant(state.config.think)?.title ?? state.config.think}». Пусть рой учит сразу «Плавный» (блок «Сеть»).`;
+  return null;
 }
-$('#teachGo').addEventListener('click', startTraining);
+
+function renderFrom() {
+  const blocker = fineTuneBlocker();
+  if (blocker && learning.from === 'current') learning.from = 'scratch';
+  setPressed('[data-from]', (b) => b.dataset.from === learning.from);
+  $('[data-from="current"]').disabled = !!blocker;
+  $('#fromHint').textContent = learning.from === 'current'
+    ? `Возьмём веса текущего мозга (${state.brainNote || 'свой'}) и подвинем их под твои заезды. Шаг маленький, чтобы он не забыл, что уже умел.`
+    : blocker ?? 'Случайные веса — и учим только на твоих заездах. Всё, что умел текущий мозг, не используется (но его можно вернуть).';
+}
+
+delegate('[data-panel="teach"]', 'click', '[data-from]', (b) => {
+  learning.from = b.dataset.from;
+  Object.assign(learning, PRESETS[learning.from]);
+  $('#epochs').value = learning.epochs;
+  $('#epochsOut').textContent = learning.epochs;
+  save('teach', learning);
+  renderFrom();
+  renderTraining();
+});
+
+$('#teachGo').addEventListener('click', () => {
+  const { samples, runs: used } = trainingSamples(sizesOf()[0]);
+  if (samples.length < MIN_SAMPLES) return;
+  const fineTune = learning.from === 'current' && !fineTuneBlocker();
+  training = {
+    epoch: 0, total: learning.epochs, samples, runs: used.length, fineTune,
+    brain: fineTune ? cloneBrain(state.champion) : createBrain(sizesOf()),
+    before: state.brainNote,
+  };
+  losses = [];
+  $('.learn-box').open = true;
+  renderRuns();
+});
 
 /** Одна эпоха за кадр — видно, как падает ошибка */
 function trainStep() {
-  losses.push(trainEpoch(student, trainSet, settings.rate));
+  losses.push(trainEpoch(training.brain, training.samples, learning.rate));
   training.epoch++;
-  if (training.epoch % 5 === 0) renderStats();
-  if (training.epoch >= training.total) {
-    training = null;
-    save('teachStudent', student);
-    renderStats();
-    setMode('student');
-    showBanner('Ученик готов — смотри, как он едет', 2400);
-  }
   renderTraining();
+  if (training.epoch % 5 === 0) renderRuns();
+  if (training.epoch < training.total) return;
+  const { brain, samples, runs: count, fineTune, before } = training;
+  training = null;
+  const match = pct(agreement(brain, samples) * 100);
+  const where = `${count} ${count === 1 ? 'заезде' : 'заездах'}`;
+  setBrain(brain, {
+    config: { ...state.config, think: TEACH_THINK },
+    by: 'teach',
+    generation: fineTune ? state.generation : 0,
+    note: fineTune ? `${(before || 'мозг').replace(/ \+ дообучен.*$/, '')} + дообучен на твоих заездах` : `обучен на ${where}, повторяет тебя в ${match}`,
+  });
+  setMode('brain');
+  renderRuns();
+  showBanner(`${fineTune ? 'Дообученный' : 'Новый'} мозг едет сам. Не понравился — «↶ Вернуть прежний» в блоке «Мозг»`, 3200);
 }
 
 function renderTraining() {
-  setPressed('[data-lr]', (b) => +b.dataset.lr === settings.rate);
+  setPressed('[data-lr]', (b) => +b.dataset.lr === learning.rate);
   const loss = losses.at(-1);
   $('#lrSummary').textContent = loss === undefined
-    ? 'Здесь появится график ошибки: чем ниже, тем точнее ученик повторяет за тобой.'
+    ? 'Здесь появится график ошибки: чем ниже, тем точнее мозг повторяет за тобой.'
     : `Эпоха ${losses.length}${training ? ` из ${training.total}` : ''} · ошибка ${loss.toFixed(3)}`;
-  drawSeries($('#lossChart'), losses, { label: 'Здесь появится график ошибки' });
+  redrawLoss();
 }
 
-$('#teachAdopt').addEventListener('click', () => {
-  state.config.think = TEACH_THINK;
+export const redrawLoss = () => drawSeries($('#lossChart'), losses, { label: 'Здесь появится график ошибки' });
+
+// ── глаза: лучи ──
+
+const SENSOR_SLIDERS = [
+  ['#sCount', 'count', (v) => `${v}`],
+  ['#sSpread', 'spread', (v) => `${v}°`],
+  ['#sLength', 'length', (v) => `${v} px`],
+];
+
+for (const [id, key, format] of SENSOR_SLIDERS) {
+  $(id).addEventListener('input', (e) => {
+    const value = +e.target.value;
+    $(`${id}Out`).textContent = format(value);
+    changeShape({ ...state.config, sensors: { ...state.config.sensors, [key]: value } });
+  });
+}
+
+// ── сеть: слои и вариант мозга ──
+
+function renderShape() {
+  for (const [id, key, format] of SENSOR_SLIDERS) {
+    $(id).value = state.config.sensors[key];
+    $(`${id}Out`).textContent = format(state.config.sensors[key]);
+  }
+  const hidden = state.config.hidden.map((n, i) => `
+    <span class="arrow" aria-hidden="true">→</span>
+    <span class="layer">Слой ${i + 1}
+      <button data-act="minus" data-i="${i}" aria-label="Меньше нейронов в слое ${i + 1}">−</button><b>${n}</b>
+      <button data-act="plus" data-i="${i}" aria-label="Больше нейронов в слое ${i + 1}">+</button>
+      <button data-act="del" data-i="${i}" aria-label="Удалить слой ${i + 1}">×</button>
+    </span>`).join('');
+  $('#layersEditor').innerHTML = `
+    <span class="layer fixed">Входы <b>${state.config.sensors.count + 1}</b></span>${hidden}
+    <span class="arrow" aria-hidden="true">→</span><span class="layer fixed">Выходы <b>4</b></span>`;
+  $('#addLayer').disabled = state.config.hidden.length >= LIMITS.hiddenLayersMax;
+
+  const variants = live.think.thinkVariants ?? {};
+  if (!variants[state.config.think]) state.config.think = variants.step ? 'step' : Object.keys(variants)[0];
+  $('#thinkSelect').innerHTML = options(Object.entries(variants).map(([id, v]) => ({ id, title: v.title || id })));
+  $('#thinkSelect').value = state.config.think;
+  $('#thinkHint').textContent = variants[state.config.think]?.hint ?? '';
+}
+
+delegate('#layersEditor', 'click', 'button', (button) => {
+  const i = +button.dataset.i;
+  const hidden = [...state.config.hidden];
+  if (button.dataset.act === 'plus') hidden[i] = Math.min(LIMITS.neuronsMax, hidden[i] + 1);
+  if (button.dataset.act === 'minus') hidden[i] = Math.max(LIMITS.neuronsMin, hidden[i] - 1);
+  if (button.dataset.act === 'del') hidden.splice(i, 1);
+  changeShape({ ...state.config, hidden });
+});
+$('#addLayer').addEventListener('click', () => changeShape({ ...state.config, hidden: [...state.config.hidden, 6] }));
+
+$('#thinkSelect').addEventListener('change', (e) => {
+  state.config.think = e.target.value;
   persist();
-  setChampion(cloneBrain(student), { by: 'teach', generation: 0 });
-  showBanner('Ученик стал твоим мозгом: проверь его на «Экзамене» или доучи на «Треке»', 3000);
+  renderShape();
+  renderFrom();
+  if (mode === 'brain') resetCar();
 });
 
-export const redrawLoss = () => drawSeries($('#lossChart'), losses, { label: 'Здесь появится график ошибки' });
+// ── реакция на перемены ──
+
+on('config', () => {
+  editor.reset();
+  if (state.tab !== 'teach') return;
+  renderShape();
+  renderFrom();
+  renderRuns();
+  resetCar();
+  editor.render();
+});
+on('champion', ({ by }) => {
+  if (state.tab !== 'teach') return;
+  renderFrom();
+  if (by === 'editor') return;
+  if (mode === 'brain') resetCar();
+  editor.render();
+});
+on('reset', () => {
+  editor.reset();
+  if (mode === 'brain') setMode('me');
+});
+on('code', (file) => {
+  if (file === 'think' && state.tab === 'teach') renderShape();
+});
+
+export const renderNetwork = () => editor.render();
+
+// на телефоне «микроскоп» свёрнут: панель и так длинная
+if (matchMedia('(max-width: 700px)').matches) $('#netCanvas').closest('details').open = false;
