@@ -1,0 +1,63 @@
+<title>Табло мозга</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400..800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+  /* Прототип всегда тёмный: табло мозга — тёмный экранчик игрушки в обеих темах сайта */
+  :root {
+    color-scheme: dark;
+    --bg: #0c0c0d; --surface: #171718; --surface-2: #201f21; --line: #2f2e31; --ink: #f4f4f2; --muted: #9d9c98;
+    --you: #ffc814; --action: #d11f28;
+    --board: #141415; --road: #3c3d41; --road-edge: #2d2e31; --seam: rgb(0 0 0 / 0.45); --slot: #16181b; --rail: #c98a4b;
+    --kerb: #d11f28; --kerb-2: #f4f4f0; --check-light: #f4f4f0; --check-dark: #111111;
+    --ray: rgb(255 200 20 / 0.85); --ray-hit: rgb(255 255 255 / 0.6);
+    --traffic: #9aa2ae; --traffic-oncoming: #f4f4f0; --traffic-edge: #2b2e33; --crashed: #8a9095;
+  }
+  body { background: var(--bg); color: var(--ink); font: 15px/1.5 Rubik, system-ui, sans-serif; padding-inline: 16px; padding-block: 20px 96px; }
+  .wrap { max-width: 980px; margin-inline: auto; display: flex; flex-direction: column; gap: 14px; }
+  h1 { font: 700 22px/1.2 Rubik, system-ui, sans-serif; margin: 0; text-wrap: balance; }
+  .lead { color: var(--muted); margin: 0; max-width: 70ch; }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .row label { color: var(--muted); font-size: 13px; }
+  select, button { font: 500 14px Rubik, system-ui, sans-serif; color: var(--ink); background: var(--surface); border: 1px solid #4a494d; border-radius: 10px; padding: 7px 12px; min-height: 36px; cursor: pointer; }
+  button:focus-visible, select:focus-visible { outline: 2px solid #7aa5ff; outline-offset: 2px; }
+  #mini { width: 100%; height: 150px; display: block; border-radius: 16px; border: 1px solid var(--line); }
+  .board { position: relative; background: #101012; border: 1px solid var(--line); border-radius: 16px; padding: 8px; }
+  #net { width: 100%; height: 460px; display: block; cursor: crosshair; }
+  .formula {
+    position: absolute; z-index: 2; width: 250px; display: flex; flex-direction: column; gap: 4px; pointer-events: none;
+    background: #1d1d20; border: 1px solid #4a494d; border-radius: 10px; padding: 10px 12px; box-shadow: 0 6px 18px rgb(0 0 0 / 0.5);
+    font: 13px/1.45 "JetBrains Mono", monospace; color: #d2d1ce; overflow-wrap: anywhere;
+  }
+  .formula[hidden] { display: none; }
+  .formula b:first-child { font: 600 14px Rubik, sans-serif; color: var(--ink); }
+  .formula span b { color: #ffd23f; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--muted); }
+  .legend i { display: inline-block; width: 16px; height: 4px; border-radius: 2px; vertical-align: middle; margin-inline-end: 6px; }
+  .switcher {
+    position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 5;
+    display: flex; align-items: center; gap: 6px; padding: 6px; border-radius: 999px; background: #f4f4f2; color: #111; box-shadow: 0 6px 20px rgb(0 0 0 / 0.5);
+  }
+  .switcher button { background: #fff; color: #111; border-color: #ccc; border-radius: 999px; min-width: 40px; }
+  .switcher span { font: 600 14px Rubik, sans-serif; padding-inline: 8px; white-space: nowrap; }
+  @media (max-width: 600px) { #net { height: 520px; } .switcher span { font-size: 13px; } }
+</style>
+<div class="wrap">
+  <h1>Табло мозга: три варианта</h1>
+  <p class="lead">Прототип для AI Race. Настоящий мозг бота едет по «Разминке» и думает прямо сейчас. Наведи на нейрон — появится его формула с настоящими числами. Переключай варианты внизу или стрелками ← →.</p>
+  <canvas id="mini" aria-label="Машина бота на трассе «Разминка»"></canvas>
+  <div class="row">
+    <label for="bot">Бот</label><select id="bot"></select>
+    <button id="pause" aria-pressed="false">Пауза</button>
+  </div>
+  <div class="board">
+    <canvas id="net" aria-label="Схема нейросети"></canvas>
+    <div class="formula" id="formula" hidden></div>
+  </div>
+  <p class="legend"><span><i style="background:#ff5a60"></i>вес «+» — толкает</span><span><i style="background:#5b8cff"></i>вес «−» — мешает</span><span><i style="background:#ffd23f;height:10px;width:10px;border-radius:50%"></i>нейрон горит</span><span>засечка сверху на нейроне — порог</span></p>
+</div>
+<nav class="switcher" aria-label="Варианты">
+  <button id="vPrev" aria-label="Предыдущий вариант">←</button><span id="vLabel">A</span><button id="vNext" aria-label="Следующий вариант">→</button>
+</nav>
+<script>
+__BUNDLE__
+</script>
