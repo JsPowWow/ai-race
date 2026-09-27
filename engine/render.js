@@ -33,10 +33,13 @@ export class Camera {
       this.scale = s; this.x = (b.minX + b.maxX) / 2; this.y = (b.minY + b.maxY) / 2; this.ready = true;
     } else {
       const s = dpr * (canvas.clientWidth < 520 ? 0.75 : 1.05);
-      if (!this.ready || Math.abs(this.scale - s) > 0.5) { this.x = target.x; this.y = target.y; }
+      // Смотрим вперёд по ходу: водителю важна дорога впереди, а не позади
+      const lead = (0.25 * Math.min(W, H)) / s;
+      const aim = { x: target.x + Math.cos(target.angle ?? 0) * lead, y: target.y + Math.sin(target.angle ?? 0) * lead };
+      if (!this.ready || Math.abs(this.scale - s) > 0.5) { this.x = aim.x; this.y = aim.y; }
       this.scale = s;
-      this.x += (target.x - this.x) * 0.15;
-      this.y += (target.y - this.y) * 0.15;
+      this.x += (aim.x - this.x) * 0.15;
+      this.y += (aim.y - this.y) * 0.15;
       this.ready = true;
     }
   }

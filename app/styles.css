@@ -441,8 +441,8 @@ body:not([data-tab="teach"]) .pad { display: none; }
   .pad { opacity: 0.85; }
   .pad { bottom: 18px; right: 18px; left: 18px; }
   .pad button { width: 56px; height: 56px; }
-  .pad .gas { width: 64px; height: 64px; }
-  .pad .brake { font-size: 8.5px; letter-spacing: 0; }
+  .pad .gas, .pad .brake { width: 64px; height: 64px; }
+  .pad .brake { font-size: 9px; letter-spacing: 0; }
 }
 
 /* ── правая панель ── */
