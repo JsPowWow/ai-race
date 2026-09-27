@@ -61,7 +61,7 @@ delegate('#lesson', 'click', '[data-toggle]', (button) => {
 });
 
 delegate('#lesson', 'change', '[data-task]', () => {
-  done[currentTab] = [...document.querySelectorAll('#lesson [data-task]:checked')].map((box) => +box.dataset.task);
+  done[currentTab] = [...document.querySelectorAll('#lesson [data-task]:checked')].map((box) => Number(box.getAttribute('data-task')));
   save('lessonDone', done);
   $('.lesson-progress').textContent = `${done[currentTab].length}/${LESSONS[currentTab].tasks.length}`;
 });

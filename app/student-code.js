@@ -33,7 +33,11 @@ export const FILES = [
 ];
 
 const defaults = { controls, think, mutate, fitness, crossover };
-/** Текущие рабочие модули (исходные или скомпилированные из правок) */
+/**
+ * Текущие рабочие модули (исходные или скомпилированные из правок).
+ * Студент может переписать файл как угодно, поэтому форма модулей заранее не известна — отсюда any.
+ * @type {Record<keyof typeof defaults, any>}
+ */
 export const live = { ...defaults };
 
 let evalOk = null;

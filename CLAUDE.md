@@ -15,9 +15,9 @@
 - `tools/` — сборка, боты, скрипты для кураторов. `app/generated/*` (данные, бандл `app.js`/`app.css`, `chunks/`), `index.html`, `dist/` — **генерируются** `npm run build`, руками не править. Шрифты — `app/fonts/` (свои файлы, не Google Fonts).
 
 ## Команды
-- `npm start` — статический сервер; `npm run build` — пересобрать (сайт грузит бандл, поэтому после любой правки `app/`, `engine/`, `student/`, `course-key.json`, `tools/bots.json`); `npm run dev` — пересобирать при сохранении; `npm run lint`.
+- `npm start` — статический сервер; `npm run build` — пересобрать (сайт грузит бандл, поэтому после любой правки `app/`, `engine/`, `student/`, `course-key.json`, `tools/bots.json`); `npm run dev` — пересобирать при сохранении; `npm run lint` — ESLint и проверка типов (JSDoc + `tsc --checkJs`, `tsconfig.json`); `npm test` — тесты (`test/engine/*` — движок в Node, `test/site.test.mjs` — сайт в Chromium через Playwright, нужен собранный сайт).
 - Финал (`app/tabs/final.js` и всё, что он тянет) грузится лениво — не импортировать его из других модулей статически.
-- Перед коммитом: `npm run build && npm run lint`. Сгенерированные файлы коммитятся (Pages раздаёт репозиторий как есть).
+- Перед коммитом: `npm run build && npm run lint && npm test`. Сгенерированные файлы коммитятся (Pages раздаёт репозиторий как есть).
 - В `.github/workflows` пушить нельзя (у токена нет scope `workflow`) — деплой просто push в `main`.
 
 ## Правила, которые нельзя ломать
@@ -28,8 +28,9 @@
 - `localStorage` маленький (~5 МБ на весь `jspowwow.github.io`): всё через `app/storage.js`, объёмы держать компактными.
 
 ## Проверка
-- Логику `engine/` — скриптами в Node (см. `tools/sim.mjs`).
-- Интерфейс — Playwright (`npm i --no-save playwright`), десктоп 1440 и телефон 390: без горизонтальной прокрутки, без ошибок в консоли.
+- `npm test`: движок — `node:test` в `test/engine/` (детерминизм, правила финала, файл машины, печать, обучение на примерах); сайт — `test/site.test.mjs` (все вкладки на 1440 и 390: без ошибок в консоли и горизонтальной прокрутки). Новое поведение `engine/` — с тестом.
+- Playwright закреплён на версии под Chromium облачного контейнера (`/opt/pw-browsers`); локально один раз `npx playwright install chromium`. Облачная сессия ставит зависимости сама (`.claude/hooks/session-start.sh`).
+- Типы — JSDoc; `student/` намеренно без аннотаций (это код студентов).
 
 ## Agent skills
 

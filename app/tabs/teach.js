@@ -100,10 +100,12 @@ $('#dMe').addEventListener('click', () => setMode('me'));
 $('#dBrain').addEventListener('click', () => setMode('brain'));
 $('#dRestart').addEventListener('click', resetCar);
 
-for (const [select, key, items] of [
+/** @type {[selector: string, key: string, items: { id: string, title: string }[]][]} */
+const DRIVE_SELECTS = [
   ['#dTrack', 'trackId', TRAINING_TRACKS.map(({ id, name }) => ({ id, title: name }))],
   ['#dTraffic', 'traffic', TRAFFIC_LEVELS],
-]) {
+];
+for (const [select, key, items] of DRIVE_SELECTS) {
   $(select).innerHTML = options(items);
   $(select).value = state.drive[key];
   $(select).addEventListener('change', (e) => {
@@ -241,6 +243,7 @@ export const redrawLoss = () => drawSeries($('#lossChart'), losses, { label: 'З
 
 // ── глаза: лучи ──
 
+/** @type {[selector: string, key: 'count' | 'spread' | 'length', format: (v: number) => string][]} */
 const SENSOR_SLIDERS = [
   ['#sCount', 'count', (v) => `${v}`],
   ['#sSpread', 'spread', (v) => `${v}°`],

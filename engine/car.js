@@ -21,8 +21,9 @@ const safe = (v) => (Number.isFinite(v) ? clamp(v, 0, 1) : 0);
 
 export class Car {
   /**
-   * @param track трасса
-   * @param opts  { brain, think, sensors } — без brain машиной управляют руками (controls)
+   * @param {object} track трасса
+   * @param {{ brain?: object | null, think?: Function | null, sensors?: typeof DEFAULT_SENSORS }} [opts]
+   *   без brain машиной управляют руками (controls)
    */
   constructor(track, { brain = null, think = null, sensors = DEFAULT_SENSORS } = {}) {
     const start = pointAt(track, track.startS);

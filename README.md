@@ -137,8 +137,9 @@ tools/       сборка и эксперименты в Node
 ## Для преподавателя
 
 ```
-npm run build      # собрать dist/ai-race.html — всё в одном файле
-npm run lint       # проверить код
+npm run build      # собрать сайт и dist/ai-race.html — всё в одном файле
+npm run lint       # проверить код и типы
+npm test           # тесты: движок и сайт в браузере (один раз: npx playwright install chromium)
 npm run bots       # заново обучить ботов-соперников (несколько минут)
 npm run compare    # эксперимент: помогает ли кроссовер (1 родитель против 2)
 npm run demo       # папка demo-entries с выдуманными запечатанными работами для репетиции финала

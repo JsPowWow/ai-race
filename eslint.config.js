@@ -18,7 +18,7 @@ export default [
     },
   },
   {
-    files: ['tools/**/*.mjs'],
+    files: ['tools/**/*.mjs', 'test/**/*.mjs'],
     languageOptions: { globals: { ...globals.node } },
   },
 ];

@@ -81,6 +81,11 @@ const NOTES = {
   hall: (gen) => `рекорд роя, поколение ${gen}`,
 };
 
+/**
+ * Поставить новый лучший мозг той же формы.
+ * @param {object} brain
+ * @param {{ by: string, generation?: number, handEdited?: boolean, note?: string }} how кто и как его получил
+ */
 export function setChampion(brain, { by, generation = state.generation, handEdited = false, note }) {
   state.champion = brain;
   state.generation = generation;

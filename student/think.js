@@ -32,9 +32,11 @@ export function feedForward(inputs, brain, activate) {
     values = next;
     trace.push(values);
   });
-  feedForward.lastTrace = trace; // для подсветки нейронов в «Гараже»
+  feedForward.lastTrace = trace;
   return values;
 }
+// Последний проход по всем слоям — по нему «Я учу» подсвечивает нейроны на схеме
+feedForward.lastTrace = null;
 
 export const thinkVariants = {
   noBias: {

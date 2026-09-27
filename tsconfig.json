@@ -1,0 +1,17 @@
+{
+  // Проверка типов без TypeScript: код остаётся на JS, типы — в JSDoc-комментариях.
+  // npm run typecheck (входит в npm run lint)
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "target": "es2022",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "lib": ["es2023", "dom", "dom.iterable", "webworker.importscripts"],
+    "strict": false,
+    "skipLibCheck": true
+  },
+  "include": ["engine/**/*.js", "app/**/*.js", "app/globals.d.ts"],
+  "exclude": ["app/generated"]
+}

@@ -38,8 +38,12 @@ export function remember() {
   emit('library');
 }
 
-/** Поставить новый текущий мозг (с его формой). Нынешний — сначала в историю. */
-export function setBrain(brain, { config = state.config, by, generation = 0, handEdited = false, note } = {}) {
+/**
+ * Поставить новый текущий мозг (с его формой). Нынешний — сначала в историю.
+ * @param {object} brain
+ * @param {{ by: string, config?: object, generation?: number, handEdited?: boolean, note?: string }} how
+ */
+export function setBrain(brain, { config = state.config, by, generation = 0, handEdited = false, note }) {
   remember();
   const next = structuredClone(config);
   if (!sameSizes(next, state.config)) resetProgress();

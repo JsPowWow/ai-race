@@ -3,13 +3,40 @@ import { Car, carReport, maxTicksFor } from './car.js';
 import { createBrain, cloneBrain, checkBrain } from './brain.js';
 import { trafficAt } from './traffic.js';
 
+/**
+ * Настройки роя. think/mutate/fitness/crossover — функции студента: их можно подменять между поколениями.
+ * @typedef {object} EvolutionOptions
+ * @property {number[]} sizes размеры слоёв сети
+ * @property {{ count: number, spread: number, length: number }} sensors лучи
+ * @property {Function} think как сеть превращает входы в нажатия
+ * @property {(brain: object, rate: number) => void} mutate встряхнуть веса
+ * @property {(report: object) => number} fitness оценка заезда
+ * @property {Function} [crossover] ребёнок от двух родителей
+ * @property {1 | 2} [parents] сколько родителей
+ * @property {number} population машин в поколении
+ * @property {number} rate сила мутации
+ * @property {object} [parent] лучший мозг прошлого поколения
+ * @property {object} [parent2] второй родитель
+ */
+
 export class Evolution {
-  /**
-   * opts: { sizes, sensors, think, mutate, fitness, crossover?, parents (1|2), population, rate, parent?, parent2? }
-   * think/mutate/fitness/crossover — функции студента (можно подменять между поколениями)
-   */
-  constructor(opts) {
-    Object.assign(this, opts);
+  /** @param {EvolutionOptions} opts */
+  constructor({ sizes, sensors, think, mutate, fitness, crossover = null, parents = 1, population, rate, parent = null, parent2 = null }) {
+    // форма сети и «глаза»
+    this.sizes = sizes;
+    this.sensors = sensors;
+    // функции студента
+    this.think = think;
+    this.mutate = mutate;
+    this.fitness = fitness;
+    this.crossover = crossover;
+    // настройки поколения
+    this.parents = parents;
+    this.population = population;
+    this.rate = rate;
+    // с кого начинаем
+    this.parent = parent;
+    this.parent2 = parent2;
     this.generation = 0;
     this.history = [];
     this.cars = [];

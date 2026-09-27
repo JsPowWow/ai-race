@@ -109,7 +109,7 @@ function checkered(ctx, pt, width) {
   ctx.restore();
 }
 
-export function drawCar(ctx, car, { color = '#ffd60a', alpha = 1, sensors = false, label = null, highlight = false, glow = false, cam } = {}) {
+export function drawCar(ctx, car, { color = '#ffd60a', alpha = 1, sensors = false, label = null, highlight = false, glow = false, cam = null } = {}) {
   const p = getPalette();
   if (sensors && !car.done) drawSensors(ctx, car);
   ctx.save();

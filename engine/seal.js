@@ -40,6 +40,7 @@ async function keyId(publicJwk) {
   return [...new Uint8Array(hash).slice(0, 6)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
+/** Оставить в ключе только нужные поля. @param {JsonWebKey} jwk */
 const clean = ({ kty, crv, x, y, d }) => (d ? { kty, crv, x, y, d } : { kty, crv, x, y });
 
 /** Новая пара ключей курса: { publicFile, privateFile } — готовые к сохранению объекты */

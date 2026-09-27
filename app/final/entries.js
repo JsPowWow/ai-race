@@ -112,7 +112,7 @@ export function buildEntries(files) {
   const entries = [];
   for (const [author, cars] of [...byAuthor].sort(([a], [b]) => a.localeCompare(b))) {
     // запечатанный файл важнее открытого, car.json — важнее других имён
-    cars.sort((a, b) => !!b.claimed - !!a.claimed || (b.file === 'car.json') - (a.file === 'car.json') || a.path.localeCompare(b.path));
+    cars.sort((a, b) => Number(!!b.claimed) - Number(!!a.claimed) || Number(b.file === 'car.json') - Number(a.file === 'car.json') || a.path.localeCompare(b.path));
     const [car] = cars;
     if (cars.length > 1) problems.push({ path: car.path, message: `у ${author} несколько файлов машин — взят ${car.path}` });
     entries.push({
