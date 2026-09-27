@@ -166,7 +166,7 @@ function renderRuns() {
   $('#teachGo').disabled = samples.length < MIN_SAMPLES || !!training;
   $('#teachGo').textContent = training ? `Учится… ${training.epoch}/${training.total}` : 'Учить на заездах';
   $('#teachStatus').textContent = training ? ''
-    : samples.length < MIN_SAMPLES ? `Нужно хотя бы ${MIN_SAMPLES} примеров в отмеченных заездах (сейчас ${samples.length}) — это пара кругов по «Разминке».`
+    : samples.length < MIN_SAMPLES ? `Нужно хотя бы ${MIN_SAMPLES} примеров в отмеченных заездах (сейчас ${samples.length}) — это пара заездов по «Разминке».`
     : `${used.length} ${used.length === 1 ? 'заезд' : 'заездов'}, ${samples.length} примеров. ${state.champion ? 'Мозг продолжит учиться с того, что уже умеет.' : 'Мозга ещё нет — начнём с нуля.'}`;
   $('#exMemory').textContent = memoryNote(saveRuns());
 }

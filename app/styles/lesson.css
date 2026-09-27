@@ -32,9 +32,9 @@
 .step-detail { display: block; margin-block-start: 2px; font-size: 14px; color: var(--muted); }
 .lesson-step.is-done .step-num { background: var(--surface-2); color: var(--good); }
 .lesson-step.is-done .step-action { color: var(--muted); }
-/* «Готово» — тёмная литая деталь: весомее обычной кнопки, но не спорит с красным «Газом» */
-.step-done { background: var(--ink); border-color: var(--ink); color: var(--surface); font-weight: 600; box-shadow: inset 0 -2px 0 rgb(0 0 0 / 0.25), var(--shadow-part); }
-.step-done:hover { background: var(--ink-2); border-color: var(--ink-2); }
+/* «Готово» — контурная деталь: заметнее обычной кнопки, но сплошная заливка остаётся только у «Газа» */
+.step-done { border: 2px solid var(--ink-2); font-weight: 600; }
+.step-done:hover { border-color: var(--ink); }
 .step-done[aria-pressed="true"] { background: var(--surface); color: var(--good); border-color: color-mix(in srgb, var(--good) 50%, var(--line)); box-shadow: none; }
 
 .lesson-more summary { inline-size: fit-content; font-size: 14px; color: var(--brain-text); }
