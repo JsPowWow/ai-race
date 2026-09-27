@@ -142,6 +142,22 @@ export function drawCar(ctx, car, { color = '#ffd60a', alpha = 1, sensors = fals
   }
 }
 
+/** Много машин сразу, попроще (для финала на сотни участников): [{ x, y, angle, color, alpha }] */
+export function drawPack(ctx, cars) {
+  const L = CAR.length, W = CAR.width;
+  const m = ctx.getTransform(); // камера: масштаб k и сдвиг, без поворота
+  const k = m.a;
+  for (const c of cars) {
+    const cos = Math.cos(c.angle) * k, sin = Math.sin(c.angle) * k;
+    ctx.globalAlpha = c.alpha ?? 1;
+    ctx.fillStyle = c.color;
+    ctx.setTransform(cos, sin, -sin, cos, k * c.x + m.e, k * c.y + m.f);
+    ctx.fillRect(-L / 2, -W / 2, L, W);
+  }
+  ctx.globalAlpha = 1;
+  ctx.setTransform(m);
+}
+
 export function drawSensors(ctx, car, sensors = car.sensors) {
   const p = getPalette();
   const { count, spread, length } = sensors;

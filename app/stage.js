@@ -1,5 +1,5 @@
 // Холст с трассой: камера, отрисовка сцены, подсказки поверх (HUD, баннер).
-import { Camera, fitCanvas, clear, drawTrack, drawTraffic, drawCar, drawSensors } from '../engine/render.js';
+import { Camera, fitCanvas, clear, drawTrack, drawTraffic, drawCar, drawSensors, drawPack } from '../engine/render.js';
 import { trafficAt } from '../engine/traffic.js';
 import { $ } from './ui.js';
 
@@ -27,6 +27,18 @@ export function drawScene(track, { camera = 'fit', follow = null, traffic = null
 
 export const paintCar = (car, options = {}) => drawCar(ctx, car, { ...options, cam });
 export const paintSensors = (car) => drawSensors(ctx, car);
+export const paintPack = (cars) => drawPack(ctx, cars);
+
+/** Рисовать поверх трассы в пикселях экрана: draw(ctx, ширина, высота, dpr) */
+export function paintScreen(draw) {
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  draw(ctx, canvas.width, canvas.height, dpr);
+  ctx.restore();
+}
+
+/** Точка трассы → пиксели экрана (для подписей поверх) */
+export const toScreen = (x, y) => ({ x: (x - cam.x) * cam.scale + canvas.width / 2, y: (y - cam.y) * cam.scale + canvas.height / 2 });
 
 /** Машина под пальцем или курсором (или null) */
 export function carAt(event, cars, radiusPx = 28) {

@@ -195,6 +195,21 @@
       </div>
       <span class="note">Время считается в тиках: 60 тиков = 1 секунда, от мощности ноутбука не зависит</span>
     </div>
+
+    <div class="toolbar" data-for="final" hidden>
+      <div class="seg" id="fStages" role="group" aria-label="Этап"></div>
+      <button class="btn primary" id="fPlay" disabled>▶ Старт этапа</button>
+      <div class="seg" role="group" aria-label="Скорость показа">
+        <button data-fspeed="1" aria-pressed="true">×1</button>
+        <button data-fspeed="2" aria-pressed="false">×2</button>
+        <button data-fspeed="4" aria-pressed="false">×4</button>
+      </div>
+      <div class="seg" role="group" aria-label="Камера">
+        <button data-fcam="follow" aria-pressed="true">За лидером</button>
+        <button data-fcam="fit" aria-pressed="false">Вся трасса</button>
+      </div>
+      <button class="btn" id="fBroadcast" aria-pressed="false">⛶ Трансляция</button>
+    </div>
   </section>
 
   <aside class="panel">
@@ -363,6 +378,13 @@
         <h2>На гонку</h2>
         <div class="field"><label for="pName">Имя машины</label><input type="text" id="pName" maxlength="24" placeholder="Например, Сквозняк"></div>
         <div class="colors" id="pColors" role="radiogroup" aria-label="Цвет машины"></div>
+        <div class="avatar-row">
+          <img id="pAvatarImg" class="avatar big" alt="Аватар машины" hidden>
+          <label class="btn small file">Аватар .svg<input type="file" id="pAvatarFile" accept=".svg,image/svg+xml"></label>
+          <button class="btn small" id="pAvatarClear" hidden>Убрать</button>
+        </div>
+        <p class="hint">Аватар — необязательная SVG-картинка до 8 КБ: её покажут в таблице гонки и на стриме. Без скриптов и ссылок на другие сайты.</p>
+        <div class="error" id="pAvatarError" hidden></div>
         <div class="row">
           <button class="btn primary" id="pCopy">Скопировать JSON</button>
           <button class="btn" id="pDownload">Скачать .json</button>
@@ -377,6 +399,11 @@
 
     <!-- ГОНКА -->
     <div data-panel="race" hidden>
+      <section class="block final-link">
+        <h2>Финал курса</h2>
+        <p class="hint">Здесь — гонка на несколько машин. Для общего финала на сотни участников (этапы, суперфинал, живая таблица, стрим) есть отдельный режим.</p>
+        <button class="btn small" data-open="final">Открыть финал →</button>
+      </section>
       <section class="block">
         <h2>Секретная трасса</h2>
         <div class="field"><label for="rSeed">Seed</label><input type="text" id="rSeed" maxlength="40"></div>
@@ -414,6 +441,55 @@
         <h2>Таблица</h2>
         <ol class="board" id="rBoard"></ol>
         <div class="awards" id="rAwards"></div>
+      </section>
+    </div>
+    <!-- ФИНАЛ -->
+    <div data-panel="final" hidden>
+      <section class="block setup">
+        <h2>1 · Работы</h2>
+        <div class="row">
+          <label class="btn small file">Открыть папку<input type="file" id="fFolder" webkitdirectory multiple></label>
+          <label class="btn small file">Файлы .json<input type="file" id="fFiles" accept=".json,application/json" multiple></label>
+        </div>
+        <p class="hint">Папка с работами: после <code>tools/collect-entries.mjs</code> или <code>gh classroom clone</code> — «ник/car.json». Можно перетащить её прямо на трассу.</p>
+        <dl class="stats">
+          <div><dt>Участников</dt><dd id="fCount">0</dd></div>
+          <div><dt>Свой код</dt><dd id="fCode">0</dd></div>
+          <div><dt>Одинаковых</dt><dd id="fTwins">0</dd></div>
+        </dl>
+        <div id="fNotes"></div>
+        <label class="check"><input type="checkbox" id="fAvatars" checked> Показывать аватары</label>
+        <details id="fGalleryBox" hidden>
+          <summary>Аватары — проверить перед стримом</summary>
+          <p class="hint">Щёлкни картинку, чтобы скрыть её на трансляции.</p>
+          <div class="gallery" id="fGallery"></div>
+        </details>
+      </section>
+      <section class="block setup">
+        <h2>2 · Секретная фраза</h2>
+        <div class="field wide"><label for="fSecret">Фраза</label><input type="text" id="fSecret" maxlength="60" placeholder="Придумайте и никому не говорите" autocomplete="off"></div>
+        <p class="hint">Из неё получаются трассы трёх этапов и суперфинала. Объявите фразу после гонки — любой сможет перепроверить свой результат.</p>
+        <button class="btn primary" id="fCompute" disabled>Посчитать финал</button>
+        <progress id="fProgress" max="1" value="0" hidden></progress>
+        <p class="note" id="fComputeNote" role="status"></p>
+        <div id="fDq"></div>
+      </section>
+      <section class="block board-block">
+        <h2 id="fBoardTitle">Таблица</h2>
+        <div class="field wide"><label for="fSearch">Найти</label><input type="search" id="fSearch" list="fNames" placeholder="ник или имя машины" autocomplete="off"></div>
+        <datalist id="fNames"></datalist>
+        <p class="note" id="fCounts"></p>
+        <ol class="board fboard" id="fBoard"></ol>
+      </section>
+      <section class="block setup" id="fResults" hidden>
+        <h2>Итоги</h2>
+        <div class="awards" id="fAwards"></div>
+        <div class="row">
+          <button class="btn small" id="fSaveMd">RESULTS.md</button>
+          <button class="btn small" id="fSaveCsv">Таблица .csv</button>
+          <button class="btn small" id="fSaveJson">results.json</button>
+        </div>
+        <p class="note" id="fSaveNote" role="status"></p>
       </section>
     </div>
   </aside>

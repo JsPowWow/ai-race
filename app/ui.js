@@ -1,4 +1,5 @@
 // Мелкие помощники для работы со страницей.
+import { avatarUrl } from '../engine/car-file.js';
 
 export const $ = (selector, root = document) => root.querySelector(selector);
 export const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -34,3 +35,8 @@ export function showError(selector, message) {
 }
 
 export const isTyping = (el) => !!el && (['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName) || el.isContentEditable);
+
+/** Аватар участника (картинка через <img> — скрипты из SVG так не выполняются) или кружок его цвета */
+export const avatarTag = ({ avatar, color }) => (avatar
+  ? `<img class="avatar" src="${esc(avatarUrl(avatar))}" alt="" loading="lazy">`
+  : `<span class="car-dot" style="background:${esc(color)}"></span>`);

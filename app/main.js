@@ -15,8 +15,11 @@ import { examTab } from './tabs/exam.js';
 import { raceTab } from './tabs/race.js';
 import { introTab, redrawIntro } from './tabs/intro.js';
 import { teachTab, redrawLoss } from './tabs/teach.js';
+import { finalTab, leaveFinal } from './tabs/final.js';
 
-const TABS = { intro: introTab, garage: garageTab, teach: teachTab, train: trainTab, code: codeTab, exam: examTab, race: raceTab };
+const TABS = { intro: introTab, garage: garageTab, teach: teachTab, train: trainTab, code: codeTab, exam: examTab, race: raceTab, final: finalTab };
+/** У финала нет своей кнопки в шапке: он живёт внутри «Гонки» */
+const TAB_BUTTON = { final: 'race' };
 
 function openTab(id) {
   state.tab = id;
@@ -25,13 +28,14 @@ function openTab(id) {
   $('#introPage').hidden = !isIntro;
   $('#lesson').hidden = $('.work').hidden = isIntro;
   if (!isIntro) renderLesson(id);
-  for (const b of $$('.tabs button')) b.setAttribute('aria-selected', String(b.dataset.tab === id));
+  for (const b of $$('.tabs button')) b.setAttribute('aria-selected', String(b.dataset.tab === (TAB_BUTTON[id] ?? id)));
   for (const el of $$('[data-panel]')) el.hidden = el.dataset.panel !== id;
   for (const el of $$('.toolbar')) el.hidden = el.dataset.for !== id;
   $('#viewport').hidden = id === 'code';
   $('#editor').hidden = id !== 'code';
   hideBanner();
   steerWith(null); // рулить руками можно только там, где вкладка это разрешит
+  if (id !== 'final') leaveFinal();
   TABS[id].enter();
   try {
     history.replaceState(null, '', `#${id}`);
@@ -44,6 +48,11 @@ $('[data-home]').addEventListener('click', (e) => {
   e.preventDefault();
   openTab('intro');
 });
+window.addEventListener('hashchange', () => {
+  const id = location.hash.slice(1);
+  if (id in TABS && id !== state.tab) openTab(id);
+});
+delegate('.panel', 'click', '[data-open]', (b) => openTab(b.dataset.open));
 delegate('#introPage', 'click', '[data-start], [data-go]', (b) => {
   openTab(b.dataset.go ?? 'garage');
   window.scrollTo(0, 0);

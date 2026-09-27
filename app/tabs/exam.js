@@ -6,10 +6,13 @@ import { state, persist, thinkFn, on, CAR_COLORS } from '../state.js';
 import { seedTrack } from '../tracks.js';
 import { toCarFile } from '../car-file.js';
 import { drawScene, paintCar, trafficOn, setHud, showBanner } from '../stage.js';
-import { $, $$, esc, secs, pct, delegate } from '../ui.js';
+import { $, $$, esc, secs, pct, delegate, showError } from '../ui.js';
+import { canDownload, saveFile } from '../download.js';
+import { checkAvatar, avatarUrl } from '../../engine/car-file.js';
 
 const UNKNOWN_SEEDS = ['экзамен-1', 'экзамен-2', 'экзамен-3'];
 const REPLAY_SPEED = 3;
+const CAR_FILE_NAME = 'car.json';
 
 let results = [];
 let replay = null; // { index, car, pauseUntil }
@@ -98,25 +101,61 @@ delegate('#examTable', 'click', 'tr[data-i]', (row) => playReplay(+row.dataset.i
 
 // ── файл для гонки ──
 
-$('#pColors').innerHTML = CAR_COLORS.map((c) =>
+const swatches = CAR_COLORS.map((c) =>
   `<button role="radio" aria-checked="false" data-color="${c}" style="background:${c}" aria-label="Цвет ${c}"></button>`).join('');
+$('#pColors').innerHTML = `${swatches}<label class="custom-color" title="Свой цвет"><input type="color" id="pColorCustom" aria-label="Свой цвет"></label>`;
 $('#pName').value = state.profile.name;
 
 function renderExport() {
+  const custom = !CAR_COLORS.includes(state.profile.color);
   for (const b of $$('#pColors button')) b.setAttribute('aria-checked', String(b.dataset.color === state.profile.color));
+  $('#pColorCustom').value = state.profile.color;
+  $('#pColorCustom').parentElement.classList.toggle('on', custom);
+  $('#pColorCustom').parentElement.style.background = custom ? state.profile.color : '';
+  renderAvatar();
   const file = toCarFile();
   $('#pJson').value = file ? JSON.stringify(file) : 'Сначала обучи мозг.';
   $('#pCopy').disabled = $('#pDownload').disabled = !file;
   renderResults();
 }
 
-delegate('#pColors', 'click', '[data-color]', (b) => {
-  state.profile.color = b.dataset.color;
+function setColor(color) {
+  state.profile.color = color;
+  persist();
+  renderExport();
+}
+delegate('#pColors', 'click', '[data-color]', (b) => setColor(b.dataset.color));
+$('#pColorCustom').addEventListener('change', (e) => setColor(e.target.value));
+$('#pName').addEventListener('input', (e) => {
+  state.profile.name = e.target.value;
   persist();
   renderExport();
 });
-$('#pName').addEventListener('input', (e) => {
-  state.profile.name = e.target.value;
+
+// ── аватар: маленькая SVG-картинка, её покажут в таблице гонки и на стриме ──
+
+function renderAvatar(error = '') {
+  const url = avatarUrl(state.profile.avatar);
+  $('#pAvatarImg').hidden = !url;
+  if (url) $('#pAvatarImg').src = url;
+  $('#pAvatarClear').hidden = !url;
+  showError('#pAvatarError', error);
+}
+
+$('#pAvatarFile').addEventListener('change', async (e) => {
+  const [file] = e.target.files;
+  e.target.value = '';
+  if (!file) return;
+  try {
+    state.profile.avatar = checkAvatar(await file.text());
+    persist();
+    renderExport();
+  } catch (err) {
+    renderAvatar(`Не подошло: ${err.message}`);
+  }
+});
+$('#pAvatarClear').addEventListener('click', () => {
+  delete state.profile.avatar;
   persist();
   renderExport();
 });
@@ -132,36 +171,17 @@ $('#pCopy').addEventListener('click', async () => {
   }
 });
 
-// Скачивание: внутри Claude — через платформу, на обычном сайте — ссылкой.
-let platformDownloads = null;
-if (typeof window.claude?.use === 'function') {
-  window.claude.use('downloads')
-    .then((d) => { platformDownloads = d; $('#pDownload').hidden = !d; })
-    .catch(() => ($('#pDownload').hidden = true));
-}
-
+canDownload().then((ok) => ($('#pDownload').hidden = !ok));
 $('#pDownload').addEventListener('click', async () => {
   const file = toCarFile();
   if (!file) return;
-  const data = JSON.stringify(file, null, 1);
-  const filename = `${file.name.replace(/[^\p{L}\p{N}_-]+/gu, '_')}.json`;
   try {
-    if (platformDownloads) await platformDownloads.save({ filename, data });
-    else downloadViaLink(filename, data);
-    $('#pMsg').textContent = `Сохранено: ${filename}`;
+    await saveFile(CAR_FILE_NAME, JSON.stringify(file, null, 1));
+    $('#pMsg').textContent = `Сохранено: ${CAR_FILE_NAME}. Его и сдаём (например, пул-реквестом).`;
   } catch (e) {
     $('#pMsg').textContent = e?.code === 'declined' ? 'Скачивание отменено.' : 'Не получилось скачать. Используй «Скопировать JSON».';
   }
 });
-
-function downloadViaLink(filename, data) {
-  const a = Object.assign(document.createElement('a'), {
-    href: URL.createObjectURL(new Blob([data], { type: 'application/json' })),
-    download: filename,
-  });
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-}
 
 on('champion', () => {
   results = [];

@@ -1,10 +1,11 @@
 // Общее состояние приложения, его сохранение и простые события между вкладками.
 import { DEFAULT_SENSORS } from '../engine/car.js';
 import { layerSizes } from '../engine/brain.js';
+import { CAR_COLORS } from '../engine/car-file.js';
 import { load, save } from './storage.js';
 import { live } from './student-code.js';
 
-export const CAR_COLORS = ['#ffd60a', '#ff9f1c', '#ff3b30', '#ff3d7f', '#9b5cff', '#22d3ee', '#3ddc84', '#a3e635'];
+export { CAR_COLORS };
 
 export const state = {
   tab: 'garage',

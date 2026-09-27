@@ -2,3 +2,5 @@ node_modules/
 tools/*.png
 tools/preview.html
 tools/shot*.mjs
+demo-entries/
+entries/

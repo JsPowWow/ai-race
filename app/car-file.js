@@ -1,10 +1,9 @@
-// Файл машины для гонки: только числа — сенсоры, слои, вариант мозга и веса.
-import { layerSizes, checkBrain, LIMITS } from '../engine/brain.js';
+// Файл машины на странице: собрать свой из чемпиона и подготовить чужой к гонке.
+// Сама проверка файла — в engine/car-file.js.
+import { FORMAT, parseCarFile } from '../engine/car-file.js';
+import { compileMineThink } from '../engine/compile.js';
 import { state, sizesOf, CAR_COLORS } from './state.js';
-import { live, getSource, compileModule, evalAvailable } from './student-code.js';
-
-export const FORMAT = 'ai-race/car@1';
-const LEGACY_FORMATS = ['neuro-race/car@1'];
+import { live, getSource, evalAvailable } from './student-code.js';
 
 /** Текущий чемпион в формате файла (или null, если мозга ещё нет) */
 export function toCarFile() {
@@ -19,49 +18,25 @@ export function toCarFile() {
     brain: state.champion,
     trainedGenerations: state.generation,
   };
+  if (state.profile.avatar) file.avatar = state.profile.avatar;
   if (file.think === 'mine') file.thinkSource = getSource('think');
   return file;
 }
 
-/** Проверить файл участника и подготовить его к гонке. Бросает Error с понятным текстом. */
+/** Проверить файл участника и подготовить его к гонке на этой странице. Бросает Error. */
 export function fromCarFile(file, fallbackColor = CAR_COLORS[0]) {
-  if (!file || (file.format !== FORMAT && !LEGACY_FORMATS.includes(file.format))) {
-    throw new Error(`это не файл машины (нет format: "${FORMAT}")`);
-  }
-  const name = String(file.name || 'Без имени').slice(0, 24);
-  const fail = (msg) => { throw new Error(`${name}: ${msg}`); };
-
-  const color = /^#[0-9a-f]{6}$/i.test(file.color) ? file.color : fallbackColor;
-  const s = file.sensors ?? {};
-  const sensors = { count: s.count | 0, spread: +s.spread, length: +s.length };
-  if (sensors.count < LIMITS.sensorsMin || sensors.count > LIMITS.sensorsMax) fail(`лучей должно быть от ${LIMITS.sensorsMin} до ${LIMITS.sensorsMax}`);
-  if (!(sensors.spread >= 30 && sensors.spread <= 180)) fail('угол обзора вне 30–180°');
-  if (!(sensors.length >= 80 && sensors.length <= 260)) fail('дальность вне 80–260 px');
-
-  const hidden = Array.isArray(file.layers) ? file.layers.slice(1, -1) : [];
-  const tooBig = hidden.length > LIMITS.hiddenLayersMax || hidden.some((n) => !(n >= LIMITS.neuronsMin && n <= LIMITS.neuronsMax));
-  if (tooBig) fail('сеть больше разрешённой');
-  const sizes = layerSizes(sensors.count, hidden);
-  const brainError = checkBrain(file.brain, sizes);
-  if (brainError) fail(brainError);
-
-  const entrant = { name, color, sensors, sizes, brain: file.brain, thinkId: file.think, file, think: null, code: null };
-  if (file.think === 'mine') {
-    // Чужой код не запускаем сразу: сначала его читает преподаватель (см. approveCode)
-    if (typeof file.thinkSource !== 'string' || !file.thinkSource.trim()) fail('вариант «Мой», но нет thinkSource');
-    entrant.code = file.thinkSource.slice(0, 20000);
-    return entrant;
-  }
+  const parsed = parseCarFile(file);
+  const entrant = { ...parsed, color: parsed.color ?? fallbackColor, file, think: null };
+  // Чужой код не запускаем сразу: сначала его читает преподаватель (см. approveCode)
+  if (parsed.code) return entrant;
   const variants = live.think.thinkVariants ?? {};
-  if (!Object.hasOwn(variants, file.think)) fail(`неизвестный вариант мозга «${file.think}»`);
-  entrant.think = variants[file.think].think;
+  if (!Object.hasOwn(variants, parsed.thinkId)) throw new Error(`${parsed.name}: неизвестный вариант мозга «${parsed.thinkId}»`);
+  entrant.think = variants[parsed.thinkId].think;
   return entrant;
 }
 
 /** Запустить свой вариант мозга участника — только после того, как человек прочитал код */
 export function approveCode(entrant) {
   if (!evalAvailable()) throw new Error('здесь нельзя запускать свой код');
-  const think = compileModule(entrant.code).thinkVariants?.mine?.think;
-  if (typeof think !== 'function') throw new Error('в коде нет thinkVariants.mine.think');
-  entrant.think = think;
+  entrant.think = compileMineThink(entrant.code);
 }

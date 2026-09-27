@@ -5,7 +5,7 @@ import * as mutate from '../student/mutate.js';
 import * as fitness from '../student/fitness.js';
 import * as crossover from '../student/crossover.js';
 import { SOURCES } from './generated/sources.js';
-import { lerp, randomBetween, sigmoid, clamp } from '../engine/utils.js';
+import { compileSource } from '../engine/compile.js';
 import * as acorn from './vendor/acorn.js';
 import { load, save, remove } from './storage.js';
 
@@ -49,21 +49,8 @@ export const getSource = (id) => load(`code:${id}`, null) ?? originalSource(id);
 export const isEdited = (id) => load(`code:${id}`, null) !== null;
 
 // ── как выполняется код студента ──
-//
-// Текст файла превращается в функцию через new Function и выполняется прямо на странице.
-// Это НЕ песочница: такой код может всё, что может сама страница. Поэтому:
-//  • свой код каждый запускает только у себя в браузере — он никуда не отправляется;
-//  • чужой код (свой вариант мозга в файле для гонки) сначала показывается преподавателю
-//    и запускается только после «Разрешить» — см. вкладку «Гонка»;
-//  • самые опасные глобальные имена ниже подменены на undefined. Это защита от случайностей
-//    и простых шалостей, а не от взлома: обойти её можно.
-
-const BLOCKED = [
-  'window', 'self', 'globalThis', 'document', 'localStorage', 'sessionStorage', 'indexedDB',
-  'fetch', 'XMLHttpRequest', 'WebSocket', 'EventSource', 'navigator', 'location', 'history',
-  'open', 'alert', 'Function', 'Worker', 'importScripts',
-];
-const HELPERS = { lerp, randomBetween, sigmoid, clamp };
+// Сама компиляция и её ограничения описаны в engine/compile.js.
+// Здесь — то, что нужно редактору: синтаксис с номером строки и номер строки у ошибок выполнения.
 
 /** Ошибка в коде студента с номером строки (если его удалось понять) */
 export class CodeError extends Error {
@@ -106,14 +93,8 @@ export function errorLine(error) {
 /** Превратить текст ES-модуля в объект с его экспортами */
 export function compileModule(src) {
   checkSyntax(src);
-  const names = [...src.matchAll(/export\s+(?:async\s+)?(?:function\*?|const|let|var|class)\s+([A-Za-z_$][\w$]*)/g)].map((m) => m[1]);
-  const body = src
-    .replace(/^[ \t]*import\s[^;]*;?/gm, (m) => m.replace(/[^\n]/g, '')) // строки не сдвигаются
-    .replace(/export\s+(?=(?:async\s+)?(?:function|const|let|var|class)\b)/g, '');
-  const params = [...Object.keys(HELPERS), ...BLOCKED];
-  const factory = new Function(...params, `"use strict";\n${body}\nreturn { ${names.join(', ')} };`);
   try {
-    return factory(...Object.values(HELPERS));
+    return compileSource(src);
   } catch (e) {
     throw new CodeError(e.message, { line: errorLine(e) });
   }

@@ -7,7 +7,8 @@
     "build": "node tools/build.mjs",
     "lint": "eslint .",
     "bots": "node tools/train-bots.mjs",
-    "compare": "node tools/compare-parents.mjs"
+    "compare": "node tools/compare-parents.mjs",
+    "demo": "node tools/make-demo-entries.mjs 300 demo-entries"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",

@@ -15,6 +15,10 @@ const acorn = await transform(r('node_modules/acorn/dist/acorn.mjs'), { format: 
 mkdirSync(new URL('../app/vendor', import.meta.url), { recursive: true });
 w('app/vendor/acorn.js', `// acorn ${JSON.parse(r('node_modules/acorn/package.json')).version} (MIT) — https://github.com/acornjs/acorn\n${acorn.code}`);
 
+// Web Worker финала собираем в строку: так он работает и на GitHub Pages, и в однофайловой сборке
+const worker = await build({ entryPoints: ['app/final/worker.js'], bundle: true, format: 'iife', minify: true, write: false, target: 'es2020', legalComments: 'none' });
+w('app/generated/race-worker.js', `// Сгенерировано tools/build.mjs из app/final/worker.js: код Web Worker для расчёта финала.\nexport const WORKER_SOURCE = ${JSON.stringify(worker.outputFiles[0].text)};\n`);
+
 const FONTS = '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;600&family=Unbounded:wght@600;700;800;900&display=swap">';
 const markup = r('app/markup.html');
 const css = r('app/styles.css');

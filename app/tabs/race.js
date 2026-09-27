@@ -7,16 +7,16 @@ import { live } from '../student-code.js';
 import { seedTrack } from '../tracks.js';
 import { toCarFile, fromCarFile, approveCode } from '../car-file.js';
 import { BOTS } from '../generated/bots.js';
+import { startCountdown, stopCountdown, updateCountdown } from '../countdown.js';
 import { drawScene, paintCar, paintSensors, trafficOn, setHud, showBanner } from '../stage.js';
-import { $, esc, secs, pct, options, setPressed, delegate, showError } from '../ui.js';
+import { $, esc, secs, pct, options, setPressed, delegate, showError, avatarTag } from '../ui.js';
 
-const COUNTDOWN_STEP_MS = 700;
 const SOURCE_LABEL = { bot: 'бот', mine: 'мой', file: 'файл', cross: 'гибрид' };
 
 let entrants = BOTS.map((file) => ({ ...fromCarFile(file), source: 'bot' }));
 const crossPick = new Set();
 
-const race = { track: null, cars: [], tick: 0, maxTicks: 0, speed: 1, running: false, finished: false, countdownAt: 0 };
+const race = { track: null, cars: [], tick: 0, maxTicks: 0, speed: 1, running: false, finished: false };
 
 export const raceTab = {
   enter() {
@@ -24,7 +24,7 @@ export const raceTab = {
     if (!race.running && !race.finished) prepare();
   },
   frame(frameNo) {
-    runCountdown();
+    if (updateCountdown() && !race.finished) race.running = true;
     if (race.running) {
       advance();
       if (frameNo % 6 === 0) renderBoard();
@@ -51,8 +51,8 @@ export const raceTab = {
 function prepare() {
   race.track = withTraffic(seedTrack(state.race.seed || 'урок-1'), state.race.traffic);
   race.cars = entrants.filter((e) => e.think).map((entrant) => ({ entrant, car: new Car(race.track, entrant) }));
-  Object.assign(race, { tick: 0, maxTicks: maxTicksFor(race.track), running: false, finished: false, countdownAt: 0 });
-  $('#countdown').hidden = true;
+  Object.assign(race, { tick: 0, maxTicks: maxTicksFor(race.track), running: false, finished: false });
+  stopCountdown();
   $('#rStart').textContent = 'Старт гонки';
   $('#rAwards').innerHTML = '';
   renderBoard();
@@ -72,34 +72,10 @@ function advance() {
   }
 }
 
-/** 3 — 2 — 1 — СТАРТ! */
-function runCountdown() {
-  if (!race.countdownAt) return;
-  const el = $('#countdown');
-  const elapsed = performance.now() - race.countdownAt;
-  const step = Math.floor(elapsed / COUNTDOWN_STEP_MS);
-  if (step >= 4) {
-    el.hidden = true;
-    race.countdownAt = 0;
-    return;
-  }
-  const text = step < 3 ? String(3 - step) : 'СТАРТ!';
-  race.running ||= step >= 3;
-  el.hidden = false;
-  el.classList.toggle('go', step >= 3);
-  const span = el.firstElementChild;
-  if (span.textContent !== text) {
-    span.textContent = text;
-    span.style.animation = 'none';
-    void span.offsetWidth; // перезапуск анимации
-    span.style.animation = '';
-  }
-}
-
 $('#rStart').addEventListener('click', () => {
   prepare();
   if (!race.cars.length) return showBanner('Добавь участников');
-  race.countdownAt = performance.now();
+  startCountdown();
   $('#rStart').textContent = 'Заново';
 });
 delegate('.toolbar[data-for="race"]', 'click', '[data-rspeed]', (b) => {
@@ -129,7 +105,7 @@ function renderBoard() {
   $('#rBoard').innerHTML = rows.length
     ? rows.map(({ entrant, car }, i) => `
         <li${car.status === 'finished' && i < 3 ? ` class="p${i + 1}"` : ''}>
-          <span class="car-dot" style="background:${entrant.color}"></span>
+          ${avatarTag(entrant)}
           <span>${esc(entrant.name)}</span><span class="res">${resultText(car)}</span>
         </li>`).join('')
     : '<li class="empty">Добавь участников</li>';
@@ -237,7 +213,7 @@ function renderEntrants() {
   for (const e of crossPick) if (!entrants.includes(e)) crossPick.delete(e);
   $('#rList').innerHTML = entrants.map((e, i) => `
     <li>
-      <span class="car-dot" style="background:${e.color}"></span>
+      ${avatarTag(e)}
       <span>${esc(e.name)} <span class="kind">${SOURCE_LABEL[e.source]} · ${esc(thinkVariant(e.thinkId)?.title ?? e.thinkId)} · ${e.sizes.join('-')}</span>
         ${e.think ? '' : `<button class="btn small review-btn" data-review="${i}">Свой код — проверить</button>`}</span>
       <input type="checkbox" data-pick="${i}" ${crossPick.has(e) ? 'checked' : ''} aria-label="Выбрать ${esc(e.name)} для скрещивания">
