@@ -8,7 +8,7 @@
 .lesson-head { display: flex; align-items: center; gap: 12px 20px; flex-wrap: wrap; }
 .lesson-head h1 { font: 700 20px/1.2 var(--font); letter-spacing: -0.01em; }
 
-.lesson-dots { display: flex; gap: 6px; margin: 0; margin-inline-start: auto; padding: 0; list-style: none; }
+.lesson-dots { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; margin-inline-start: auto; padding: 0; list-style: none; }
 .lesson-dots button {
   inline-size: 26px; block-size: 26px; border-radius: 50%; cursor: pointer;
   display: grid; place-items: center;
