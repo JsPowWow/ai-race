@@ -64,7 +64,7 @@ export const teachTab = {
     drawScene(track, { camera: 'follow', follow: car, traffic });
     paintCar(car, { color: mode === 'me' ? state.profile.color : cssColor('--brain'), sensors: true, number: 1 }); // едет мозг — машина синяя, цвета мозга
     setHud([
-      mode === 'me' ? (recording ? `<b class="rec">запись</b> ${recording.length}` : 'рулишь <b>ты</b>') : 'рулит <b>мозг</b>',
+      mode === 'me' ? (recording ? `<b class="rec">запись</b> ${recording.length}` : 'рулишь <b class="word">ты</b>') : 'рулит <b class="word">мозг</b>',
       `скорость <b>${car.speed.toFixed(1)}</b>`,
       `пройдено <b>${pct(carReport(car, track).progressPct)}</b>`,
       `время <b>${secs(car.ticks)}</b>`,
