@@ -2,10 +2,11 @@
   <a class="brand" href="#intro" data-home aria-label="AI Race — на главную"><span class="ai"><span>AI</span></span><span class="race"><span>Race</span></span><span class="lines" aria-hidden="true"></span></a>
   <nav class="tabs" role="tablist" aria-label="Разделы">
     <button role="tab" id="tab-garage" data-tab="garage" aria-selected="true"><span class="t"><span class="n">01</span>Гараж</span></button>
-    <button role="tab" id="tab-train" data-tab="train" aria-selected="false"><span class="t"><span class="n">02</span>Трек</span></button>
+    <button role="tab" id="tab-teach" data-tab="teach" aria-selected="false"><span class="t"><span class="n">02</span>Учитель</span></button>
+    <button role="tab" id="tab-train" data-tab="train" aria-selected="false"><span class="t"><span class="n">03</span>Трек</span></button>
     <button role="tab" id="tab-code" data-tab="code" aria-selected="false"><span class="t"><span class="n">{ }</span>Код</span></button>
-    <button role="tab" id="tab-exam" data-tab="exam" aria-selected="false"><span class="t"><span class="n">03</span>Экзамен</span></button>
-    <button role="tab" id="tab-race" data-tab="race" aria-selected="false"><span class="t"><span class="n">04</span>Гонка</span></button>
+    <button role="tab" id="tab-exam" data-tab="exam" aria-selected="false"><span class="t"><span class="n">04</span>Экзамен</span></button>
+    <button role="tab" id="tab-race" data-tab="race" aria-selected="false"><span class="t"><span class="n">05</span>Гонка</span></button>
   </nav>
   <div class="champ" id="champChip">Мозг не обучен</div>
 </header>
@@ -14,7 +15,7 @@
 <section class="intro" id="introPage" hidden>
   <div class="intro-hero">
     <div class="intro-copy">
-      <p class="intro-kicker">Курс JavaScript · 4 урока и гонка</p>
+      <p class="intro-kicker">Курс JavaScript · 5 уроков и гонка</p>
       <h1 class="intro-title">Научи машину <span>ездить сама</span></h1>
       <p class="intro-lead">Маленькая нейросеть смотрит на дорогу лучами-сенсорами и каждую долю секунды решает: газ, тормоз, влево или вправо. Ты пишешь код на JavaScript, эволюция подбирает машине «мозг», а в конце — гонка на трассе, которую никто не видел.</p>
       <div class="intro-actions">
@@ -33,7 +34,7 @@
       <h2>Что делаем</h2>
       <ol class="intro-steps">
         <li><b>Даём машине «глаза» и «мозг».</b> Лучи меряют расстояние до бордюров и машин, нейросеть превращает эти числа в руль и педали.</li>
-        <li><b>Учим её ездить.</b> Не объясняем как — сто машин пробуют, лучшие становятся родителями следующего поколения.</li>
+        <li><b>Учим её ездить.</b> Сначала на твоих примерах — «повторяй за мной». Потом без подсказок: сто машин пробуют, лучшие становятся родителями следующего поколения.</li>
         <li><b>Проверяем и соревнуемся.</b> Экзамен на незнакомых трассах, потом общая гонка по секретному seed.</li>
       </ol>
     </section>
@@ -53,7 +54,8 @@
           <span class="tag ai">ИИ</span>
           <ul>
             <li>что такое нейрон, вес и порог</li>
-            <li>как модель учится: фитнес, отбор, мутация, кроссовер</li>
+            <li>обучение на примерах: ошибка, шаг обучения</li>
+            <li>эволюция: фитнес, отбор, мутация, кроссовер</li>
             <li>переобучение: «выучил» или «понял»</li>
             <li>почему модель — это просто числа</li>
           </ul>
@@ -81,10 +83,11 @@
     <h2>Как проходят уроки</h2>
     <ol class="intro-path">
       <li><button data-go="garage"><span class="n">01</span><b>Гараж</b><span>Катаемся сами, даём машине глаза и настраиваем нейрон руками.</span></button></li>
-      <li><button data-go="train"><span class="n">02</span><b>Трек</b><span>Запускаем эволюцию: сто машин, отбор лучших, мутации.</span></button></li>
+      <li><button data-go="teach"><span class="n">02</span><b>Учитель</b><span>Записываем свои заезды и учим сеть повторять за нами.</span></button></li>
+      <li><button data-go="train"><span class="n">03</span><b>Трек</b><span>Запускаем эволюцию: сто машин, отбор лучших, мутации.</span></button></li>
       <li><button data-go="code"><span class="n">{ }</span><b>Код</b><span>Пишем пять функций, которые решают, как машина учится.</span></button></li>
-      <li><button data-go="exam"><span class="n">03</span><b>Экзамен</b><span>Проверяем на незнакомых трассах: выучил или понял?</span></button></li>
-      <li><button data-go="race"><span class="n">04</span><b>Гонка</b><span>Финал на секретной трассе со встречными машинами.</span></button></li>
+      <li><button data-go="exam"><span class="n">04</span><b>Экзамен</b><span>Проверяем на незнакомых трассах: выучил или понял?</span></button></li>
+      <li><button data-go="race"><span class="n">05</span><b>Гонка</b><span>Финал на секретной трассе со встречными машинами.</span></button></li>
     </ol>
   </section>
 
@@ -102,6 +105,7 @@
       <canvas id="stage" aria-label="Трасса"></canvas>
       <div class="hud" id="hud"></div>
       <div class="banner" id="banner" hidden></div>
+      <div class="rec-badge" id="recBadge" hidden>● REC</div>
       <div class="countdown" id="countdown" hidden><span></span></div>
       <div class="pad" aria-label="Управление касанием">
         <div class="pad-steer">
@@ -137,6 +141,17 @@
       <label class="inline">Машины
         <select id="gTraffic"></select>
       </label>
+    </div>
+
+    <div class="toolbar" data-for="teach" hidden>
+      <button class="btn primary" id="rec">● Записывать</button>
+      <div class="seg" role="group" aria-label="Кто рулит">
+        <button id="teachMe" aria-pressed="true">Рулю я</button>
+        <button id="teachStudent" aria-pressed="false">Рулит ученик</button>
+      </div>
+      <button class="btn" id="teachRestart">Заново</button>
+      <label class="inline">Трасса <select id="teachTrack"></select></label>
+      <label class="inline">Машины <select id="teachTraffic"></select></label>
     </div>
 
     <div class="toolbar" data-for="train" hidden>
@@ -215,6 +230,42 @@
           </div>
         </div>
         <p class="hint" id="netNote"></p>
+      </section>
+    </div>
+
+    <!-- УЧИТЕЛЬ -->
+    <div data-panel="teach" hidden>
+      <section class="block">
+        <h2>Примеры</h2>
+        <dl class="stats">
+          <div><dt>Примеров</dt><dd id="exCount">0</dd></div>
+          <div><dt>С поворотом</dt><dd id="exTurns">0</dd></div>
+          <div><dt>Заездов</dt><dd id="exRuns">0</dd></div>
+        </dl>
+        <p class="hint">Пока идёт запись, каждый тик сохраняется пара: что видят сенсоры → что ты нажал. Перед аварией последние 0,75 с выбрасываются — плохому не учим. Покажи и то, как выруливать от бордюра.</p>
+        <div class="row"><button class="btn small danger" id="exClear">Очистить примеры</button></div>
+      </section>
+      <section class="block">
+        <h2>Обучение</h2>
+        <div class="field"><label for="epochs">Эпох</label><input type="range" id="epochs" min="5" max="100" step="5"><output id="epochsOut"></output></div>
+        <div class="field wide"><span class="lbl">Шаг обучения</span>
+          <div class="seg" role="group" aria-label="Шаг обучения">
+            <button data-lr="0.01">0,01</button><button data-lr="0.05">0,05</button><button data-lr="0.2">0,2</button><button data-lr="1">1</button>
+          </div>
+        </div>
+        <button class="btn primary" id="teachTrain">Учить на примерах</button>
+        <dl class="stats">
+          <div><dt>Эпоха</dt><dd id="lrEpoch">—</dd></div>
+          <div><dt>Ошибка</dt><dd id="lrLoss">—</dd></div>
+          <div><dt>Совпадение</dt><dd id="lrMatch">—</dd></div>
+        </dl>
+        <canvas id="lossChart" class="chart" aria-label="Ошибка по эпохам"></canvas>
+        <p class="hint" id="teachNote">Ученик — сеть той же формы, что в Гараже, с вариантом мозга «Плавный». Каждое нажатие «Учить» начинает с чистого листа.</p>
+      </section>
+      <section class="block">
+        <h2>Результат</h2>
+        <p class="hint">Понравилось, как ездит ученик? Сделай его своим мозгом: дальше его можно проверить на «Экзамене» или доучить эволюцией на «Треке».</p>
+        <div class="row"><button class="btn" id="teachAdopt" disabled>Сделать чемпионом</button></div>
       </section>
     </div>
 

@@ -6,7 +6,8 @@ import { TRAFFIC_LEVELS, withTraffic } from '../../engine/traffic.js';
 import { state, persist, sizesOf, sameSizes, thinkFn, on, resetProgress } from '../state.js';
 import { live } from '../student-code.js';
 import { drawScene, paintCar, trafficOn, setHud, showBanner } from '../stage.js';
-import { $, $$, secs, pct, options, setPressed, delegate, isTyping } from '../ui.js';
+import { $, secs, pct, options, setPressed, delegate } from '../ui.js';
+import { steerWith } from '../manual-drive.js';
 import { createNetworkEditor } from './network-editor.js';
 
 const RESTART_DELAY = 1100;
@@ -70,6 +71,7 @@ function resetCar() {
   car = new Car(track, { ...driver, sensors: draft.sensors });
   restartAt = 0;
   trace = null;
+  steerWith(mode === 'manual' ? car.controls : null, { onTouch: () => setMode('manual') });
 }
 
 function setMode(next) {
@@ -101,44 +103,6 @@ for (const [select, key, items] of [
     persist();
     resetCar();
   });
-}
-
-// ── клавиатура и кнопки на экране → handleKey() студента ──
-
-function press(key, down) {
-  if (state.tab !== 'garage' || mode !== 'manual' || !car) return false;
-  try {
-    return !!live.controls.handleKey(key, down, car.controls);
-  } catch (e) {
-    showBanner(`Ошибка в handleKey(): ${e.message}`, 3000);
-    return false;
-  }
-}
-
-window.addEventListener('keydown', (e) => {
-  if (isTyping(e.target)) return;
-  const handled = e.repeat ? state.tab === 'garage' && mode === 'manual' && e.key.startsWith('Arrow') : press(e.key, true);
-  if (handled) e.preventDefault();
-});
-window.addEventListener('keyup', (e) => {
-  if (!isTyping(e.target)) press(e.key, false);
-});
-window.addEventListener('blur', () => car && Object.assign(car.controls, { gas: 0, brake: 0, left: 0, right: 0 }));
-
-for (const button of $$('.pad button')) {
-  const key = button.dataset.key;
-  const release = () => {
-    button.classList.remove('on');
-    press(key, false);
-  };
-  button.addEventListener('pointerdown', (e) => {
-    e.preventDefault();
-    button.setPointerCapture?.(e.pointerId);
-    button.classList.add('on');
-    if (mode !== 'manual') setMode('manual');
-    press(key, true);
-  });
-  for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) button.addEventListener(type, release);
 }
 
 // ── сенсоры ──

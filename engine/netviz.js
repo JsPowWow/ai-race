@@ -196,3 +196,42 @@ function short(v) {
   if (v >= 1e3) return (v / 1e3).toFixed(1) + 'k';
   return String(Math.round(v));
 }
+
+/** Простой график одной линии: например, ошибка по эпохам обучения */
+export function drawSeries(canvas, values, { label = '' } = {}) {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const cw = canvas.clientWidth, ch = canvas.clientHeight;
+  if (canvas.width !== Math.round(cw * dpr)) { canvas.width = Math.round(cw * dpr); canvas.height = Math.round(ch * dpr); }
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, cw, ch);
+  const muted = css('--muted'), line = css('--line'), color = css('--ai');
+  ctx.font = '11px "JetBrains Mono", ui-monospace, monospace';
+  if (!values.length) {
+    ctx.fillStyle = muted;
+    ctx.textAlign = 'center';
+    ctx.fillText(label, cw / 2, ch / 2);
+    return;
+  }
+  const padL = 44, padR = 10, padT = 10, padB = 20;
+  const W = cw - padL - padR, H = ch - padT - padB;
+  const max = Math.max(...values) * 1.1 || 1;
+  const x = (i) => padL + (values.length === 1 ? W / 2 : (W * i) / (values.length - 1));
+  const y = (v) => padT + H - (H * v) / max;
+  ctx.strokeStyle = line; ctx.fillStyle = muted; ctx.lineWidth = 1;
+  ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  for (let k = 0; k <= 3; k++) {
+    const v = (max * k) / 3;
+    ctx.globalAlpha = k ? 0.5 : 1;
+    ctx.beginPath(); ctx.moveTo(padL, y(v)); ctx.lineTo(cw - padR, y(v)); ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.fillText(v.toFixed(3), padL - 6, y(v));
+  }
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  ctx.fillText('1', x(0), padT + H + 5);
+  ctx.fillText(String(values.length), x(values.length - 1), padT + H + 5);
+  ctx.strokeStyle = color; ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  values.forEach((v, i) => (i ? ctx.lineTo(x(i), y(v)) : ctx.moveTo(x(i), y(v))));
+  ctx.stroke();
+}
