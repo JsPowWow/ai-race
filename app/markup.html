@@ -202,21 +202,9 @@
       </div>
     </details>
 
-    <div class="toolbar" data-for="exam" hidden>
-      <button class="btn primary" id="eRun">Проверить чемпиона</button>
-      <span class="note" id="eReplayNote">Щёлкни строку в таблице, чтобы посмотреть заезд</span>
-    </div>
+    <div class="toolbar" data-for="exam" id="examToolbar" hidden></div>
 
-    <div class="toolbar" data-for="race" hidden>
-      <button class="btn primary" id="rStart">Старт гонки</button>
-      <div class="seg" role="group" aria-label="Скорость гонки">
-        <button data-rspeed="1" aria-pressed="true">×1</button>
-        <button data-rspeed="2" aria-pressed="false">×2</button>
-        <button data-rspeed="4" aria-pressed="false">×4</button>
-        <button data-rspeed="8" aria-pressed="false">×8</button>
-      </div>
-      <span class="note">Время считается в тиках: 60 тиков = 1 секунда, от мощности ноутбука не зависит</span>
-    </div>
+    <div class="toolbar" data-for="race" id="raceToolbar" hidden></div>
 
     <div class="toolbar" data-for="final" hidden>
       <div class="seg" id="fStages" role="group" aria-label="Этап"></div>
@@ -259,88 +247,10 @@
     </div>
 
     <!-- ЭКЗАМЕН -->
-    <div data-panel="exam" hidden>
-      <section class="block">
-        <h2>Результаты</h2>
-        <div class="table-wrap">
-          <table class="results" id="examTable">
-            <thead><tr><th>Трасса</th><th>Итог</th><th class="num">Время</th></tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-        <p id="examVerdict" class="verdict"></p>
-      </section>
-      <section class="block">
-        <h2>На гонку</h2>
-        <p class="hint">Имя, цвет и аватар машины — на вкладке «Профиль».</p>
-        <div class="field wide"><label for="pLogin">Логин GitHub</label><input type="text" id="pLogin" maxlength="39" placeholder="например, JsPowWow" autocomplete="username" autocapitalize="off" spellcheck="false"></div>
-        <div class="gh-check" id="pLoginCheck" role="status"></div>
-        <div class="row">
-          <button class="btn primary" id="pSeal">Скачать для сдачи</button>
-        </div>
-        <p class="hint">Файл для сдачи запечатан ключом курса: открыть его могут только кураторы. Поэтому его можно спокойно выкладывать в пул-реквест — никто не подсмотрит твои веса и код.</p>
-        <details>
-          <summary>Открытый файл — для себя</summary>
-          <p class="hint">Обычный JSON: чтобы после финала перепроверить свой заезд на вкладке «Гонка» или поделиться с кем-то нарочно.</p>
-          <div class="row">
-            <button class="btn small" id="pCopy">Скопировать JSON</button>
-            <button class="btn small" id="pDownload">Скачать car.json</button>
-          </div>
-        </details>
-        <p class="note" id="pMsg" role="status"></p>
-        <details>
-          <summary>Что внутри файла</summary>
-          <textarea id="pJson" readonly rows="8" aria-label="JSON машины"></textarea>
-        </details>
-      </section>
-    </div>
+    <div data-panel="exam" id="examPanel" hidden></div>
 
     <!-- ГОНКА -->
-    <div data-panel="race" hidden>
-      <section class="block final-link">
-        <h2>Финал курса</h2>
-        <p class="hint">Здесь — гонка на несколько машин. Для общего финала на сотни участников (этапы, суперфинал, живая таблица, стрим) есть отдельный режим.</p>
-        <button class="btn small" data-open="final">Открыть финал</button>
-      </section>
-      <section class="block">
-        <h2>Секретная трасса</h2>
-        <div class="field"><label for="rSeed">Seed</label><input type="text" id="rSeed" maxlength="80"></div>
-        <div class="field wide"><label for="rTraffic">Машины</label><select id="rTraffic"></select></div>
-        <p class="hint">Один и тот же seed даёт одну и ту же трассу на любом компьютере. Объявите его в час X.</p>
-      </section>
-      <section class="block">
-        <h2>Участники</h2>
-        <ul class="entrants" id="rList"></ul>
-        <div class="row">
-          <button class="btn small" id="rAddMine">+ Мой чемпион</button>
-          <label class="btn small file">Загрузить .json<input type="file" id="rFiles" accept=".json,application/json" multiple></label>
-          <button class="btn small" id="rCross" disabled>Скрестить</button>
-        </div>
-        <p class="hint" id="rCrossNote"></p>
-        <div class="review" id="rReview" hidden>
-          <h3 id="rReviewTitle">Код участника</h3>
-          <p class="hint">Участник написал свой вариант мозга. Этот код выполнится у тебя в браузере, поэтому сначала прочитай его. Без разрешения машина в гонке не участвует.</p>
-          <pre class="review-code" id="rReviewCode"></pre>
-          <p class="hint" id="rReviewFlags"></p>
-          <div class="row">
-            <button class="btn small primary" id="rReviewAllow">Разрешить</button>
-            <button class="btn small danger" id="rReviewReject">Отклонить и убрать</button>
-          </div>
-        </div>
-        <details>
-          <summary>Вставить JSON текстом</summary>
-          <textarea id="rPaste" rows="5" placeholder='{"format":"ai-race/car@3", ...}' aria-label="JSON участника"></textarea>
-          <button class="btn small" id="rPasteAdd">Добавить</button>
-        </details>
-        <p class="hint">Файлы можно перетащить прямо на трассу.</p>
-        <div class="error" id="rError" hidden></div>
-      </section>
-      <section class="block">
-        <h2>Таблица</h2>
-        <ol class="board" id="rBoard"></ol>
-        <div class="awards" id="rAwards"></div>
-      </section>
-    </div>
+    <div data-panel="race" id="racePanel" hidden></div>
     <!-- ФИНАЛ -->
     <div data-panel="final" hidden>
       <section class="block setup">

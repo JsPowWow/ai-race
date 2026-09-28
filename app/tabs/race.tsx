@@ -1,0 +1,103 @@
+// Вкладка «Гонка» (урок 5): участники, секретная трасса, отсчёт, таблица и номинации.
+// Панель и кнопки под трассой — на @reely/dommy (#20); трассу с машинами рисует кадровый цикл (frame).
+//   race-entrants.tsx — участники: добавить, убрать, проверить чужой код, скрестить
+//   race-run.ts       — сам заезд;  race-results.ts — места и номинации;  race-board.tsx — таблица
+import { mount } from '@reely/dommy';
+import { TRAFFIC_LEVELS, type TrafficLevel } from '../../engine/traffic.ts';
+import { state, persist } from '../state.ts';
+import { drawScene, paintCar, paintSensors, trafficOn, setHud, lapText } from '../stage.ts';
+import { esc, secs } from '../ui.ts';
+import { element } from '../dom.ts';
+import { Entrants } from './race-entrants.tsx';
+import { Board } from './race-board.tsx';
+import { race, prepare, start, tickRace, speed, started } from './race-run.ts';
+import { standings } from './race-results.ts';
+
+const SPEEDS = [1, 2, 4, 8];
+
+function FinalLink(): Node {
+  return (
+    <section className="block final-link">
+      <h2>Финал курса</h2>
+      <p className="hint">Здесь — гонка на несколько машин. Для общего финала на сотни участников (этапы, суперфинал, живая таблица, стрим) есть отдельный режим.</p>
+      {/* data-open ловит app/main.js: финал грузится, только когда его открыли */}
+      <button className="btn small" data-open="final">Открыть финал</button>
+    </section>
+  );
+}
+
+/** Seed и трафик помним между визитами; поменяли — все на старт заново */
+function SecretTrack(): Node {
+  const change = (key: 'seed' | 'traffic', value: string) => {
+    if (key === 'traffic') state.race.traffic = value as TrafficLevel; // одно из TRAFFIC_LEVELS
+    else state.race.seed = value.trim();
+    persist();
+    prepare();
+  };
+  return (
+    <section className="block">
+      <h2>Секретная трасса</h2>
+      <div className="field">
+        <label htmlFor="rSeed">Seed</label>
+        <input type="text" id="rSeed" maxLength={80} value={state.race.seed} onChange={(e) => change('seed', e.currentTarget.value)} />
+      </div>
+      <div className="field wide">
+        <label htmlFor="rTraffic">Машины</label>
+        <select id="rTraffic" onChange={(e) => change('traffic', e.currentTarget.value)}>
+          {TRAFFIC_LEVELS.map(({ id, title }) => <option value={id} selected={id === state.race.traffic}>{title}</option>)}
+        </select>
+      </div>
+      <p className="hint">Один и тот же seed даёт одну и ту же трассу на любом компьютере. Объявите его в час X.</p>
+    </section>
+  );
+}
+
+function Toolbar(): Node {
+  return (
+    <>
+      <button className="btn primary" id="rStart" onClick={start}>{() => (started.value ? 'Заново' : 'Старт гонки')}</button>
+      <div className="seg" aria={{ role: 'group', ariaLabel: 'Скорость гонки' }}>
+        {SPEEDS.map((x) => (
+          <button data-rspeed={String(x)} aria={{ ariaPressed: () => String(speed.value === x) }} onClick={() => (speed.value = x)}>×{x}</button>
+        ))}
+      </div>
+      <span className="note">Время считается в тиках: 60 тиков = 1 секунда, от мощности ноутбука не зависит</span>
+    </>
+  );
+}
+
+mount(element('#racePanel'), () => (
+  <>
+    <FinalLink />
+    <SecretTrack />
+    <Entrants />
+    <Board />
+  </>
+));
+mount(element('#raceToolbar'), Toolbar);
+
+export const raceTab = {
+  enter(): void {
+    if (!race.running && !race.finished) prepare();
+  },
+  frame(frameNo: number): void {
+    tickRace(frameNo);
+    const { track } = race;
+    if (!track) return;
+    drawScene(track, { traffic: trafficOn(track, race.tick), tick: race.tick });
+    const [leader] = standings(race.cars);
+    for (const { entrant, car } of race.cars) {
+      const isLeader = leader?.car === car;
+      paintCar(car, { color: entrant.color, alpha: car.status === 'crashed' ? 0.5 : 1, label: isLeader ? entrant.name : null });
+    }
+    if (leader && !leader.car.done) paintSensors(leader.car);
+    // табло — HTML-строки (app/stage.js): имя трассы из seed пишет человек, поэтому через esc()
+    setHud([
+      `<b>${esc(track.name)}</b>`,
+      `время <b>${secs(race.tick)}</b>`,
+      ...(leader ? [`лидер: ${lapText(track, leader.car.bestS)}`] : []),
+      `участников <b>${race.cars.length}</b>`,
+      race.running ? `×${speed.peek()}` : race.finished ? 'финиш' : 'ждём старта',
+    ]);
+  },
+};

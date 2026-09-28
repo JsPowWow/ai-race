@@ -18,7 +18,7 @@ export type CarFile = {
  * Участник гонки из файла. think — чем он думает; null — свой код ещё не прочитан человеком
  * (тогда машина не едет, см. approveCode). file — как файл пришёл: его показывают и скрещивают.
  */
-export type Entrant = Omit<ParsedCar, 'color'> & { color: string; file: unknown; think: Think | null };
+export type Entrant = Omit<ParsedCar, 'color'> & { color: string; file: object; think: Think | null };
 
 /** Текущий чемпион в формате файла (или null, если мозга ещё нет) */
 export function toCarFile(): CarFile | null {
@@ -41,7 +41,8 @@ export function toCarFile(): CarFile | null {
 /** Проверить файл участника и подготовить его к гонке на этой странице. Бросает Error. */
 export function fromCarFile(file: unknown, fallbackColor = CAR_COLORS[0]): Entrant {
   const parsed = parseCarFile(file);
-  const entrant: Entrant = { ...parsed, color: parsed.color ?? fallbackColor, file, think: null };
+  // parseCarFile пропускает только объекты: у всего прочего нет format
+  const entrant: Entrant = { ...parsed, color: parsed.color ?? fallbackColor, file: file as object, think: null };
   // Чужой код не запускаем сразу: сначала его читает преподаватель (см. approveCode)
   if (parsed.code) return entrant;
   const variants = live.think.thinkVariants ?? {};
