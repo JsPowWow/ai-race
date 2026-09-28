@@ -132,6 +132,7 @@ $('#codeApply').addEventListener('click', () => {
     beginCodeStartup(); // зависнет прямо сейчас — после перезагрузки правки отключатся
     applySource(file, editor().value);
     showError(null);
+    emit('did', `code:${file}`);
     codeChanged(`Применено. ${file === 'controls' ? 'Проверь на «Я учу».' : 'Новое поколение возьмёт этот код.'}`);
   } catch (e) {
     showError(e);

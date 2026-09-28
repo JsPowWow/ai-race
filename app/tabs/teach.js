@@ -7,7 +7,7 @@ import { TRAFFIC_LEVELS, withTraffic } from '../../engine/traffic.js';
 import { sampleOf, worthLearning, trainEpoch, agreement, TEACH_THINK } from '../../engine/imitation.js';
 import { drawSeries } from '../../engine/netviz.js';
 import { cssColor } from '../../engine/render.js';
-import { state, persist, sizesOf, thinkFn, brainTitle, on } from '../state.js';
+import { state, persist, sizesOf, thinkFn, brainTitle, on, emit } from '../state.js';
 import { load, save } from '../storage.js';
 import { live } from '../student-code.js';
 import { runs, addRun, toggleRun, removeRun, trainingSamples, sampleCount, saveRuns, memoryNote, MAX_SAMPLES } from '../runs.js';
@@ -136,6 +136,7 @@ function finishRun({ interrupted = false } = {}) {
     progressPct: carReport(car, track).progressPct, ticks: car.ticks,
   });
   recording = null;
+  if (saved && runs.filter((r) => r.status === 'finished').length >= 2) emit('did', 'runs'); // 2 чистых заезда — шаг 1 урока
   if (!interrupted) {
     const head = status === 'finished' ? `Финиш! ${secs(car.finishTick)}.` : RESULT_TEXT[status] ?? '';
     showBanner(saved ? `${head} Заезд записан: ${saved.packed.length} примеров` : head, RESTART_DELAY + 400);

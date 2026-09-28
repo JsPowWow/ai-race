@@ -2,7 +2,7 @@
 import { TRAINING_TRACKS, getTrainingTrack } from '../../engine/track.js';
 import { Car, carReport, maxTicksFor } from '../../engine/car.js';
 import { withTraffic } from '../../engine/traffic.js';
-import { state, persist, thinkFn, on, CAR_COLORS } from '../state.js';
+import { state, persist, thinkFn, on, emit, CAR_COLORS } from '../state.js';
 import { seedTrack } from '../tracks.js';
 import { toCarFile } from '../car-file.js';
 import { drawScene, paintCar, trafficOn, setHud, showBanner } from '../stage.js';
@@ -66,6 +66,7 @@ function runExam() {
   });
   const firstFail = results.findIndex((r) => r.status !== 'finished');
   playReplay(Math.max(0, firstFail));
+  emit('did', 'exam');
 }
 
 function playReplay(index) {
@@ -260,6 +261,7 @@ $('#pSeal').addEventListener('click', async () => {
   try {
     const sealed = await sealCar(file, currentLogin(), COURSE_KEY);
     await saveFile(SEALED_FILE_NAME, JSON.stringify(sealed));
+    emit('did', 'sealed');
     $('#pMsg').textContent = `Сохранено: ${SEALED_FILE_NAME}. Его и сдавай пул-реквестом. Открыть его могут только кураторы.`;
   } catch (e) {
     $('#pMsg').textContent = e?.code === 'declined' ? 'Скачивание отменено.' : `Не получилось: ${e.message}`;

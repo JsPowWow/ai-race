@@ -3,6 +3,7 @@
 // Отметки запоминаются в браузере по номерам шагов; сменились шаги (LESSONS_VERSION) — старые отметки забываем.
 import { LESSONS, LESSONS_VERSION } from './lessons.js';
 import { load, save } from './storage.js';
+import { on } from './state.js';
 import { $, delegate } from './ui.js';
 
 /** @type {Record<string, any>} { v: 2, teach: [0, 2], … } — версия шагов и номера выполненных */
@@ -97,6 +98,25 @@ delegate('#lesson', 'click', '[data-done]', (button) => {
   save('lessonDone', done);
   renderLesson(currentTab);
 });
+
+// Шаг отмечается сам, когда ученик сделал то, что в нём сказано (lessons.js → auto). Снять отметку можно кнопкой.
+function did(what) {
+  let changed = false;
+  for (const [tab, lesson] of Object.entries(LESSONS)) {
+    lesson.auto?.forEach((a, step) => {
+      const checked = doneSet(tab);
+      if (a !== what || checked.has(step)) return;
+      done[tab] = [...checked.add(step)].sort((x, y) => x - y);
+      if (picked[tab] === step) delete picked[tab];
+      changed = true;
+    });
+  }
+  if (!changed) return;
+  save('lessonDone', done);
+  if (currentTab) renderLesson(currentTab);
+}
+on('did', did);
+on('champion', ({ by }) => did(`champion:${by}`));
 
 // toggle у <details> не всплывает — ловим его на пути вниз (capture)
 $('#lesson').addEventListener('toggle', (e) => {

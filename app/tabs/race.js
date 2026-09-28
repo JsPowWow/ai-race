@@ -2,7 +2,7 @@
 import { Car, carReport, maxTicksFor } from '../../engine/car.js';
 import { cloneBrain } from '../../engine/brain.js';
 import { TRAFFIC_LEVELS, withTraffic } from '../../engine/traffic.js';
-import { state, persist, thinkVariant, CAR_COLORS } from '../state.js';
+import { state, persist, thinkVariant, emit, CAR_COLORS } from '../state.js';
 import { live } from '../student-code.js';
 import { seedTrack } from '../tracks.js';
 import { toCarFile, fromCarFile, approveCode } from '../car-file.js';
@@ -76,6 +76,7 @@ $('#rStart').addEventListener('click', () => {
   prepare();
   if (!race.cars.length) return showBanner('Добавь участников');
   startCountdown();
+  emit('did', 'race:start');
   $('#rStart').textContent = 'Заново';
 });
 delegate('.toolbar[data-for="race"]', 'click', '[data-rspeed]', (b) => {
@@ -183,6 +184,7 @@ $('#rAddMine').addEventListener('click', () => {
   const file = toCarFile();
   if (!file) return showBanner('Сначала обучи мозг: на «Я учу» или «Учится само»');
   addEntrant(file, 'mine');
+  emit('did', 'race:mine');
 });
 $('#rFiles').addEventListener('change', (e) => {
   readFiles(e.target.files);
