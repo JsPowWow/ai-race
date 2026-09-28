@@ -3,6 +3,7 @@
 import { REC_EVERY, REC_FIELDS } from '../../engine/rally.js';
 import { avatarUrl } from '../../engine/car-file.js';
 import { UI_FONT } from '../../engine/render.js';
+import { maxCurve } from '../../engine/car.js';
 import { paintCar, paintPack, paintScreen, toScreen } from '../stage.js';
 
 const OUT_VISIBLE_TICKS = 90;      // сколько ещё видно машину после схода
@@ -20,7 +21,7 @@ export class StageReplay {
     this.length = rows.reduce((max, r) => Math.max(max, r.result.ticks), 0);
   }
 
-  /** Машина на тике tick: { x, y, angle, curve, progress, status, since } (since — тиков после финиша/схода) */
+  /** Машина на тике tick: { x, y, angle, steer, speed, progress, status, since } (since — тиков после финиша/схода) */
   at({ result }, tick) {
     const { traj, ticks, status } = result;
     const n = traj.length / REC_FIELDS;
@@ -35,11 +36,14 @@ export class StageReplay {
     const mix = (k) => traj[a + k] + (traj[b + k] - traj[a + k]) * f;
     const turn = wrapAngle(traj[b + 2] - traj[a + 2]);
     const path = Math.hypot(traj[b] - traj[a], traj[b + 1] - traj[a + 1]);
+    const speed = path / REC_EVERY;
     return {
       x: mix(0),
       y: mix(1),
       angle: traj[a + 2] + turn * f,
-      curve: path > 1 ? turn / path : 0, // в записи руля нет — дугу берём из того, как повернула машина
+      // в записи руля нет — восстановим его из того, как круто повернула машина на своей скорости
+      steer: path > 1 ? Math.max(-1, Math.min(1, turn / path / maxCurve(speed))) : 0,
+      speed,
       progress: mix(3),
       status: tick < ticks ? 'driving' : status,
       since: tick - ticks,

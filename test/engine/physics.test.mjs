@@ -1,7 +1,7 @@
-// Физика ручной езды: разгон заметный, тормоз сильнее газа, колёса показывают ту дугу, по которой машина едет.
+// Физика ручной езды: разгон заметный, тормоз сильнее газа, колёса показывают руль.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { Car, CAR, WHEELBASE, wheelAngle } from '../../engine/car.js';
+import { Car, CAR, wheelAngle } from '../../engine/car.js';
 import { getTrainingTrack } from '../../engine/track.js';
 
 const track = getTrainingTrack('warmup');
@@ -26,19 +26,22 @@ test('тормоз сильнее газа: с максимума до нуля 
   assert.ok(ticks >= 20 && ticks <= 45, `торможение за ${ticks} тиков`);
 });
 
-test('колёса повёрнуты ровно на дугу, по которой машина едет', () => {
-  const car = new Car(track);
-  car.speed = 2;
-  ticksUntil(car, { right: 1, gas: 0.5 }, (c) => c.steer >= 1);
-  const before = car.angle;
-  car.move();
-  const curve = (car.angle - before) / car.speed; // сколько радиан на пиксель пути на самом деле
-  assert.ok(Math.abs(car.curve - curve) < 1e-9);
-  assert.ok(Math.abs(Math.tan(wheelAngle(car.curve)) - WHEELBASE * curve) < 1e-9, 'велосипедная модель: tg угла = база × кривизна');
+test('колёса показывают руль: полный руль видно и на полной скорости', () => {
+  const deg = (steer, speed) => (wheelAngle(steer, speed) * 180) / Math.PI;
+  assert.equal(deg(0, CAR.maxSpeed), 0, 'руль прямо — колёса прямо');
+  assert.ok(deg(1, 0) >= 20, `на месте полный руль — ${deg(1, 0).toFixed(1)}°`);
+  assert.ok(deg(1, CAR.maxSpeed) >= 10, `на полной скорости полный руль всё равно заметен — ${deg(1, CAR.maxSpeed).toFixed(1)}°`);
+  assert.ok(deg(1, CAR.maxSpeed) < deg(1, 0), 'но на скорости меньше: газ «съедает» поворот');
+  assert.equal(deg(-1, 2), -deg(1, 2), 'влево — так же, только в другую сторону');
+  assert.equal(deg(1, -2), deg(1, 2), 'задним ходом колёса крутятся так же');
 });
 
-test('на месте колёса можно повернуть, а на скорости они повёрнуты меньше', () => {
-  const at = (speed) => { const car = new Car(track); car.speed = speed; ticksUntil(car, { right: 1 }, (c) => c.steer >= 1); return wheelAngle(car.curve); };
-  assert.ok(at(0) > 0.3, 'на месте — заметный угол');
-  assert.ok(at(3) < at(0) && at(CAR.maxSpeed) < at(3) && at(CAR.maxSpeed) > 0);
+test('колёса догоняют руль плавно, вместе с ним', () => {
+  const car = new Car(track);
+  car.speed = CAR.maxSpeed;
+  let n = 0;
+  ticksUntil(car, { right: 1, gas: 1 }, () => n++ >= 2); // руль крутили всего 2 тика
+  const half = wheelAngle(car.steer, car.speed);
+  ticksUntil(car, { right: 1, gas: 1 }, (c) => c.steer >= 1);
+  assert.ok(half > 0 && half < wheelAngle(car.steer, car.speed), 'короткое нажатие — колёса повёрнуты меньше, чем до упора');
 });

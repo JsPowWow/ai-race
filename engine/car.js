@@ -27,14 +27,17 @@ export const maxCurve = (speed) => Math.min(1 / CAR.minRadius, CAR.grip / (speed
 
 /** Расстояние между передней и задней осью — так колёса и нарисованы */
 export const WHEELBASE = CAR.length * 0.6;
-export const MAX_WHEEL = (35 * Math.PI) / 180;
+const WHEEL_SLOW = (25 * Math.PI) / 180; // полный руль на месте
+const WHEEL_FAST = (15 * Math.PI) / 180; // полный руль на полной скорости
 
 /**
- * Угол передних колёс для дуги curve (радиан на пиксель пути): как у велосипеда, tg угла = база × кривизна.
- * На скорости дуга шире — колёса повёрнуты меньше. Только для картинки: на физику не влияет.
+ * Угол передних колёс на картинке: показывает руль (steer от −1 до 1), как у настоящей машины.
+ * На скорости чуть меньше — видно, что газ «съедает» поворот, — но полный руль заметен всегда.
+ * Только для картинки: на физику не влияет.
  */
-export function wheelAngle(curve) {
-  return clamp(Math.atan(WHEELBASE * curve), -MAX_WHEEL, MAX_WHEEL);
+export function wheelAngle(steer, speed) {
+  const fast = Math.min(1, Math.abs(speed) / CAR.maxSpeed);
+  return steer * (WHEEL_SLOW + (WHEEL_FAST - WHEEL_SLOW) * fast);
 }
 
 export const DEFAULT_SENSORS = { count: 5, spread: 90, length: 160 };
@@ -85,7 +88,6 @@ export class Car {
     this.rayT = new Float32Array(this.rays.length).fill(-1);
     this.controls = { gas: 0, brake: 0, left: 0, right: 0 };
     this.steer = 0; // где сейчас руль: -1 до упора влево, 1 вправо. Догоняет кнопки плавно
-    this.curve = 0; // по какой дуге едем: радиан на пиксель пути (колёса на картинке)
     this.lastInputs = null;
     this.lastOutputs = null;
 
@@ -189,8 +191,7 @@ export class Car {
 
     const steer = safe(c.right) - safe(c.left); // куда крутят руль кнопки
     this.steer += clamp(steer - this.steer, -CAR.steerRate, CAR.steerRate);
-    this.curve = this.steer * maxCurve(this.speed);
-    this.angle += this.speed * this.curve; // задним ходом дуга та же, но поворот в другую сторону — как у машины
+    this.angle += this.speed * this.steer * maxCurve(this.speed); // задним ходом дуга та же, но поворот в другую сторону — как у машины
     this.wiggle += Math.abs(steer - this.prevSteer);
     this.prevSteer = steer;
 

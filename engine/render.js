@@ -261,9 +261,9 @@ function drawGhost(ctx, car, color, alpha, p) {
   ctx.restore();
 }
 
-/** Колёса торчат из-под корпуса; передние повёрнуты на угол, с которым машина правда описывает свою дугу */
+/** Колёса торчат из-под корпуса; передние показывают, куда повёрнут руль */
 function drawWheels(ctx, car, L, W) {
-  const turn = car.done ? 0 : wheelAngle(car.curve ?? 0);
+  const turn = car.done ? 0 : wheelAngle(car.steer ?? 0, car.speed ?? 0);
   ctx.fillStyle = '#16171a';
   for (const [x, a] of [[WHEELBASE / 2, turn], [-WHEELBASE / 2, 0]]) {
     for (const y of [-W / 2 - 1, W / 2 + 1]) { // чуть наружу из-под корпуса — поворот видно
