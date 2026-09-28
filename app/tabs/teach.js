@@ -2,7 +2,7 @@
 // Здесь же «глаза» (сенсоры), форма сети и «мозг под микроскопом» — ручная правка весов.
 import { TRAINING_TRACKS, getTrainingTrack } from '../../engine/track.js';
 import { Car, carReport } from '../../engine/car.js';
-import { createBrain, cloneBrain, LIMITS, inputCount, OUTPUTS } from '../../engine/brain.js';
+import { createBrain, cloneBrain } from '../../engine/brain.js';
 import { TRAFFIC_LEVELS, withTraffic } from '../../engine/traffic.js';
 import { sampleOf, worthLearning, trainEpoch, agreement, TEACH_THINK } from '../../engine/imitation.js';
 import { drawSeries } from '../../engine/netviz.js';
@@ -11,14 +11,13 @@ import { state, persist, sizesOf, thinkFn, brainTitle, on, emit } from '../state
 import { load, save } from '../storage.js';
 import { live } from '../student-code.js';
 import { runs, addRun, toggleRun, removeRun, trainingSamples, sampleCount, saveRuns, memoryNote, MAX_SAMPLES } from '../runs.js';
-import { setBrain, changeShape, shapeResetsBrain, renderLibrary } from '../library.js';
+import { setBrain, renderLibrary } from '../library.js';
 import { steerWith } from '../manual-drive.js';
 import { drawScene, paintCar, trafficOn, setHud, lapText, showBanner } from '../stage.js';
 import { $, esc, secs, pct, options, setPressed, delegate } from '../ui.js';
 import { createNetworkEditor } from './network-editor.js';
 
 const MIN_SAMPLES = 200;
-const eyesFold = $('#eyesFold');
 const RESTART_DELAY = 1100;
 
 const learning = { epochs: 20, rate: 0.05, ...load('teach', {}) };
@@ -40,7 +39,6 @@ const editor = createNetworkEditor({
 export const teachTab = {
   enter() {
     resetCar();
-    renderShape();
     renderRuns();
     renderTraining();
     renderLibrary();
@@ -69,8 +67,6 @@ export const teachTab = {
       lapText(track, car.bestS),
       `пройдено <b>${pct(carReport(car, track).progressPct)}</b>`,
       `время <b>${secs(car.ticks)}</b>`,
-      // числа сенсоров нужны, когда разбираешься с «Глазами»; на первом заезде это лишний шум
-      ...(eyesFold.open ? [`сенсоры <b>${[...car.readings].map((v) => v.toFixed(2)).join(' ')}</b>`] : []),
     ]);
     if (mode === 'brain' && frameNo % 3 === 0) editor.render();
   },
@@ -245,104 +241,11 @@ function renderTraining() {
 
 export const redrawLoss = () => drawSeries($('#lossChart'), losses, { label: 'Здесь появится график ошибки' });
 
-// ── глаза: сенсоры ──
-
-/** @type {[selector: string, key: 'count' | 'spread' | 'length', format: (v: number) => string][]} */
-const SENSOR_SLIDERS = [
-  ['#sCount', 'count', (v) => `${v}`],
-  ['#sSpread', 'spread', (v) => `${v}°`],
-  ['#sLength', 'length', (v) => `${v} px`],
-];
-
-for (const [id, key, format] of SENSOR_SLIDERS) {
-  $(id).addEventListener('input', (e) => {
-    const value = +e.target.value;
-    $(`${id}Out`).textContent = format(value);
-    const shape = pendingShape ?? state.config;
-    askShape({ ...shape, sensors: { ...shape.sensors, [key]: value } });
-  });
-}
-
-/** Другая форма сети не подходит к обученному мозгу — спросим, прежде чем начинать с нуля */
-let pendingShape = null;
-function askShape(config) {
-  if (!shapeResetsBrain(config)) {
-    pendingShape = null;
-    $('#shapeConfirm').hidden = true;
-    return changeShape(config);
-  }
-  pendingShape = config;
-  $('#shapeConfirmText').textContent = `Сеть станет ${sizesOf(config).join('-')}. Нынешний мозг под неё не подходит — учиться придётся с нуля (он останется в «Истории»).`;
-  $('#shapeConfirm').hidden = false;
-  $('#shapeConfirm').scrollIntoView({ block: 'nearest' });
-}
-$('#shapeYes').addEventListener('click', () => {
-  $('#shapeConfirm').hidden = true;
-  if (pendingShape) changeShape(pendingShape);
-  pendingShape = null;
-});
-$('#shapeNo').addEventListener('click', () => {
-  $('#shapeConfirm').hidden = true;
-  pendingShape = null;
-  renderShape();
-});
-
-// ── сеть: слои и вариант мозга ──
-
-function renderShape() {
-  const shape = pendingShape ?? state.config;
-  for (const [id, key, format] of SENSOR_SLIDERS) {
-    $(id).value = shape.sensors[key];
-    $(`${id}Out`).textContent = format(shape.sensors[key]);
-  }
-  const hidden = shape.hidden.map((n, i) => `
-    <span class="arrow" aria-hidden="true">→</span>
-    <span class="layer">Слой ${i + 1}
-      <button data-act="minus" data-i="${i}" aria-label="Меньше нейронов в слое ${i + 1}">−</button><b>${n}</b>
-      <button data-act="plus" data-i="${i}" aria-label="Больше нейронов в слое ${i + 1}">+</button>
-      <button data-act="del" data-i="${i}" aria-label="Удалить слой ${i + 1}">×</button>
-    </span>`).join('');
-  $('#layersEditor').innerHTML = `
-    <span class="layer fixed" title="сенсоры сейчас, скорость, сенсоры мгновение назад, знак, заметки">Входы <b>${inputCount(shape.sensors.count)}</b></span>${hidden}
-    <span class="arrow" aria-hidden="true">→</span><span class="layer fixed" title="4 кнопки пульта и заметки">Выходы <b>${OUTPUTS}</b></span>`;
-  $('#addLayer').disabled = shape.hidden.length >= LIMITS.hiddenLayersMax;
-
-  const variants = live.think.thinkVariants ?? {};
-  if (!variants[state.config.think]) state.config.think = variants.step ? 'step' : Object.keys(variants)[0];
-  $('#thinkSelect').innerHTML = options(Object.entries(variants).map(([id, v]) => ({ id, title: v.title || id })));
-  $('#thinkSelect').value = state.config.think;
-  $('#thinkHint').textContent = variants[state.config.think]?.hint ?? '';
-}
-
-delegate('#layersEditor', 'click', 'button', (button) => {
-  const i = +button.dataset.i;
-  const shape = pendingShape ?? state.config;
-  const hidden = [...shape.hidden];
-  if (button.dataset.act === 'plus') hidden[i] = Math.min(LIMITS.neuronsMax, hidden[i] + 1);
-  if (button.dataset.act === 'minus') hidden[i] = Math.max(LIMITS.neuronsMin, hidden[i] - 1);
-  if (button.dataset.act === 'del') hidden.splice(i, 1);
-  askShape({ ...shape, hidden });
-  renderShape();
-});
-$('#addLayer').addEventListener('click', () => {
-  const shape = pendingShape ?? state.config;
-  askShape({ ...shape, hidden: [...shape.hidden, 6] });
-  renderShape();
-});
-
-$('#thinkSelect').addEventListener('change', (e) => {
-  state.config.think = e.target.value;
-  persist();
-  renderShape();
-  if (mode === 'brain') resetCar();
-});
-
 // ── реакция на перемены ──
 
 on('config', () => {
   editor.reset();
   if (state.tab !== 'teach') return;
-  renderShape();
   renderRuns();
   resetCar();
   editor.render();
@@ -356,9 +259,6 @@ on('champion', ({ by }) => {
 on('reset', () => {
   editor.reset();
   if (mode === 'brain') setMode('me');
-});
-on('code', (file) => {
-  if (file === 'think' && state.tab === 'teach') renderShape();
 });
 
 export const renderNetwork = () => editor.render();

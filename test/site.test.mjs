@@ -11,7 +11,7 @@ import { chromium } from 'playwright';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.woff2': 'font/woff2', '.map': 'application/json' };
-const TABS = ['intro', 'teach', 'train', 'code', 'exam', 'race', 'final'];
+const TABS = ['intro', 'profile', 'teach', 'train', 'code', 'exam', 'race', 'final'];
 const SCREENS = [
   { name: 'десктоп 1440', viewport: { width: 1440, height: 900 } },
   { name: 'телефон 390', viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true },

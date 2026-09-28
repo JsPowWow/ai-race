@@ -16,8 +16,9 @@ import { raceTab } from './tabs/race.js';
 import { introTab, redrawIntro } from './tabs/intro.js';
 import { initTheme } from './theme.js';
 import { teachTab, redrawLoss, renderNetwork } from './tabs/teach.js';
+import { profileTab } from './tabs/profile.js';
 
-const TABS = { intro: introTab, teach: teachTab, train: trainTab, code: codeTab, exam: examTab, race: raceTab };
+const TABS = { intro: introTab, profile: profileTab, teach: teachTab, train: trainTab, code: codeTab, exam: examTab, race: raceTab };
 /** Финал нужен только кураторам: его код (Worker, печать, экспорт) грузим, когда вкладку открыли */
 let finalModule = null;
 const loadFinal = async () => (finalModule ??= await import('./tabs/final.js'));

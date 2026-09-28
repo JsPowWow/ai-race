@@ -21,7 +21,7 @@ export const FILES = [
   },
   {
     id: 'think', file: 'think.js', title: 'Мозг', required: ['feedForward', 'thinkVariants'],
-    task: 'Шаг 3. Варианты «мозга». Готовые можно читать и сравнивать, свой пишется в thinkVariants.mine. Выбрать вариант — на «Я учу», в блоке «Сеть».',
+    task: 'Шаг 3. Варианты «мозга». Готовые можно читать и сравнивать, свой пишется в thinkVariants.mine. Выбрать вариант — на «Профиле» или в «Рецепте роя».',
   },
   {
     id: 'controls', file: 'controls.js', title: 'Управление', required: ['handleKey'],

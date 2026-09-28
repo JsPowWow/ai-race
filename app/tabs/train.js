@@ -326,7 +326,7 @@ function swarmAdvice() {
   }
   const before = h.at(-STUCK_GENS - 1);
   if (!last.finished && before && h.slice(-STUCK_GENS).every((e) => !e.finished && e.best <= before.best)) {
-    return `${STUCK_GENS} поколений без улучшения: рой застрял на ${pct(last.progressPct)}. Помоги: щёлкни машину, которая едет лучше, — или поставь «Без машин», а потом верни встречных.`;
+    return `${STUCK_GENS} поколений без улучшения: рой застрял на ${pct(last.progressPct)} — лучший бьётся в одном и том же месте. Помоги: в «Рецепте роя» выбери «Без аварий» или «Смелую» мутацию, или поставь «Без машин», а потом верни встречных.`;
   }
   if (last.finished) return `Лучший доехал за ${secs(last.ticks)}. Рой ищет мозг, который фитнес оценит ещё выше.`;
   return `Лучший в прошлом поколении проехал ${pct(last.progressPct)}. Пусть линия на графике ползёт вверх.`;
