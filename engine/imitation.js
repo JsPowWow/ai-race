@@ -8,7 +8,7 @@
 //
 // Активации те же, что у варианта мозга «Плавный»: внутри tanh(2·z), на выходе sigmoid(3·z), z = сумма − порог.
 // Поэтому обученный мозг сразу ездит с think = 'smooth'.
-import { NOTES } from './brain.js';
+import { sensorsOf } from './brain.js';
 
 export const TEACH_THINK = 'smooth';
 
@@ -26,7 +26,7 @@ export function sampleOf(car) {
  * не тронулся после рестарта. Таких тиков набирается много, а «газ с места» — всего один-два,
  * и ученик выучит главное: «стоишь — стой». Поэтому такие примеры выбрасываем.
  */
-export const worthLearning = ({ x, y }, sensorCount = (x.length - 1 - NOTES) / 2) => y.some(Boolean) || Math.abs(x[sensorCount]) > 0.02;
+export const worthLearning = ({ x, y }, sensorCount = sensorsOf(x.length)) => y.some(Boolean) || Math.abs(x[sensorCount]) > 0.02;
 
 const sigmoid = (z) => 1 / (1 + Math.exp(-z));
 

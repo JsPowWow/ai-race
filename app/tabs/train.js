@@ -141,6 +141,7 @@ function endGeneration() {
   state.history = [...state.history, entry].slice(-300);
   setChampion(cloneBrain(evo.parent), { by: 'train', generation: evo.generation });
   if (track.id === 'snake') emit('did', 'train:snake'); // шаг 1 урока 2 — рой учится на «Змейке»
+  if (isMaze() && entry.finished) emit('did', 'train:maze'); // шаг 3 — рой прошёл «Лабиринт»
   addToHall(entry, report);
   showStudentErrors();
   saveOften();
@@ -267,6 +268,9 @@ function sameTrackHistory() {
   return out;
 }
 
+/** Трасса со знаками и развилками — «Лабиринт» */
+const isMaze = () => track?.signs?.length > 0;
+
 function swarmAdvice() {
   if (!evo) {
     return state.champion
@@ -277,6 +281,9 @@ function swarmAdvice() {
   const h = sameTrackHistory(), last = h.at(-1);
   if (!last) return 'Смотри, какая машина уедет дальше всех: от неё пойдёт следующее поколение. Долго — жми «Турбо».';
   const tail = h.slice(-SAME_GENS);
+  if (isMaze() && last.finished) {
+    return 'Лабиринт пройден: рой запомнил знаки. Посмотри в «Мозге лидера», чем он помнит: горят ли заметки m1…m3 после знака — или машина заранее перестраивается к нужной стороне.';
+  }
   if (tail.length === SAME_GENS && tail.every((e) => e.finished && e.best === last.best)) {
     if (TRAINING_TRACKS.some((t) => t.id === track.id) && track.id !== 'snake') {
       return 'Здесь рой уже доехал. Цель урока — «Змейка» с машинами: выбери её в «Трасса».';
@@ -287,6 +294,7 @@ function swarmAdvice() {
   }
   const before = h.at(-STUCK_GENS - 1);
   if (!last.finished && before && h.slice(-STUCK_GENS).every((e) => !e.finished && e.best <= before.best)) {
+    if (isMaze()) return `${STUCK_GENS} поколений лидер сворачивает в тупик. Знак остался позади, а свернуть надо у развилки — нужна память. Помоги рою: щёлкни машину, что свернула верно, или подними мутацию до 0,2.`;
     return `${STUCK_GENS} поколений без улучшения: рой застрял на ${pct(last.progressPct)}. Помоги: щёлкни машину, которая едет лучше, — или поставь «Без машин», а потом верни встречных.`;
   }
   if (last.finished) return `Лучший доехал за ${secs(last.ticks)}. Рой ищет мозг, который фитнес оценит ещё выше.`;

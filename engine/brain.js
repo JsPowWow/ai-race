@@ -9,10 +9,11 @@
 // }
 
 // Форма мозга одна на весь курс:
-//   входы  = сенсоры сейчас (s1…sn), скорость (v), сенсоры мгновение назад (s1′…sn′), заметки (m1…m3);
+//   входы  = сенсоры сейчас (s1…sn), скорость (v), сенсоры мгновение назад (s1′…sn′), дорожный знак (зн), заметки (m1…m3);
 //   выходы = 4 кнопки пульта и 3 новые заметки.
 // Заметки — память, которую мозг ведёт сам: что выдал в m1…m3 на этом тике, то увидит на входе в следующем.
-// Так он может «помнить» дольше мгновения («я в тупике», «уже разворачиваюсь»). Заметки всегда последние.
+// Так он может «помнить» дольше мгновения («был знак направо»). Заметки всегда последние.
+// Знак: -1 — «налево», 1 — «направо», 0 — знака рядом нет (на обычных трассах всегда 0, он есть только в «Лабиринте»).
 export const BUTTONS = ['Газ', 'Тормоз', 'Влево', 'Вправо'];
 export const NOTES = 3;
 export const NOTE_LABELS = Array.from({ length: NOTES }, (_, i) => `m${i + 1}`);
@@ -21,18 +22,23 @@ export const OUTPUTS = OUTPUT_LABELS.length;
 
 export const LIMITS = { sensorsMin: 3, sensorsMax: 15, hiddenLayersMax: 3, neuronsMin: 2, neuronsMax: 16 };
 
-/** Сколько входов у сети при n сенсорах: сейчас, скорость, мгновение назад, заметки */
-export const inputCount = (sensorCount) => 2 * sensorCount + 1 + NOTES;
+export const SIGN_LABEL = 'зн';
 
-/** Подписи входов: s1…sn, v, s1′…sn′, m1…m3 */
+/** Сколько входов у сети при n сенсорах: сейчас, скорость, мгновение назад, знак, заметки */
+export const inputCount = (sensorCount) => 2 * sensorCount + 2 + NOTES;
+
+/** Сколько сенсоров у сети с таким числом входов */
+export const sensorsOf = (inputs) => (inputs - 2 - NOTES) / 2;
+
+/** Подписи входов: s1…sn, v, s1′…sn′, зн, m1…m3 */
 export function inputLabels(sensorCount) {
   const now = Array.from({ length: sensorCount }, (_, i) => `s${i + 1}`);
-  return [...now, 'v', ...now.map((s) => `${s}′`), ...NOTE_LABELS];
+  return [...now, 'v', ...now.map((s) => `${s}′`), SIGN_LABEL, ...NOTE_LABELS];
 }
 
-/** Подпись входа i у сети с sizes0 входами (s3, v, s3′, m1); если форма не наша — просто номер */
+/** Подпись входа i у сети с sizes0 входами (s3, v, s3′, зн, m1); если форма не наша — просто номер */
 export function inputLabel(sizes0, i) {
-  const n = (sizes0 - 1 - NOTES) / 2;
+  const n = sensorsOf(sizes0);
   return Number.isInteger(n) && n > 0 ? inputLabels(n)[i] : `вход ${i + 1}`;
 }
 

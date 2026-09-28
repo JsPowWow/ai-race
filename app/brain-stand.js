@@ -34,7 +34,7 @@ export function createStand(canvas, file) {
   function tick() {
     car.sense(track, null);
     for (const i of pressed) { car.readings[i] = PRESSED; car.rayT[i] = 1 - PRESSED; }
-    const inputs = car.inputs(); // сейчас, скорость, мгновение назад, заметки — как в настоящем заезде
+    const inputs = car.inputs(); // сейчас, скорость, мгновение назад, знак, заметки — как в настоящем заезде
     car.before = car.readings.slice();
     const out = think(inputs, bot.brain);
     trace = feedForward.lastTrace.map((l) => [...l]);

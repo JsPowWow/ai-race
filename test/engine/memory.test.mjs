@@ -1,4 +1,4 @@
-// Память мозга: сенсоры мгновение назад (s′) и заметки (m1…m3), которые мозг пишет сам себе.
+// Память мозга: сенсоры мгновение назад (s′) и заметки (m1…m3), которые мозг пишет сам себе. И дорожный знак (зн).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createBrain, layerSizes, inputCount, inputLabels, NOTES, BUTTONS, OUTPUTS } from '../../engine/brain.js';
@@ -12,9 +12,9 @@ const SENSORS = { count: 5, spread: 90, length: 160 };
 const sizes = layerSizes(SENSORS.count, [6]);
 const smooth = thinkVariants.smooth.think;
 
-test('форма одна: сенсоры, скорость, сенсоры мгновение назад, заметки → 4 кнопки и заметки', () => {
-  assert.equal(inputCount(5), 5 + 1 + 5 + NOTES);
-  assert.deepEqual(inputLabels(2), ['s1', 's2', 'v', 's1′', 's2′', 'm1', 'm2', 'm3']);
+test('форма одна: сенсоры, скорость, сенсоры мгновение назад, знак, заметки → 4 кнопки и заметки', () => {
+  assert.equal(inputCount(5), 5 + 1 + 5 + 1 + NOTES);
+  assert.deepEqual(inputLabels(2), ['s1', 's2', 'v', 's1′', 's2′', 'зн', 'm1', 'm2', 'm3']);
   assert.equal(OUTPUTS, BUTTONS.length + NOTES);
   assert.deepEqual(sizes, [inputCount(5), 6, OUTPUTS]);
 });
@@ -34,6 +34,7 @@ test('на первом тике «мгновение назад» — то же
   assert.equal(x.length, inputCount(n));
   assert.deepEqual(x.slice(n + 1, 2 * n + 1), x.slice(0, n));
   assert.deepEqual(x.slice(-NOTES), [0, 0, 0]);
+  assert.equal(x[2 * n + 1], 0, 'на обычной трассе знака нет');
 });
 
 test('на следующем тике мозг видит свои заметки и прошлые сенсоры', () => {

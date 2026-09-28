@@ -3,9 +3,10 @@
 // поэтому его используют и вкладки, и расчёт финала в Web Worker, и скрипты в tools/.
 import { layerSizes, checkBrain, LIMITS } from './brain.js';
 
-// car@2 — мозг с памятью: сенсоры мгновение назад и заметки (см. engine/brain.js). Мозги car@1 к ней не подходят.
-export const FORMAT = 'ai-race/car@2';
-const OLD_FORMATS = ['ai-race/car@1', 'neuro-race/car@1'];
+// car@3 — мозг с памятью и дорожным знаком: сенсоры мгновение назад, знак и заметки (см. engine/brain.js).
+// Мозги car@1 и car@2 к ней не подходят: у них другое число входов.
+export const FORMAT = 'ai-race/car@3';
+const OLD_FORMATS = ['ai-race/car@1', 'ai-race/car@2', 'neuro-race/car@1'];
 
 /** Цвета машин по умолчанию (если в файле своего нет) */
 export const CAR_COLORS = ['#ffd60a', '#ff9f1c', '#ff3b30', '#ff3d7f', '#9b5cff', '#22d3ee', '#3ddc84', '#a3e635'];
@@ -41,7 +42,7 @@ export const avatarUrl = (svg) => (svg ? `data:image/svg+xml;charset=utf-8,${enc
  */
 export function parseCarFile(file) {
   if (file && OLD_FORMATS.includes(file.format)) {
-    throw new Error(`${String(file.name || 'Машина').slice(0, NAME_MAX)}: файл старого формата (мозг без памяти) — обучи мозг заново и сохрани файл`);
+    throw new Error(`${String(file.name || 'Машина').slice(0, NAME_MAX)}: файл старого формата (мозг без знака) — обучи мозг заново и сохрани файл`);
   }
   if (!file || typeof file !== 'object' || file.format !== FORMAT) {
     throw new Error(`это не файл машины (нет format: "${FORMAT}")`);

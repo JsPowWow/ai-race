@@ -198,8 +198,8 @@ function frameBoxes(lay) {
     return { id, x0: Math.min(...xs) - pad, y0: Math.min(...ys) - pad - top, x1: Math.max(...xs) + pad, y1: Math.max(...ys) + pad };
   };
   const inPts = lay.pos[0];
-  const input = { ...box(inPts.slice(0, n + 1), 'input', 16), x0: lay.inLeft }; // сверху — место для «было / сейчас»
-  const notesIn = { ...box(inPts.slice(2 * n + 1), 'notesIn'), x0: lay.inLeft };
+  const input = { ...box([...inPts.slice(0, n + 1), inPts[2 * n + 1]], 'input', 16), x0: lay.inLeft }; // сверху — место для «было / сейчас»
+  const notesIn = { ...box(inPts.slice(2 * n + 2), 'notesIn'), x0: lay.inLeft };
   const outs = lay.pos[last], bx = outs[0][0];
   const b = box(outs.slice(0, lay.buttons), 'buttons');
   const buttons = { ...b, x0: bx - 14, x1: bx - 6 + lay.button.w + 8, y0: Math.min(input.y0, outs[0][1] - lay.button.h / 2 - 9), y1: Math.max(input.y1, outs[lay.buttons - 1][1] + lay.button.h / 2 + 9) };

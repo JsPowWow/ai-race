@@ -145,7 +145,7 @@ function write(brain, sel, value) {
   else brain.layers[sel.k].biases[sel.j] = value;
 }
 
-/** Имя нейрона: s1…sN, v, s1′…sN′, m1…m3 на входе, н1.2 внутри, «Газ»… и заметки на выходе */
+/** Имя нейрона: s1…sN, v, s1′…sN′, зн, m1…m3 на входе, н1.2 внутри, «Газ»… и заметки на выходе */
 function nodeName(brain, level, index) {
   if (level === 0) return inputLabel(brain.layers[0].weights.length, index);
   if (level === brain.layers.length) return OUTPUT_LABELS[index];

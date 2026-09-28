@@ -1,8 +1,9 @@
 // Геометрия «Табло мозга»: где стоит каждый нейрон и как идут связи. Чистые функции, без DOM.
 //
-// Входы мозга: s1…sn (сейчас), v, s1′…sn′ (мгновение назад), m1…m3 (заметки). Чтобы 18 входов
+// Входы мозга: s1…sn (сейчас), v, s1′…sn′ (мгновение назад), зн (дорожный знак), m1…m3 (заметки). Чтобы 19 входов
 // не превратились в частокол, сенсор «сейчас» и он же «мгновение назад» стоят в одной строке:
-// большой кружок и маленький слева от него. Заметки — своей группой внизу. Выходы: 4 кнопки пульта и заметки.
+// большой кружок и маленький слева от него. Знак — под скоростью, заметки — своей группой внизу.
+// Выходы: 4 кнопки пульта и заметки.
 
 /**
  * @param {number[]} sizes нейронов в каждом слое, от входов к выходам
@@ -17,8 +18,8 @@ export function layout(sizes, sensorCount, notes, W, H) {
   const top = 36, bottom = 34; // сверху — подписи рамок, снизу — петля заметок
   const start = narrow ? 84 : 118, end = narrow ? 92 : 170;
   const gapUnits = 1.1; // промежуток между группами, в строках
-  // строки входов: n пар «сейчас/мгновение назад» и v, потом заметки
-  const inRows = n + 1 + notes;
+  // строки входов: n пар «сейчас/мгновение назад», v и знак, потом заметки
+  const inRows = n + 2 + notes;
   const step = Math.min(46, (H - top - bottom - 30) / (inRows + gapUnits));
   const r = Math.max(9, Math.min(17, step * 0.4));
   const colX = (k) => start + ((W - start - end) * k) / last;
@@ -35,7 +36,7 @@ export function layout(sizes, sensorCount, notes, W, H) {
     return ys;
   };
 
-  const inY = column([n + 1, notes]);
+  const inY = column([n + 2, notes]);
   const rGhost = r * 0.45;
   const x0 = colX(0), ghost = r + 8 + rGhost; // маленький кружок «мгновение назад» — слева от большого
   const inLeft = x0 - ghost - rGhost - 17; // левый край рамок входов: над маленьким кружком влезает подпись «было»
@@ -43,20 +44,21 @@ export function layout(sizes, sensorCount, notes, W, H) {
     ...Array.from({ length: n }, (_, i) => [x0, inY[i]]), // s1…sn
     [x0, inY[n]], // v
     ...Array.from({ length: n }, (_, i) => [x0 - ghost, inY[i]]), // s1′…sn′
-    ...Array.from({ length: notes }, (_, i) => [x0, inY[n + 1 + i]]), // m1…m3
+    [x0, inY[n + 1]], // зн
+    ...Array.from({ length: notes }, (_, i) => [x0, inY[n + 2 + i]]), // m1…m3
   ];
   const hidden = sizes.slice(1, last).map((size, k) => {
     const g = Math.min(52, (H - top - bottom - 40) / size);
     return Array.from({ length: size }, (_, i) => [colX(k + 1), (top + H - bottom) / 2 + 10 + (i - (size - 1) / 2) * g]);
   });
-  // Кнопки — вровень со строками сенсоров (от s1 до v), заметки на выходе — в тех же строках, что m1…m3 на входе:
+  // Кнопки — вровень со строками сенсоров (от s1 до знака), заметки на выходе — в тех же строках, что m1…m3 на входе:
   // что мозг записал справа, то в той же строке и прочитает слева
   const buttons = sizes[last] - notes;
-  const span = inY[n] - inY[0], gap = Math.min(96, span / Math.max(1, buttons - 1));
+  const span = inY[n + 1] - inY[0], gap = Math.min(96, span / Math.max(1, buttons - 1));
   const firstButton = inY[0] + (span - gap * (buttons - 1)) / 2;
   const outputs = [
     ...Array.from({ length: buttons }, (_, i) => [colX(last), firstButton + i * gap]),
-    ...Array.from({ length: notes }, (_, i) => [colX(last), inY[n + 1 + i]]),
+    ...Array.from({ length: notes }, (_, i) => [colX(last), inY[n + 2 + i]]),
   ];
 
   const button = { w: narrow ? 78 : 132, h: narrow ? 38 : 36 };

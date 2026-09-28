@@ -48,9 +48,12 @@ export const examTab = {
 
 // ── экзамен ──
 
+// «Лабиринт» пока не в экзамене: на гонке развилок нет, экзамен проверяет то, что понадобится на гонке
+const KNOWN = TRAINING_TRACKS.filter((t) => !t.maze);
+
 /** Как на гонке: всегда с попутными и встречными машинами */
 const examTracks = () => [
-  ...TRAINING_TRACKS.map(({ id }) => ({ track: withTraffic(getTrainingTrack(id), 'all'), known: true })),
+  ...KNOWN.map(({ id }) => ({ track: withTraffic(getTrainingTrack(id), 'all'), known: true })),
   ...UNKNOWN_SEEDS.map((seed) => ({ track: withTraffic(seedTrack(seed), 'all'), known: false })),
 ];
 
@@ -74,7 +77,7 @@ function playReplay(index) {
   renderResults();
 }
 
-const trackTitle = (r, i) => (r.known ? r.track.name : `Незнакомая ${i - TRAINING_TRACKS.length + 1}`);
+const trackTitle = (r, i) => (r.known ? r.track.name : `Незнакомая ${i - KNOWN.length + 1}`);
 
 const statusHtml = (r) =>
   r.status === 'finished' ? '<span class="st-ok">доехал</span>'

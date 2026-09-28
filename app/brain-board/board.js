@@ -2,7 +2,7 @@
 // «теплота», импульсы, формула нейрона, зум и нажатие на сенсор. Форму мозга (сенсоры, слои, заметки)
 // табло узнаёт из самого мозга: она одна на весь курс (engine/brain.js).
 import { liveSize } from '../ui.js';
-import { inputLabels, OUTPUT_LABELS, NOTES } from '../../engine/brain.js';
+import { inputLabels, sensorsOf, OUTPUT_LABELS, NOTES } from '../../engine/brain.js';
 import { layout, buttonCenter } from './layout.js';
 import { formulaHTML, SMOOTH } from './formula.js';
 import { drawFire, readSkin } from './fire-skin.js';
@@ -13,10 +13,10 @@ const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
 /** Подписи табло для мозга этой формы. Рамки: [[обычная, пояснение], [для узкого экрана]] */
 function labelsFor(sizes, act) {
-  const n = (sizes[0] - 1 - NOTES) / 2;
+  const n = sensorsOf(sizes[0]);
   /** @type {Record<string, string[][]>} */
   const frames = {
-    input: [[`СЕНСОРЫ s1–s${n} и скорость v`, 'пунктир — мгновение назад'], ['СЕНСОРЫ и v', '']],
+    input: [[`СЕНСОРЫ s1–s${n}, скорость v, знак зн`, 'пунктир — мгновение назад'], ['СЕНСОРЫ, v, зн', '']],
     notesIn: [['ЗАМЕТКИ m1–m3', 'с прошлого шага'], ['ЗАМЕТКИ', '']],
     buttons: [['ПУЛЬТ', act.outName], ['ПУЛЬТ', '']],
     notesOut: [['ЗАМЕТКИ', 'на следующий шаг'], ['ЗАМЕТКИ', '']],

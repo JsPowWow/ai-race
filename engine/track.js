@@ -1,5 +1,6 @@
 // Трассы: центральная линия, бордюры, прогресс вдоль трассы, генерация по seed.
 import { mulberry32, hashString, clamp, segmentT } from './utils.js';
+import { drawMaze } from './maze.js';
 
 export const LANES = 3;          // сколько полос
 export const LANE_WIDTH = 56;    // ширина полосы, px (машина — 24 px)
@@ -68,9 +69,8 @@ function buildGrid(segs) {
   return { minX, minY, cols, rows, cells, stamp: new Uint32Array(segs.length / 4), tick: 1 };
 }
 
-/** Собрать трассу из опорных точек */
-export function buildTrack({ name, points, width = TRACK_WIDTH, lanes = LANES, id }) {
-  const center = resample(catmullRom(points), SPACING);
+/** Одна дорога из центральной линии: длина вдоль неё, края, разметка полос */
+function makeRoad(center, width, lanes) {
   const n = center.length;
   const cum = new Float64Array(n);
   for (let i = 1; i < n; i++) {
@@ -90,25 +90,95 @@ export function buildTrack({ name, points, width = TRACK_WIDTH, lanes = LANES, i
       dividers[k - 1].push({ x: center[i].x + nx * off, y: center[i].y + ny * off });
     }
   }
-  const segList = [];
-  for (let i = 0; i < n - 1; i++) {
-    segList.push(left[i].x, left[i].y, left[i + 1].x, left[i + 1].y);
-    segList.push(right[i].x, right[i].y, right[i + 1].x, right[i + 1].y);
+  return { center, cum, total: cum[n - 1], left, right, dividers };
+}
+
+/** Расстояние от точки до центральной линии дороги (квадрат) — на отрезках lo…hi */
+function nearestOn(road, x, y, lo = 0, hi = road.center.length - 2) {
+  const { center, cum } = road;
+  lo = Math.max(0, lo); hi = Math.min(center.length - 2, hi);
+  let best = Infinity, idx = lo, s = cum[lo];
+  for (let i = lo; i <= hi; i++) {
+    const a = center[i], b = center[i + 1];
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const l2 = dx * dx + dy * dy || 1;
+    const t = clamp(((x - a.x) * dx + (y - a.y) * dy) / l2, 0, 1);
+    const px = a.x + dx * t - x, py = a.y + dy * t - y;
+    const d = px * px + py * py;
+    if (d < best) { best = d; idx = i; s = cum[i] + Math.sqrt(l2) * t; }
   }
-  segList.push(left[0].x, left[0].y, right[0].x, right[0].y);                 // стенка за стартом
-  segList.push(left[n - 1].x, left[n - 1].y, right[n - 1].x, right[n - 1].y); // стенка в конце
+  return { d2: best, idx, s };
+}
+
+/**
+ * Бордюры всех дорог. Где одна дорога заходит на другую (развилка, перекрёсток, трасса пересекает саму себя),
+ * бордюр убираем: там асфальт, проехать можно.
+ */
+function makeWalls(roads, hw) {
+  const limit = (hw - 1) ** 2;
+  const onRoad = (p) => roads.some((r) => nearestOn(r, p.x, p.y).d2 < limit);
+  const lerpPt = (a, b, t) => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
+  /** Где на отрезке a→b кончается асфальт: a снаружи, b на дороге (или наоборот) */
+  const edge = (a, b) => {
+    let lo = 0, hi = 1;
+    for (let k = 0; k < 12; k++) {
+      const mid = (lo + hi) / 2;
+      if (onRoad(lerpPt(a, b, mid)) === onRoad(a)) lo = mid; else hi = mid;
+    }
+    return lerpPt(a, b, (lo + hi) / 2);
+  };
+  const lines = [];
+  for (const r of roads) {
+    const n = r.center.length;
+    lines.push(r.left, r.right, [r.left[n - 1], r.right[n - 1]]);          // края и стенка в конце
+    if (r === roads[0]) lines.push([r.left[0], r.right[0]]);              // стенка за стартом
+  }
+  const walls = [];
+  for (const pts of lines) {
+    const inside = pts.map(onRoad);
+    let cur = inside[0] ? null : [pts[0]];
+    for (let i = 1; i < pts.length; i++) {
+      if (!inside[i - 1] && !inside[i]) cur.push(pts[i]);
+      else if (inside[i - 1] && !inside[i]) cur = [edge(pts[i - 1], pts[i]), pts[i]];
+      else if (!inside[i - 1] && inside[i]) { cur.push(edge(pts[i - 1], pts[i])); walls.push(cur); cur = null; }
+    }
+    if (cur && cur.length > 1) walls.push(cur);
+  }
+  return walls;
+}
+
+/**
+ * Собрать трассу из опорных точек.
+ * branches — тупики: ветки, которые отходят от основной дороги (их центральная линия начинается на ней).
+ * signs — дорожные знаки у основной дороги: { s, dir } — на расстоянии s от начала, dir = -1 налево, 1 направо.
+ * smooth: false — точки уже плотные (лабиринт), сглаживать не нужно.
+ */
+export function buildTrack({ name, points, width = TRACK_WIDTH, lanes = LANES, id, branches = [], signs = [], smooth = true }) {
+  const main = makeRoad(resample(smooth ? catmullRom(points) : points, SPACING), width, lanes);
+  const roads = [main];
+  for (const b of branches) {
+    const road = makeRoad(resample(b.points, SPACING), width, lanes);
+    const at = nearestOn(main, b.points[0].x, b.points[0].y);
+    roads.push({ ...road, fromIdx: at.idx, fromS: at.s });
+  }
+  const walls = makeWalls(roads, width / 2);
+  const segList = [];
+  for (const w of walls) for (let i = 0; i < w.length - 1; i++) segList.push(w[i].x, w[i].y, w[i + 1].x, w[i + 1].y);
   const segs = new Float64Array(segList);
 
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-  for (const p of [...left, ...right]) {
-    minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
-    minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
+  for (const r of roads) {
+    for (const p of [...r.left, ...r.right]) {
+      minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
+      minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
+    }
   }
   return {
-    id: id ?? name, name, width, lanes, dividers, center, cum, total: cum[n - 1], left, right, segs,
+    id: id ?? name, name, width, lanes, ...main, roads, walls, segs,
+    signs: signs.map((sg) => ({ ...sg, ...pointAt(main, sg.s) })),
     grid: buildGrid(segs),
     startS: START_S,
-    finishS: cum[n - 1] - FINISH_MARGIN,
+    finishS: main.total - FINISH_MARGIN,
     bbox: { minX, minY, maxX, maxY },
   };
 }
@@ -127,21 +197,35 @@ export function pointAt(track, s) {
   return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t, angle: Math.atan2(b.y - a.y, b.x - a.x), idx: i };
 }
 
-/** Где машина на трассе: ищем ближайший отрезок центральной линии рядом с прошлым */
-export function projectProgress(track, x, y, hint) {
-  const { center, cum } = track;
-  const lo = Math.max(0, hint - 6), hi = Math.min(center.length - 2, hint + 16);
-  let best = Infinity, bestIdx = hint, bestS = cum[hint];
-  for (let i = lo; i <= hi; i++) {
-    const a = center[i], b = center[i + 1];
-    const dx = b.x - a.x, dy = b.y - a.y;
-    const l2 = dx * dx + dy * dy || 1;
-    const t = clamp(((x - a.x) * dx + (y - a.y) * dy) / l2, 0, 1);
-    const px = a.x + dx * t - x, py = a.y + dy * t - y;
-    const d = px * px + py * py;
-    if (d < best) { best = d; bestIdx = i; bestS = cum[i] + Math.sqrt(l2) * t; }
+/**
+ * Где машина на трассе: ближайшая точка центральной линии рядом с прошлой (road — номер дороги, hint — отрезок).
+ * Ищем только рядом: если на перекрёстке свернуть на дальний участок трассы, прогресс не прыгнет вперёд.
+ * У развилки смотрим и на соседнюю дорогу — так машина переезжает с основной на тупик и обратно.
+ * progress — сколько проехано к финишу: в тупике чем глубже, тем меньше (финиш-то в другой стороне).
+ */
+export function projectProgress(track, x, y, hint, road = 0) {
+  const roads = track.roads ?? [track];
+  let best = { ...nearestOn(roads[road], x, y, hint - 6, hint + 16), road };
+  const tryRoad = (k, lo, hi) => {
+    const p = nearestOn(roads[k], x, y, lo, hi);
+    if (p.d2 < best.d2) best = { ...p, road: k };
+  };
+  if (road === 0) {
+    for (let k = 1; k < roads.length; k++) if (Math.abs(roads[k].fromIdx - hint) <= 16) tryRoad(k, 0, 16);
+  } else {
+    tryRoad(0, roads[road].fromIdx - 6, roads[road].fromIdx + 16);
   }
-  return { idx: bestIdx, s: bestS };
+  const progress = best.road === 0 ? best.s : roads[best.road].fromS - best.s;
+  return { road: best.road, idx: best.idx, s: progress };
+}
+
+export const SIGN_VIEW = 100; // знак видно за столько px до него — пока проезжаешь рядом
+
+/** Что показывает знак, мимо которого машина едет сейчас: -1 налево, 1 направо, 0 — знака рядом нет */
+export function signAt(track, road, s) {
+  if (road !== 0 || !track.signs) return 0;
+  for (const sg of track.signs) if (s > sg.s - SIGN_VIEW && s <= sg.s) return sg.dir;
+  return 0;
 }
 
 /** Луч или отрезок против бордюров: минимальная доля пути до столкновения, или -1 */
@@ -195,6 +279,19 @@ export const TRAINING_TRACKS = [
       { x: 320, y: 860 }, { x: 360, y: 1010 }, { x: 560, y: 1100 }, { x: 900, y: 1120 }, { x: 1400, y: 1120 }, { x: 1800, y: 1120 },
     ],
   },
+  {
+    // развилки: направо, налево, налево, направо — «всегда налево» не проедет. Перед каждой — знак,
+    // но у самой развилки его уже не видно: куда повернуть, надо помнить
+    id: 'maze', name: 'Лабиринт',
+    maze: [
+      ['line', 520], ['fork', 1],
+      ['line', 260], ['arc', -60, 320], ['line', 400], ['fork', -1],
+      ['line', 240], ['arc', 60, 320], ['line', 700], ['loop', 1], ['line', 900], ['arc', 90, 230],
+      ['line', 440], ['fork', -1],
+      ['line', 440], ['fork', 1],
+      ['line', 420],
+    ],
+  },
 ];
 
 /** Случайная трасса по seed (строка или число). Одинаковый seed — одинаковая трасса у всех. */
@@ -238,7 +335,7 @@ const cache = new Map();
 export function getTrainingTrack(id) {
   if (!cache.has(id)) {
     const def = TRAINING_TRACKS.find((t) => t.id === id);
-    cache.set(id, buildTrack(def));
+    cache.set(id, def.maze ? buildTrack({ ...def, ...drawMaze(def.maze), smooth: false }) : buildTrack({ ...def, points: def.points }));
   }
   return cache.get(id);
 }

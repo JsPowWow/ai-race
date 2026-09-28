@@ -302,7 +302,7 @@ function renderShape() {
       <button data-act="del" data-i="${i}" aria-label="Удалить слой ${i + 1}">×</button>
     </span>`).join('');
   $('#layersEditor').innerHTML = `
-    <span class="layer fixed" title="сенсоры сейчас, скорость, сенсоры мгновение назад, заметки">Входы <b>${inputCount(shape.sensors.count)}</b></span>${hidden}
+    <span class="layer fixed" title="сенсоры сейчас, скорость, сенсоры мгновение назад, знак, заметки">Входы <b>${inputCount(shape.sensors.count)}</b></span>${hidden}
     <span class="arrow" aria-hidden="true">→</span><span class="layer fixed" title="4 кнопки пульта и заметки">Выходы <b>${OUTPUTS}</b></span>`;
   $('#addLayer').disabled = shape.hidden.length >= LIMITS.hiddenLayersMax;
 

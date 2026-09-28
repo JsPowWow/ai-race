@@ -20,7 +20,7 @@ export function readPalette() {
   const v = cssColor;
   palette = {
     board: v('--board'), road: v('--road'), roadEdge: v('--road-edge'), seam: v('--seam'), slot: v('--slot'), rail: v('--rail'),
-    kerb: v('--kerb'), kerb2: v('--kerb-2'), checkLight: v('--check-light'), checkDark: v('--check-dark'),
+    kerb: v('--kerb'), kerb2: v('--kerb-2'), sign: v('--sign'), checkLight: v('--check-light'), checkDark: v('--check-dark'),
     you: v('--you'), ray: v('--ray'), rayHit: v('--ray-hit'),
     traffic: v('--traffic'), trafficOncoming: v('--traffic-oncoming'), trafficEdge: v('--traffic-edge'), crashed: v('--crashed'),
   };
@@ -102,34 +102,51 @@ const SECTION = 150; // длина одной секции игрушечной 
 export function drawTrack(ctx, track, cam) {
   const p = getPalette();
   const px = 1 / cam.scale;
+  const roads = track.roads ?? [track];
   // тень: трасса лежит на столе
   ctx.save();
   ctx.translate(0, 5);
-  roadPath(ctx, track);
   ctx.fillStyle = 'rgb(0 0 0 / 0.18)';
-  ctx.fill();
+  for (const road of roads) { roadPath(ctx, road); ctx.fill(); }
   ctx.restore();
-  roadPath(ctx, track);
   ctx.fillStyle = p.road;
-  ctx.fill();
-  // швы между секциями
-  for (let s = SECTION; s < track.total; s += SECTION) line(ctx, pointAt(track, s), track.width, p.seam, Math.max(2, 1.5 * px));
-  // прорези: медные рельсы, между ними тёмная щель
-  for (const lane of lanesOf(track)) {
-    polyPath(ctx, lane);
-    ctx.lineWidth = Math.max(7, 3 * px); ctx.strokeStyle = p.rail; ctx.stroke();
-    ctx.lineWidth = Math.max(3, 1.5 * px); ctx.strokeStyle = p.slot; ctx.stroke();
+  for (const road of roads) { roadPath(ctx, road); ctx.fill(); }
+  for (const road of roads) {
+    // швы между секциями
+    for (let s = SECTION; s < road.total; s += SECTION) line(ctx, pointAt(road, s), track.width, p.seam, Math.max(2, 1.5 * px));
+    // прорези: медные рельсы, между ними тёмная щель
+    for (const lane of lanesOf(road)) {
+      polyPath(ctx, lane);
+      ctx.lineWidth = Math.max(7, 3 * px); ctx.strokeStyle = p.rail; ctx.stroke();
+      ctx.lineWidth = Math.max(3, 1.5 * px); ctx.strokeStyle = p.slot; ctx.stroke();
+    }
   }
-  // бордюры: красные и белые пластиковые блоки
+  // бордюры: красные и белые пластиковые блоки. На развилках и перекрёстках их нет — там проезд
   const kw = Math.max(9, 3 * px);
-  for (const side of [track.left, track.right]) {
+  for (const side of track.walls ?? [track.left, track.right]) {
     ctx.lineWidth = kw; ctx.strokeStyle = p.kerb; polyPath(ctx, side); ctx.stroke();
     ctx.setLineDash([16, 16]); ctx.strokeStyle = p.kerb2; ctx.stroke();
     ctx.setLineDash([]);
   }
+  for (const sign of track.signs ?? []) drawSign(ctx, track, sign, p);
   // старт и финиш
   line(ctx, pointAt(track, track.startS - CAR.length / 2 - 4), track.width, p.kerb2, 5);
   checkered(ctx, pointAt(track, track.finishS), track.width, p);
+}
+
+/** Дорожный знак у обочины: синий круг с белой стрелкой — «езжай направо» или «налево» */
+function drawSign(ctx, track, { x, y, angle, dir }, p) {
+  const off = track.width / 2 + 26, r = 17;
+  const cx = x - Math.sin(angle) * off, cy = y + Math.cos(angle) * off; // справа по ходу, как у настоящей дороги
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.beginPath(); ctx.arc(0, 0, r + 2.5, 0, Math.PI * 2); ctx.fillStyle = p.kerb2; ctx.fill();
+  ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fillStyle = p.sign; ctx.fill();
+  ctx.rotate(angle); // стрелка — относительно направления езды
+  ctx.strokeStyle = p.kerb2; ctx.fillStyle = p.kerb2; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.beginPath(); ctx.moveTo(-9, 0); ctx.lineTo(2, 0); ctx.lineTo(2, dir * 7); ctx.stroke(); // прямо, потом поворот
+  ctx.beginPath(); ctx.moveTo(-4, dir * 5); ctx.lineTo(8, dir * 5); ctx.lineTo(2, dir * 13); ctx.closePath(); ctx.fill();
+  ctx.restore();
 }
 
 function line(ctx, pt, width, color, thick) {

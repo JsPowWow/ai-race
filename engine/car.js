@@ -1,6 +1,6 @@
 // Машина: физика, сенсоры, столкновения, прогресс.
 import { clamp, lerp, segmentT } from './utils.js';
-import { castSegment, projectProgress, pointAt } from './track.js';
+import { castSegment, projectProgress, pointAt, signAt } from './track.js';
 import { trafficAt } from './traffic.js';
 import { BUTTONS, NOTES } from './brain.js';
 
@@ -49,6 +49,7 @@ export class Car {
     this.think = think;
     this.sensors = { ...sensors };
     this.readings = new Array(sensors.count).fill(0);
+    this.sign = 0; // дорожный знак рядом: -1 налево, 1 направо, 0 — нет
     this.before = null; // что сенсоры видели тиком раньше (на первом тике — то же, что сейчас)
     this.notes = new Array(NOTES).fill(0); // заметки мозга самому себе: на старте пустые
     this.rayT = new Float32Array(sensors.count).fill(-1);
@@ -58,6 +59,7 @@ export class Car {
 
     this.status = 'driving'; // driving | crashed | stalled | timeout | finished
     this.ticks = 0;
+    this.road = 0; // 0 — основная дорога, дальше — тупики развилок
     this.segIdx = start.idx;
     this.s = track.startS;
     this.bestS = track.startS;
@@ -81,8 +83,9 @@ export class Car {
     if (traffic === undefined) traffic = track.traffic ? trafficAt(track, track.traffic, this.ticks) : null;
     this.ticks++;
     this.sense(track, traffic);
+    this.sign = signAt(track, this.road, this.s);
 
-    // что «видит» машина на этом тике: сенсоры, скорость, сенсоры тиком раньше, заметки (так же записывает пример «Учитель»)
+    // что «видит» машина на этом тике: сенсоры, скорость, сенсоры тиком раньше, знак, заметки (так же записывает пример «Учитель»)
     const inputs = this.inputs();
     this.lastInputs = inputs;
     this.before = this.readings.slice();
@@ -108,7 +111,8 @@ export class Car {
       return;
     }
 
-    const p = projectProgress(track, this.x, this.y, this.segIdx);
+    const p = projectProgress(track, this.x, this.y, this.segIdx, this.road);
+    this.road = p.road;
     this.segIdx = p.idx;
     this.s = p.s;
     if (this.s > this.bestS + 1) {
@@ -149,9 +153,9 @@ export class Car {
     this.topSpeed = Math.max(this.topSpeed, this.speed);
   }
 
-  /** Входы сети сейчас: [s1…sn, v, s1′…sn′, m1…m3] */
+  /** Входы сети сейчас: [s1…sn, v, s1′…sn′, зн, m1…m3] */
   inputs() {
-    return [...this.readings, this.speed / CAR.maxSpeed, ...(this.before ?? this.readings), ...this.notes];
+    return [...this.readings, this.speed / CAR.maxSpeed, ...(this.before ?? this.readings), this.sign, ...this.notes];
   }
 
   /** Сенсоры: 0 — стены не видно, 1 — стена вплотную. Слева направо. */
