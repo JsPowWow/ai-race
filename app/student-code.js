@@ -5,7 +5,7 @@ import * as mutate from '../student/mutate.js';
 import * as fitness from '../student/fitness.js';
 import * as crossover from '../student/crossover.js';
 import { SOURCES } from './generated/sources.js';
-import { compileSource } from '../engine/compile.js';
+import { compileSource } from '../engine/compile.ts';
 import * as acorn from 'acorn';
 import { load, save, remove } from './storage.js';
 
@@ -54,7 +54,7 @@ export const getSource = (id) => load(`code:${id}`, null) ?? originalSource(id);
 export const isEdited = (id) => load(`code:${id}`, null) !== null;
 
 // ── как выполняется код студента ──
-// Сама компиляция и её ограничения описаны в engine/compile.js.
+// Сама компиляция и её ограничения описаны в engine/compile.ts.
 // Здесь — то, что нужно редактору: синтаксис с номером строки и номер строки у ошибок выполнения.
 
 /** Ошибка в коде студента с номером строки (если его удалось понять) */

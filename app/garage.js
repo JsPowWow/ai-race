@@ -6,8 +6,8 @@
 //
 // Пересесть в другую машину = записать нынешнюю, прочитать другую и разослать события:
 // 'reset', 'config', 'champion', 'library', 'car' — вкладки перерисуются, как после смены мозга.
-import { checkBrain } from '../engine/brain.js';
-import { parseCarFile, checkAvatar, NAME_MAX } from '../engine/car-file.js';
+import { checkBrain } from '../engine/brain.ts';
+import { parseCarFile, checkAvatar, NAME_MAX } from '../engine/car-file.ts';
 import { state, blankCar, CAR_KEYS, CAR_COLORS, sizesOf, emit, on } from './state.js';
 import { openCarStore, bytes } from './car-store.js';
 import { runs, setRuns, legacyRuns } from './runs.js';

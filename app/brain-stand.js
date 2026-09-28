@@ -1,10 +1,10 @@
 // Стенд: машина бота на прямом участке «Разминки». Колёса крутятся, дорога бежит, а сама машина
 // не уезжает — поэтому можно спокойно зажать сенсор и посмотреть, что сделает мозг.
-import { Camera, fitCanvas, clear, drawTrack, drawCar, cssColor } from '../engine/render.js';
-import { Car } from '../engine/car.js';
-import { BUTTONS, NOTES } from '../engine/brain.js';
-import { getTrainingTrack, pointAt } from '../engine/track.js';
-import { parseCarFile } from '../engine/car-file.js';
+import { Camera, fitCanvas, clear, drawTrack, drawCar, cssColor } from '../engine/render.ts';
+import { Car } from '../engine/car.ts';
+import { BUTTONS, NOTES } from '../engine/brain.ts';
+import { getTrainingTrack, pointAt } from '../engine/track.ts';
+import { parseCarFile } from '../engine/car-file.ts';
 import { thinkVariants, feedForward } from '../student/think.js';
 import { liveSize } from './ui.js';
 

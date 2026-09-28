@@ -1,8 +1,8 @@
 // Холст с трассой: камера, отрисовка сцены, подсказки поверх (HUD, баннер).
-import { Camera, fitCanvas, clear, drawTrack, drawTraffic, drawCar, drawSensors, drawPack } from '../engine/render.js';
-import { trafficAt } from '../engine/traffic.js';
-import { lapOf } from '../engine/track.js';
-import { clamp } from '../engine/utils.js';
+import { Camera, fitCanvas, clear, drawTrack, drawTraffic, drawCar, drawSensors, drawPack } from '../engine/render.ts';
+import { trafficAt } from '../engine/traffic.ts';
+import { lapOf } from '../engine/track.ts';
+import { clamp } from '../engine/utils.ts';
 import { $, liveSize } from './ui.js';
 
 export const canvas = $('#stage');

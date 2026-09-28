@@ -1,8 +1,8 @@
 // Общее состояние приложения, его сохранение и простые события между вкладками.
-import { DEFAULT_SENSORS, rayCount } from '../engine/car.js';
-import { layerSizes } from '../engine/brain.js';
-import { CAR_COLORS } from '../engine/car-file.js';
-import { DEFAULT_PARTS } from '../engine/recipes.js';
+import { DEFAULT_SENSORS, rayCount } from '../engine/car.ts';
+import { layerSizes } from '../engine/brain.ts';
+import { CAR_COLORS } from '../engine/car-file.ts';
+import { DEFAULT_PARTS } from '../engine/recipes.ts';
 import { load, save } from './storage.js';
 import { live } from './student-code.js';
 

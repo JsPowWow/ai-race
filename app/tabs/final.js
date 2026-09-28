@@ -5,13 +5,13 @@
 import {
   STAGES, stageLabel, stageSeed, stageTrack, isSuperfinal, trafficSnapshot, hardStages,
   standings, superfinalists, finalStandings, nominations,
-} from '../../engine/rally.js';
-import { getTrainingTrack } from '../../engine/track.js';
-import { parseCarFile } from '../../engine/car-file.js';
+} from '../../engine/rally.ts';
+import { getTrainingTrack } from '../../engine/track.ts';
+import { parseCarFile } from '../../engine/car-file.ts';
 import { thinkVariants } from '../../student/think.js';
 import { BOTS } from '../generated/bots.js';
 import { buildEntries, openSealedFiles, readFileList, readDrop } from '../final/entries.js';
-import { generateCourseKeys, importPrivateKey } from '../../engine/seal.js';
+import { generateCourseKeys, importPrivateKey } from '../../engine/seal.ts';
 import { COURSE_KEY } from '../generated/course-key.js';
 import { runJobs, computeMode } from '../final/pool.js';
 import { StageReplay, countStatuses, drawStage, drawProgressStrip } from '../final/show.js';

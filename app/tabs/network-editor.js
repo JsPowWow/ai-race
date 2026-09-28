@@ -1,7 +1,7 @@
 // «Мозг под микроскопом» на вкладке «Я учу»: подсветка работы нейронов и ручная правка весов.
-import { createBrain, OUTPUT_LABELS, inputLabel } from '../../engine/brain.js';
-import { drawNetwork, hitNetwork } from '../../engine/netviz.js';
-import { mulberry32 } from '../../engine/utils.js';
+import { createBrain, OUTPUT_LABELS, inputLabel } from '../../engine/brain.ts';
+import { drawNetwork, hitNetwork } from '../../engine/netviz.ts';
+import { mulberry32 } from '../../engine/utils.ts';
 import { state, sizesOf, setChampion } from '../state.js';
 import { remember } from '../library.js';
 import { $ } from '../ui.js';
@@ -67,6 +67,7 @@ export function createNetworkEditor({ getTrace, onEdit }) {
 
   // ── события ──
 
+  /** @returns {[number, number]} где курсор — в CSS-пикселях холста */
   const pointer = (e) => {
     const rect = canvas.getBoundingClientRect();
     return [e.clientX - rect.left, e.clientY - rect.top];

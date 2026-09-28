@@ -1,12 +1,12 @@
 // Вкладка «Я учу» (урок 1): ездишь сам — заезды записываются, сеть учится повторять за тобой.
 // Здесь же «глаза» (сенсоры), форма сети и «мозг под микроскопом» — ручная правка весов.
-import { TRAINING_TRACKS, getTrainingTrack } from '../../engine/track.js';
-import { Car, carReport } from '../../engine/car.js';
-import { createBrain, cloneBrain } from '../../engine/brain.js';
-import { TRAFFIC_LEVELS, withTraffic } from '../../engine/traffic.js';
-import { sampleOf, worthLearning, trainEpoch, agreement, TEACH_THINK } from '../../engine/imitation.js';
-import { drawSeries } from '../../engine/netviz.js';
-import { cssColor } from '../../engine/render.js';
+import { TRAINING_TRACKS, getTrainingTrack } from '../../engine/track.ts';
+import { Car, carReport } from '../../engine/car.ts';
+import { createBrain, cloneBrain } from '../../engine/brain.ts';
+import { TRAFFIC_LEVELS, withTraffic } from '../../engine/traffic.ts';
+import { sampleOf, worthLearning, trainEpoch, agreement, TEACH_THINK } from '../../engine/imitation.ts';
+import { drawSeries } from '../../engine/netviz.ts';
+import { cssColor } from '../../engine/render.ts';
 import { state, persist, sizesOf, thinkFn, brainTitle, on, emit } from '../state.js';
 import { load, save } from '../storage.js';
 import { live } from '../student-code.js';

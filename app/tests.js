@@ -1,5 +1,5 @@
 // Проверки кода студентов. advice: true — это совет (жёлтый), а не ошибка (красный).
-import { createBrain, cloneBrain, brainSizes } from '../engine/brain.js';
+import { createBrain, cloneBrain, brainSizes } from '../engine/brain.ts';
 import { errorLine } from './student-code.js';
 
 class Fail extends Error {}

@@ -1,11 +1,11 @@
 // Вкладка «Учится само» (урок 2): рой и эволюция — поколения, отбор, мутация, кроссовер.
-import { TRAINING_TRACKS, getTrainingTrack, forksPassed, withCoins } from '../../engine/track.js';
-import { Car } from '../../engine/car.js';
-import { cloneBrain, checkBrain } from '../../engine/brain.js';
-import { Evolution } from '../../engine/evolution.js';
-import { FITNESS_PARTS, MUTATIONS, crossover, fitnessOf } from '../../engine/recipes.js';
-import { TRAFFIC_LEVELS, withTraffic } from '../../engine/traffic.js';
-import { drawChart } from '../../engine/netviz.js';
+import { TRAINING_TRACKS, getTrainingTrack, forksPassed, withCoins } from '../../engine/track.ts';
+import { Car } from '../../engine/car.ts';
+import { cloneBrain, checkBrain } from '../../engine/brain.ts';
+import { Evolution } from '../../engine/evolution.ts';
+import { FITNESS_PARTS, MUTATIONS, crossover, fitnessOf } from '../../engine/recipes.ts';
+import { TRAFFIC_LEVELS, withTraffic } from '../../engine/traffic.ts';
+import { drawChart } from '../../engine/netviz.ts';
 import { createBrainBoard } from '../brain-board/board.js';
 import { SMOOTH, ANY_ACT } from '../brain-board/formula.js';
 import { state, persist, persistSoon, sizesOf, thinkFn, setChampion, on, emit } from '../state.js';

@@ -1,6 +1,6 @@
 // AI Race — точка входа: вкладки, строка чемпиона и кадровый цикл.
-import { readPalette } from '../engine/render.js';
-import { drawChart } from '../engine/netviz.js';
+import { readPalette } from '../engine/render.ts';
+import { drawChart } from '../engine/netviz.ts';
 import { state, on, persist, sizesOf, brainTitle } from './state.js';
 import { restoreEdits, endCodeStartup } from './student-code.js';
 import { renderLesson } from './lesson.js';
@@ -8,7 +8,7 @@ import { beginFrame, showBanner, hideBanner } from './stage.js';
 import { steerWith } from './manual-drive.js';
 import { onStorageFull, load, save, remove } from './storage.js';
 import { startGarage } from './garage.js';
-import { checkBrain } from '../engine/brain.js';
+import { checkBrain } from '../engine/brain.ts';
 import { $, $$, esc, secs, pct, delegate } from './ui.js';
 import { trainTab, updateTraining, isTraining, redrawLeaderBrain } from './tabs/train.js';
 import { codeTab, runAllTests } from './tabs/code.js';

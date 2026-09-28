@@ -1,9 +1,9 @@
 // Показ записанного этапа: где каждая машина на тике t, кто впереди, и как это нарисовать.
 // Сотни машин рисуем попроще (paintPack), десятку лидеров и найденного участника — красиво, с подписями.
-import { REC_EVERY, REC_FIELDS } from '../../engine/rally.js';
-import { avatarUrl } from '../../engine/car-file.js';
-import { UI_FONT } from '../../engine/render.js';
-import { maxCurve } from '../../engine/car.js';
+import { REC_EVERY, REC_FIELDS } from '../../engine/rally.ts';
+import { avatarUrl } from '../../engine/car-file.ts';
+import { UI_FONT } from '../../engine/render.ts';
+import { maxCurve } from '../../engine/car.ts';
 import { paintCar, paintPack, paintScreen, toScreen } from '../stage.js';
 
 const OUT_VISIBLE_TICKS = 90;      // сколько ещё видно машину после схода

@@ -6,10 +6,10 @@
 // Есть всё, что бывает в жизни: одинаковые файлы, свой код, зависший код, битый файл, лишние JSON.
 import { mkdirSync, writeFileSync, rmSync, readFileSync } from 'fs';
 import { join } from 'path';
-import { cloneBrain } from '../engine/brain.js';
-import { mulberry32 } from '../engine/utils.js';
-import { generateCourseKeys, sealCar } from '../engine/seal.js';
-import { FORMAT } from '../engine/car-file.js';
+import { cloneBrain } from '../engine/brain.ts';
+import { mulberry32 } from '../engine/utils.ts';
+import { generateCourseKeys, sealCar } from '../engine/seal.ts';
+import { FORMAT } from '../engine/car-file.ts';
 
 const args = process.argv.slice(2).filter((a) => !a.startsWith('--'));
 const sealed = process.argv.includes('--seal');

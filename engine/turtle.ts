@@ -5,8 +5,24 @@
 //
 // Развилка — остров: дорога расходится на два одинаковых пути и снова сходится. У самой развилки
 // пути зеркальные: сенсоры видят одно и то же слева и справа. Какой путь свободен, а на каком
-// «медленная зона», решают судьи по ходу гонки (см. freeSide в track.js) — подскажет только знак.
-import { mulberry32 } from './utils.js';
+// «медленная зона», решают судьи по ходу гонки (см. freeSide в track.ts) — подскажет только знак.
+import { mulberry32, type Random } from './utils.ts';
+
+/** Точка на плоскости, px */
+export type Point = { x: number; y: number };
+/** Куда уходит путь: 1 — направо, -1 — налево */
+export type Side = 1 | -1;
+/** Команда черепашке (см. drawRing) */
+export type Command = ['line', number] | ['fit', number] | ['arc', number, number] | ['fork', Side];
+/** Кольцо, которое нарисовала черепашка: точки центральной линии и вторые пути островов */
+export type Ring = { points: Point[]; branches: { points: Point[]; side: Side; forkS: number }[] };
+
+type Turtle = Point & {
+  h: number; s: number; points: Point[];
+  line(len: number): void; arc(deg: number, r: number): void; bend(dir: number): void; island(dir: number): void;
+};
+/** Где черепашка начала развилку */
+type ForkAt = Point & { h: number; s: number; dir: Side };
 
 const STEP = 7; // шаг точек центральной линии, px
 const FORK = { turn: 50, radius: 150 }; // как расходятся пути: дуга туда и дуга обратно — вбок на ≈ 107 px
@@ -18,15 +34,15 @@ export const SIGN_GAP = 100; // знак стоит за столько px до 
 export const ZONE = { from: BEND - 10, to: BEND + ISLAND + 10 };
 
 /** Черепашка: идёт от (x, y) с направлением h и оставляет за собой точки */
-function turtle(x, y, h) {
-  const t = {
+function turtle(x: number, y: number, h: number): Turtle {
+  const t: Turtle = {
     x, y, h, s: 0, points: [{ x, y }],
     line(len) { walk(len, 0); },
     arc(deg, r) { walk((Math.abs(deg) * Math.PI * r) / 180, Math.sign(deg) / r); }, // плюс — направо
     bend(dir) { t.arc(dir * FORK.turn, FORK.radius); t.arc(-dir * FORK.turn, FORK.radius); },
     island(dir) { t.bend(dir); t.line(ISLAND); t.bend(-dir); }, // в сторону, рядом, обратно
   };
-  function walk(len, turnPerPx) {
+  function walk(len: number, turnPerPx: number): void {
     const n = Math.max(1, Math.ceil(len / STEP)), d = len / n;
     for (let i = 0; i < n; i++) {
       t.h += (turnPerPx * d) / 2; // половину поворота до шага, половину после — точно по дуге
@@ -40,15 +56,15 @@ function turtle(x, y, h) {
 }
 
 /** Пройти программу. fit — длины прямых 'fit' по порядку */
-function walkProgram(program, fit) {
+function walkProgram(program: Command[], fit: number[]): { road: Turtle; forks: ForkAt[]; fits: { h: number }[] } {
   const road = turtle(0, 0, 0);
-  const forks = [], fits = [];
-  for (const [cmd, a, b] of program) {
-    if (cmd === 'line') road.line(a);
-    else if (cmd === 'fit') { fits.push({ h: road.h }); road.line(fit[fits.length - 1]); }
-    else if (cmd === 'arc') road.arc(a, b);
-    else if (cmd === 'fork') { forks.push({ x: road.x, y: road.y, h: road.h, s: road.s, dir: a }); road.island(a); }
-    else throw new Error(`Непонятная команда трассы: ${cmd}`);
+  const forks: ForkAt[] = [], fits: { h: number }[] = [];
+  for (const command of program) {
+    if (command[0] === 'line') road.line(command[1]);
+    else if (command[0] === 'fit') { fits.push({ h: road.h }); road.line(fit[fits.length - 1]); }
+    else if (command[0] === 'arc') road.arc(command[1], command[2]);
+    else if (command[0] === 'fork') { forks.push({ x: road.x, y: road.y, h: road.h, s: road.s, dir: command[1] }); road.island(command[1]); }
+    else throw new Error(`Непонятная команда трассы: ${String(command[0])}`);
   }
   return { road, forks, fits };
 }
@@ -62,11 +78,11 @@ function walkProgram(program, fit) {
  * Возвращает то, что нужно buildTrack: точки кольца (последняя совпадает с первой) и второй путь каждого острова
  * (side — куда от развилки уходит само кольцо, forkS — где развилка). Или null, если кольцо не замыкается (подгоняемые прямые вышли бы короче 30 px).
  */
-export function drawRing(program) {
+export function drawRing(program: Command[]): Ring | null {
   const turn = program.reduce((sum, [cmd, deg]) => sum + (cmd === 'arc' ? deg : 0), 0);
   const extra = ((turn % 360) + 360) % 360;
   if (Math.min(extra, 360 - extra) > 1e-6) throw new Error(`Кольцо должно поворачивать на 360°, а поворачивает на ${turn}°`);
-  const base = program.filter(([cmd]) => cmd === 'fit').map(([, len]) => len);
+  const base = program.flatMap((command) => (command[0] === 'fit' ? [command[1]] : []));
   const first = walkProgram(program, base);
   const fit = closeRing(first.road, first.fits, base);
   if (!fit) return null;
@@ -79,10 +95,10 @@ export function drawRing(program) {
 }
 
 /** Экран шире, чем выше: высокое кольцо кладём набок, чтобы оно заняло экран крупнее */
-function landscape(ring) {
+function landscape(ring: Ring): Ring {
   const xs = ring.points.map((p) => p.x), ys = ring.points.map((p) => p.y);
   if (Math.max(...xs) - Math.min(...xs) >= Math.max(...ys) - Math.min(...ys)) return ring;
-  const turn = (points) => points.map(({ x, y }) => ({ x: -y, y: x })); // поворот на 90° по часовой: право и лево не меняются
+  const turn = (points: Point[]): Point[] => points.map(({ x, y }) => ({ x: -y, y: x })); // поворот на 90° по часовой: право и лево не меняются
   return { points: turn(ring.points), branches: ring.branches.map((b) => ({ ...b, points: turn(b.points) })) };
 }
 
@@ -91,8 +107,8 @@ function landscape(ring) {
  * От длины прямой направление дальше не зависит — только положение: удлинили прямую на Δ, конец сдвинулся на Δ вдоль неё.
  * Берём две прямые, которые смотрят в самые разные стороны, и решаем систему из двух уравнений.
  */
-function closeRing(road, fits, base) {
-  let best = null;
+function closeRing(road: Turtle, fits: { h: number }[], base: number[]): number[] | null {
+  let best: { i: number; j: number; det: number } | null = null;
   for (let i = 0; i < fits.length; i++) {
     for (let j = i + 1; j < fits.length; j++) {
       const det = Math.sin(fits[j].h - fits[i].h);
@@ -111,7 +127,7 @@ function closeRing(road, fits, base) {
 }
 
 /** Второй путь острова: зеркально дороге уходит в другую сторону и возвращается к ней */
-function secondPath(fork) {
+function secondPath(fork: ForkAt): Point[] {
   const t = turtle(fork.x, fork.y, fork.h);
   t.island(-fork.dir);
   return t.points;
@@ -128,7 +144,7 @@ const SIGN_STRAIGHT = 200;   // прямая перед развилкой: на
 const AFTER_FORK = 20;       // и чуть-чуть прямо после острова
 
 /** Программа кольца из генератора случайных чисел rng */
-function randomProgram(rng) {
+function randomProgram(rng: Random): Command[] {
   const count = 4 + Math.floor(rng() * 3);
   const way = rng() < 0.5 ? 1 : -1; // по часовой (направо) или против
   const corners = Array.from({ length: count }, (_, k) => {
@@ -149,10 +165,10 @@ function randomProgram(rng) {
   const island = sides.reduce((best, sd, i) => (sd.len > sides[best].len ? i : best), 0);
   const start = sides.reduce((best, sd, i) => (i !== island && (best < 0 || sd.len > sides[best].len) ? i : best), -1);
   const perimeter = sides.reduce((sum, sd) => sum + sd.len, 0);
-  const straight = (i) => Math.max(40, (sides[i].len * SIZE) / perimeter - corners[i].cut - corners[(i + 1) % count].cut);
+  const straight = (i: number): number => Math.max(40, (sides[i].len * SIZE) / perimeter - corners[i].cut - corners[(i + 1) % count].cut);
   // черепашка стартует с середины стартовой стороны. Сторона с островом — какой нужно длины,
   // а остальные прямые 'fit' черепашка потом растянет, чтобы кольцо замкнулось
-  const program = [];
+  const program: Command[] = [];
   for (let k = 0; k < count; k++) {
     const i = (start + k) % count;
     if (k === 0) program.push(['fit', straight(i) / 2]);
@@ -169,11 +185,11 @@ function randomProgram(rng) {
  * Не тесно ли: два участка кольца, далёкие по пути, не ближе двух ширин — между ними бордюры и трава.
  * Второй путь острова касается дороги только у своей развилки.
  */
-function crowded({ points, branches }, width) {
+function crowded({ points, branches }: Ring, width: number): boolean {
   const main = withS(points).filter((_, i) => i % 3 === 0);
-  const lap = main.at(-1).s;
-  const apart = (a, b) => Math.min(Math.abs(a - b), lap - Math.abs(a - b)); // расстояние по кольцу
-  const close = (a, b, gap) => (a.x - b.x) ** 2 + (a.y - b.y) ** 2 < gap * gap;
+  const lap = main[main.length - 1].s;
+  const apart = (a: number, b: number): number => Math.min(Math.abs(a - b), lap - Math.abs(a - b)); // расстояние по кольцу
+  const close = (a: Point, b: Point, gap: number): boolean => (a.x - b.x) ** 2 + (a.y - b.y) ** 2 < gap * gap;
   const sparse = main.filter((_, i) => i % 3 === 0);
   for (const p of sparse) {
     for (const q of sparse) if (q.s < p.s && apart(p.s, q.s) > 600 && close(p, q, 2.2 * width)) return true;
@@ -187,7 +203,7 @@ function crowded({ points, branches }, width) {
 }
 
 /** Точки с расстоянием s от начала */
-function withS(points) {
+function withS(points: Point[]): (Point & { s: number })[] {
   let s = 0;
   return points.map((p, i) => {
     if (i) s += Math.hypot(p.x - points[i - 1].x, p.y - points[i - 1].y);
@@ -196,7 +212,7 @@ function withS(points) {
 }
 
 /** Случайное кольцо по числу seed: пробуем программы, пока не выйдет просторное */
-export function randomRing(seed, width) {
+export function randomRing(seed: number, width: number): Ring {
   for (let attempt = 0; attempt < 300; attempt++) {
     const drawn = drawRing(randomProgram(mulberry32(seed + attempt * 7919)));
     if (drawn && !crowded(drawn, width)) return drawn;

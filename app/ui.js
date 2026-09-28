@@ -1,5 +1,5 @@
 // Мелкие помощники для работы со страницей.
-import { avatarUrl } from '../engine/car-file.js';
+import { avatarUrl } from '../engine/car-file.ts';
 
 export const $ = (selector, root = document) => root.querySelector(selector);
 export const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];

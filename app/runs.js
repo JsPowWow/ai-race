@@ -1,8 +1,8 @@
 // «Мои заезды»: записанные ручные заезды для обучения с учителем.
-// Заезд — это примеры «что видела сеть → что нажал человек», упакованные в строки (см. engine/imitation.js).
+// Заезд — это примеры «что видела сеть → что нажал человек», упакованные в строки (см. engine/imitation.ts).
 // Заезды — у каждой машины гаража свои (записаны под её сенсоры): лежат в её папке, в runs.json.
 // Здесь — заезды выбранной машины; пересели в другую — гараж подменит их через setRuns().
-import { packSample, unpackSample, worthLearning } from '../engine/imitation.js';
+import { packSample, unpackSample, worthLearning } from '../engine/imitation.ts';
 import { emit } from './state.js';
 import { load, remove } from './storage.js';
 

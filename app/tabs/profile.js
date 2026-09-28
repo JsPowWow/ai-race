@@ -1,11 +1,11 @@
 // Вкладка «Профиль»: облик машины и сборка за очки (#19) — глаза вперёд и назад, слои мозга, как он думает.
 // Сборку меняешь черновиком: машина на трассе и табло мозга сразу показывают, что получится, а в сборку
 // всё уходит разом — по «Применить». «Отменить» возвращает как было.
-import { getTrainingTrack } from '../../engine/track.js';
-import { Car, rayCount, rays, BACK_SPREAD } from '../../engine/car.js';
-import { LIMITS, inputCount, OUTPUTS, checkBrain, createBrain } from '../../engine/brain.js';
-import { BUDGET, PRICES, cost } from '../../engine/build.js';
-import { withTraffic } from '../../engine/traffic.js';
+import { getTrainingTrack } from '../../engine/track.ts';
+import { Car, rayCount, rays, BACK_SPREAD } from '../../engine/car.ts';
+import { LIMITS, inputCount, OUTPUTS, checkBrain, createBrain } from '../../engine/brain.ts';
+import { BUDGET, PRICES, cost } from '../../engine/build.ts';
+import { withTraffic } from '../../engine/traffic.ts';
 import { state, sizesOf, thinkFn, on } from '../state.js';
 import { live } from '../student-code.js';
 import { changeShape, shapeResetsBrain } from '../library.js';

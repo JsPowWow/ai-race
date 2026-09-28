@@ -1,6 +1,6 @@
 // Формула нейрона «в столбик»: те же округлённые числа, что в узлах, поэтому сумма у новичка сходится.
 import { esc } from '../ui.js';
-import { BUTTONS } from '../../engine/brain.js';
+import { BUTTONS } from '../../engine/brain.ts';
 
 /** Числа без дребезга: знак всегда, две цифры, ширина одна и та же */
 export const fmt = (v) => (v < 0 ? '−' : '+') + Math.min(0.99, Math.abs(v)).toFixed(2).replace(/^0/, '');

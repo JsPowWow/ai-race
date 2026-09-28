@@ -1,11 +1,11 @@
 // Файл машины для гонки: сенсоры, слои, вариант мозга, веса — и немного украшений (цвет, аватар).
 // Здесь только проверка: модуль не знает ни про страницу, ни про код студента,
 // поэтому его используют и вкладки, и расчёт финала в Web Worker, и скрипты в tools/.
-import { layerSizes, checkBrain, LIMITS } from './brain.js';
-import { rayCount, BACK_SPREAD } from './car.js';
-import { BUDGET, cost } from './build.js';
+import { layerSizes, checkBrain, LIMITS, type Brain } from './brain.ts';
+import { rayCount, BACK_SPREAD, type Sensors } from './car.ts';
+import { BUDGET, cost } from './build.ts';
 
-// car@3 — мозг с памятью и дорожным знаком: сенсоры мгновение назад, знак и заметки (см. engine/brain.js).
+// car@3 — мозг с памятью и дорожным знаком: сенсоры мгновение назад, знак и заметки (см. engine/brain.ts).
 // Мозги car@1 и car@2 к ней не подходят: у них другое число входов.
 export const FORMAT = 'ai-race/car@3';
 const OLD_FORMATS = ['ai-race/car@1', 'ai-race/car@2', 'neuro-race/car@1'];
@@ -23,7 +23,7 @@ export const AVATAR_MAX = 8000; // символов SVG — хватит на п
  * Проверка ниже — вторая линия защиты: отбрасываем то, чему в картинке делать нечего.
  * Возвращает строку SVG или null (аватара нет). Бросает Error, если аватар плохой.
  */
-export function checkAvatar(svg) {
+export function checkAvatar(svg: unknown): string | null {
   if (svg === undefined || svg === null || svg === '') return null;
   if (typeof svg !== 'string') throw new Error('аватар должен быть строкой с SVG');
   const text = svg.trim();
@@ -35,45 +35,58 @@ export function checkAvatar(svg) {
   return text;
 }
 
-export const avatarUrl = (svg) => (svg ? `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}` : null);
+export const avatarUrl = (svg: string | null | undefined): string | null => (svg ? `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}` : null);
 
-/**
- * Проверить файл участника. Бросает Error с понятным текстом.
- * Возвращает { name, color, avatar, sensors, sizes, brain, thinkId, code }.
- * code — текст своего модуля think.js (только для варианта «Мой»), think ещё не выбран.
- */
-export function parseCarFile(file) {
-  if (file && OLD_FORMATS.includes(file.format)) {
+/** Файл машины, каким он пришёл: JSON от кого угодно, ни одному полю верить нельзя */
+type RawCarFile = {
+  format?: unknown; name?: unknown; color?: unknown; avatar?: unknown;
+  sensors?: { count?: unknown; spread?: unknown; length?: unknown; back?: unknown; backLength?: unknown; backSpread?: unknown };
+  layers?: unknown; brain?: unknown; think?: unknown; thinkSource?: unknown;
+};
+
+/** Проверенный файл машины. code — текст своего модуля think.js (только для варианта «Мой»), think ещё не выбран */
+export type ParsedCar = {
+  name: string; color: string | null; avatar: string | null;
+  sensors: Sensors; sizes: number[]; brain: Brain; thinkId: string; code: string | null;
+};
+
+/** Проверить файл участника. Бросает Error с понятным текстом */
+export function parseCarFile(input: unknown): ParsedCar {
+  const file: RawCarFile = typeof input === 'object' && input !== null ? input : {};
+  if (typeof file.format === 'string' && OLD_FORMATS.includes(file.format)) {
     throw new Error(`${String(file.name || 'Машина').slice(0, NAME_MAX)}: файл старого формата (мозг без знака) — обучи мозг заново и сохрани файл`);
   }
-  if (!file || typeof file !== 'object' || file.format !== FORMAT) {
+  if (file.format !== FORMAT) {
     throw new Error(`это не файл машины (нет format: "${FORMAT}")`);
   }
   const name = String(file.name || 'Без имени').trim().slice(0, NAME_MAX) || 'Без имени';
-  const fail = (msg) => { throw new Error(`${name}: ${msg}`); };
+  const fail = (msg: string): never => { throw new Error(`${name}: ${msg}`); };
 
-  const color = /^#[0-9a-f]{6}$/i.test(file.color) ? file.color.toLowerCase() : null;
+  const color = typeof file.color === 'string' && /^#[0-9a-f]{6}$/i.test(file.color) ? file.color.toLowerCase() : null;
   let avatar = null;
   try {
     avatar = checkAvatar(file.avatar);
   } catch (e) {
-    fail(e.message);
+    fail(e instanceof Error ? e.message : String(e));
   }
 
   const s = file.sensors ?? {};
-  const sensors = { count: s.count | 0, spread: +s.spread, length: +s.length };
+  const sensors: Sensors = { count: Number(s.count) | 0, spread: Number(s.spread), length: Number(s.length) };
   if (sensors.count < LIMITS.sensorsMin || sensors.count > LIMITS.sensorsMax) fail(`сенсоров должно быть от ${LIMITS.sensorsMin} до ${LIMITS.sensorsMax}`);
   if (!(sensors.spread >= 30 && sensors.spread <= 180)) fail('угол обзора вне 30–180°');
   if (!(sensors.length >= 80 && sensors.length <= 260)) fail('дальность вне 80–260 px');
   if (s.back) { // сенсоры назад — по желанию; в старых файлах их нет
-    Object.assign(sensors, { back: s.back | 0, backLength: +s.backLength, backSpread: +(s.backSpread ?? BACK_SPREAD) });
-    if (sensors.back < 0 || sensors.back > LIMITS.backMax) fail(`сенсоров назад — не больше ${LIMITS.backMax}`);
-    if (!(sensors.backLength >= 40 && sensors.backLength <= 200)) fail('дальность сенсоров назад вне 40–200 px');
-    if (!(sensors.backSpread >= 10 && sensors.backSpread <= 180)) fail('угол обзора сзади вне 10–180°');
+    const back = Number(s.back) | 0, backLength = Number(s.backLength), backSpread = Number(s.backSpread ?? BACK_SPREAD);
+    Object.assign(sensors, { back, backLength, backSpread });
+    if (back < 0 || back > LIMITS.backMax) fail(`сенсоров назад — не больше ${LIMITS.backMax}`);
+    if (!(backLength >= 40 && backLength <= 200)) fail('дальность сенсоров назад вне 40–200 px');
+    if (!(backSpread >= 10 && backSpread <= 180)) fail('угол обзора сзади вне 10–180°');
   }
 
-  const hidden = Array.isArray(file.layers) ? file.layers.slice(1, -1) : [];
-  const tooBig = hidden.length > LIMITS.hiddenLayersMax || hidden.some((n) => !(n >= LIMITS.neuronsMin && n <= LIMITS.neuronsMax));
+  const layers: unknown[] = Array.isArray(file.layers) ? file.layers : [];
+  const hidden = layers.slice(1, -1).filter((n) => typeof n === 'number');
+  const tooBig = hidden.length !== Math.max(0, layers.length - 2) || hidden.length > LIMITS.hiddenLayersMax
+    || hidden.some((n) => !(n >= LIMITS.neuronsMin && n <= LIMITS.neuronsMax));
   if (tooBig) fail('сеть больше разрешённой');
   const price = cost({ sensors, hidden });
   if (price > BUDGET) fail(`сборка стоит ${price} очков, а бюджет — ${BUDGET}`);
@@ -84,8 +97,8 @@ export function parseCarFile(file) {
   const thinkId = String(file.think ?? '');
   let code = null;
   if (thinkId === 'mine') {
-    if (typeof file.thinkSource !== 'string' || !file.thinkSource.trim()) fail('вариант «Мой», но нет thinkSource');
+    if (typeof file.thinkSource !== 'string' || !file.thinkSource.trim()) return fail('вариант «Мой», но нет thinkSource');
     code = file.thinkSource.slice(0, CODE_MAX);
   }
-  return { name, color, avatar, sensors, sizes, brain: file.brain, thinkId, code };
+  return { name, color, avatar, sensors, sizes, brain: file.brain as Brain, thinkId, code }; // мозг проверен checkBrain выше
 }

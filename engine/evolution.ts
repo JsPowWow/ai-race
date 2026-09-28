@@ -1,29 +1,69 @@
 // Эволюция: поколение машин, отбор лучшей, мутации.
-import { Car, carReport, maxTicksFor } from './car.js';
-import { createBrain, cloneBrain, checkBrain } from './brain.js';
-import { trafficAt } from './traffic.js';
+import { Car, carReport, maxTicksFor, type Sensors, type Think, type CarReport } from './car.ts';
+import { createBrain, cloneBrain, checkBrain, type Brain } from './brain.ts';
+import { trafficAt, type TrafficSpot } from './traffic.ts';
+import type { Track } from './track.ts';
+import type { Mutate } from './recipes.ts';
 
-/**
- * Настройки роя. think/mutate/fitness/crossover — функции студента: их можно подменять между поколениями.
- * @typedef {object} EvolutionOptions
- * @property {number[]} sizes размеры слоёв сети
- * @property {{ count: number, spread: number, length: number }} sensors сенсоры
- * @property {Function} think как сеть превращает входы в нажатия
- * @property {(brain: object, rate: number) => void} mutate встряхнуть веса
- * @property {(report: object) => number} fitness оценка заезда
- * @property {Function} [crossover] ребёнок от двух родителей
- * @property {1 | 2} [parents] 1 — дети копируют одного родителя, 2 — скрещивают двух (crossover)
- * @property {number} population машин в поколении
- * @property {number} rate сила мутации
- * @property {object} [parent] лучший мозг прошлого поколения
- * @property {object} [parent2] второй родитель
- */
+/** Ребёнок от двух родителей (функция студента: что вернёт — проверяем) */
+export type Crossover = (mom: Brain, dad: Brain) => unknown;
+/** Оценка заезда (функция студента): чем больше, тем лучше */
+export type Fitness = (report: CarReport) => number;
+
+/** Настройки роя. think/mutate/fitness/crossover — функции студента: их можно подменять между поколениями */
+export type EvolutionOptions = {
+  /** размеры слоёв сети */
+  sizes: number[];
+  sensors: Sensors;
+  /** как сеть превращает входы в нажатия */
+  think: Think;
+  /** встряхнуть веса */
+  mutate: Mutate;
+  /** оценка заезда */
+  fitness: Fitness;
+  crossover?: Crossover | null;
+  /** 1 — дети копируют одного родителя, 2 — скрещивают двух (crossover) */
+  parents?: 1 | 2;
+  /** машин в поколении */
+  population: number;
+  /** сила мутации */
+  rate: number;
+  /** лучший мозг прошлого поколения и второй родитель */
+  parent?: Brain | null;
+  parent2?: Brain | null;
+};
+
+/** Строка графика: как прошло поколение */
+export type GenerationEntry = {
+  gen: number; best: number; median: number; progressPct: number;
+  finished: boolean; finishers: number; ticks: number; trackId: string;
+  picked: boolean; parents: 1 | 2;
+};
 
 const POOL_SHARE = 0.1; // сколько лучших машин поколения становятся родителями
 
+/** Мозг машины роя: он есть у каждой — рой сам раздал их в spawn */
+function brainOf(car: Car): Brain {
+  if (!car.brain) throw new Error('у машины роя нет мозга');
+  return car.brain;
+}
+
+/** Текст ошибки из чего угодно, что бросил код студента */
+const messageOf = (e: unknown): string => (e instanceof Error ? e.message : String(e));
+
 export class Evolution {
-  /** @param {EvolutionOptions} opts */
-  constructor({ sizes, sensors, think, mutate, fitness, crossover = null, parents = 2, population, rate, parent = null, parent2 = null }) {
+  sizes: number[]; sensors: Sensors;
+  think: Think; mutate: Mutate; fitness: Fitness; crossover: Crossover | null;
+  parents: 1 | 2; population: number; rate: number;
+  parent: Brain | null; parent2: Brain | null;
+  /** из кого берём родителей для детей: лучшие прошлого поколения */
+  pool: Brain[] | null;
+  generation: number; history: GenerationEntry[];
+  cars: Car[]; errors: string[]; lastError: unknown = null;
+  // заезд поколения — появляется в spawn
+  track!: Track; maxTicks = 0; tick = 0; traffic: TrafficSpot[] | null = null;
+
+  constructor({ sizes, sensors, think, mutate, fitness, crossover = null, parents = 2, population, rate, parent = null, parent2 = null }: EvolutionOptions) {
     // форма сети и «глаза»
     this.sizes = sizes;
     this.sensors = sensors;
@@ -46,18 +86,18 @@ export class Evolution {
     this.errors = [];
   }
 
-  spawn(track) {
+  spawn(track: Track): void {
     this.track = track;
     this.maxTicks = maxTicksFor(track);
     this.tick = 0;
     this.cars = [];
     this.errors = [];
     this.lastError = null;
-    const pool = this.pool ?? [this.parent, this.parent2].filter(Boolean);
+    const pool = this.pool ?? [this.parent, this.parent2].filter((b) => b !== null);
     const two = this.parents === 2 && this.crossover && pool.length > 1;
-    const any = () => pool[Math.floor(Math.random() * pool.length)];
+    const any = (): Brain => pool[Math.floor(Math.random() * pool.length)];
     for (let i = 0; i < this.population; i++) {
-      let brain;
+      let brain: Brain;
       if (!this.parent) brain = createBrain(this.sizes);
       else if (i === 0) brain = cloneBrain(this.parent); // лучший едет без изменений
       else if (i === 1 && two && this.parent2) brain = cloneBrain(this.parent2); // и второй тоже
@@ -66,7 +106,7 @@ export class Evolution {
         try {
           this.mutate(brain, this.rate);
         } catch (e) {
-          this.report(`mutate(): ${e.message}`, e);
+          this.report(`mutate(): ${messageOf(e)}`, e);
         }
       }
       this.cars.push(new Car(track, { brain, think: this.safeThink(), sensors: this.sensors }));
@@ -74,38 +114,38 @@ export class Evolution {
   }
 
   /** Ребёнок двух родителей через crossover() студента, с проверкой формы */
-  makeChild(mom, dad) {
+  makeChild(mom: Brain, dad: Brain): Brain {
     try {
-      const child = this.crossover(cloneBrain(mom), cloneBrain(dad));
+      const child = this.crossover?.(cloneBrain(mom), cloneBrain(dad));
       const err = checkBrain(child, this.sizes);
-      if (!err) return child;
+      if (!err) return child as Brain; // checkBrain проверил: это мозг нужной формы
       this.report(`crossover() вернула мозг не той формы: ${err}`);
     } catch (e) {
-      this.report(`crossover(): ${e.message}`, e);
+      this.report(`crossover(): ${messageOf(e)}`, e);
     }
     return cloneBrain(mom);
   }
 
-  report(msg, error = null) {
+  report(msg: string, error: unknown = null): void {
     if (this.errors.length) return;
     this.errors.push(msg);
     this.lastError = error;
   }
 
-  safeThink() {
+  safeThink(): Think {
     const think = this.think;
     return (inputs, brain) => {
       try {
         return think(inputs, brain);
       } catch (e) {
-        this.report(`think(): ${e.message}`, e);
+        this.report(`think(): ${messageOf(e)}`, e);
         return [0, 0, 0, 0];
       }
     };
   }
 
   /** Один тик для всех машин. Возвращает, сколько ещё едут. */
-  step() {
+  step(): number {
     let alive = 0;
     // трафик один на всех — считаем один раз за тик
     const traffic = this.track.traffic ? trafficAt(this.track, this.track.traffic, this.tick) : null;
@@ -118,7 +158,7 @@ export class Evolution {
     return alive;
   }
 
-  score(car) {
+  score(car: Car): number {
     try {
       const v = this.fitness(carReport(car, this.track));
       if (!Number.isFinite(v)) {
@@ -127,7 +167,7 @@ export class Evolution {
       }
       return v;
     } catch (e) {
-      this.report(`fitness(): ${e.message}`, e);
+      this.report(`fitness(): ${messageOf(e)}`, e);
       return -Infinity;
     }
   }
@@ -137,7 +177,7 @@ export class Evolution {
    * Родители детей — лучшие POOL_SHARE поколения: с одним родителем рой легко застревает там, где лучший разбился.
    * picked — машины, выбранные вручную кликом (0, 1 или 2): тогда родители только они (если выбрана одна — добираем лучшего).
    */
-  evaluate(picked = []) {
+  evaluate(picked: Car | Car[] | null = []): { entry: GenerationEntry; parentCar: Car; report: CarReport } {
     if (!Array.isArray(picked)) picked = picked ? [picked] : [];
     const scored = this.cars.map((car) => ({ car, score: this.score(car) }));
     scored.sort((a, b) => b.score - a.score);
@@ -148,13 +188,13 @@ export class Evolution {
       if (!chosen.includes(car)) chosen.push(car);
     }
     const parentCar = chosen[0];
-    this.parent = cloneBrain(parentCar.brain);
-    this.parent2 = chosen[1] ? cloneBrain(chosen[1].brain) : null;
+    this.parent = cloneBrain(brainOf(parentCar));
+    this.parent2 = chosen[1] ? cloneBrain(brainOf(chosen[1])) : null;
     const top = picked.length ? chosen : scored.slice(0, Math.max(2, Math.round(this.population * POOL_SHARE))).map((s) => s.car);
-    this.pool = top.map((car) => cloneBrain(car.brain));
+    this.pool = top.map((car) => cloneBrain(brainOf(car)));
     const report = carReport(parentCar, this.track);
     const scores = scored.map((s) => s.score).filter(Number.isFinite);
-    const entry = {
+    const entry: GenerationEntry = {
       gen: this.generation + 1,
       best: best.score,
       median: scores.length ? scores[Math.floor(scores.length / 2)] : 0,

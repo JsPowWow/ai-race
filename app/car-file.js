@@ -1,7 +1,7 @@
 // Файл машины на странице: собрать свой из чемпиона и подготовить чужой к гонке.
-// Сама проверка файла — в engine/car-file.js.
-import { FORMAT, parseCarFile } from '../engine/car-file.js';
-import { compileMineThink } from '../engine/compile.js';
+// Сама проверка файла — в engine/car-file.ts.
+import { FORMAT, parseCarFile } from '../engine/car-file.ts';
+import { compileMineThink } from '../engine/compile.ts';
 import { state, sizesOf, CAR_COLORS } from './state.js';
 import { live, getSource, evalAvailable } from './student-code.js';
 

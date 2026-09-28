@@ -1,6 +1,6 @@
 // Вид «Огонь в рамках»: один цвет на всё — где идёт сигнал, там разгорается. Рамки подписывают группы.
 // Скин только рисует: состояние (теплота, импульсы, зажатые сенсоры) ему даёт board.js.
-import { cssColor } from '../../engine/render.js';
+import { cssColor } from '../../engine/render.ts';
 import { curve, bezierAt, roundRect, buttonCenter } from './layout.js';
 import { fmt, pct } from './formula.js';
 

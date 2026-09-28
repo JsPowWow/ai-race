@@ -1,8 +1,8 @@
 // Физика ручной езды: разгон заметный, тормоз сильнее газа, колёса показывают руль.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { Car, CAR, wheelAngle } from '../../engine/car.js';
-import { getTrainingTrack } from '../../engine/track.js';
+import { Car, CAR, wheelAngle } from '../../engine/car.ts';
+import { getTrainingTrack } from '../../engine/track.ts';
 
 const track = getTrainingTrack('warmup');
 

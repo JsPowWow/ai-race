@@ -1,7 +1,7 @@
 // Файл машины приходит от студента — проверяем всё, что в нём может быть не так.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseCarFile, checkAvatar } from '../../engine/car-file.js';
+import { parseCarFile, checkAvatar } from '../../engine/car-file.ts';
 import { bot } from '../helpers.mjs';
 
 const good = () => structuredClone(bot('Торетто'));
@@ -38,7 +38,7 @@ test('аватар: скрипты и внешние ссылки не прох�
 });
 
 test('угол обзора сзади читается из файла; нет его — узкий веер по умолчанию', async () => {
-  const { createBrain, layerSizes } = await import('../../engine/brain.js');
+  const { createBrain, layerSizes } = await import('../../engine/brain.ts');
   const withBack = (extra) => {
     const file = good();
     Object.assign(file.sensors, { back: 2, backLength: 80, ...extra });

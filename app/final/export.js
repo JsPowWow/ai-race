@@ -1,5 +1,5 @@
 // Итоги финала в файлы: RESULTS.md (опубликовать в репозитории), CSV (таблица для баллов), JSON (всё подряд).
-import { STAGES, stageLabel, stageSeed, stageTime } from '../../engine/rally.js';
+import { STAGES, stageLabel, stageSeed, stageTime } from '../../engine/rally.ts';
 
 /** «16,17 с» · «сошёл на 63%» · «ошибка в коде» */
 export function resultText(result) {

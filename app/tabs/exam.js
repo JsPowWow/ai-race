@@ -1,14 +1,14 @@
 // Вкладка «Экзамен» (урок 4): проверка на незнакомых трассах и файл для гонки.
-import { TRAINING_TRACKS, getTrainingTrack } from '../../engine/track.js';
-import { Car, carReport, maxTicksFor } from '../../engine/car.js';
-import { withTraffic } from '../../engine/traffic.js';
+import { TRAINING_TRACKS, getTrainingTrack } from '../../engine/track.ts';
+import { Car, carReport, maxTicksFor } from '../../engine/car.ts';
+import { withTraffic } from '../../engine/traffic.ts';
 import { state, persist, thinkFn, on, emit } from '../state.js';
 import { seedTrack } from '../tracks.js';
 import { toCarFile } from '../car-file.js';
 import { drawScene, paintCar, trafficOn, setHud, lapText, showBanner } from '../stage.js';
 import { $, esc, secs, pct, delegate } from '../ui.js';
 import { canDownload, saveFile } from '../download.js';
-import { sealCar, GITHUB_LOGIN } from '../../engine/seal.js';
+import { sealCar, GITHUB_LOGIN } from '../../engine/seal.ts';
 import { COURSE_KEY } from '../generated/course-key.js';
 
 const UNKNOWN_SEEDS = ['экзамен-1', 'экзамен-2', 'экзамен-3'];

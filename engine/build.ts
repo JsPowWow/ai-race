@@ -13,18 +13,18 @@ export const PRICES = {
   layer: 5,       // каждый скрытый слой после первого
 };
 
-/**
- * Сколько очков стоит сборка.
- * @param {{ sensors: { count: number, length: number, back?: number, backLength?: number }, hidden: number[] }} config
- */
-export function cost({ sensors, hidden }) {
+/** Что влияет на цену: сенсоры и скрытые слои мозга */
+export type Build = { sensors: { count: number; length: number; back?: number; backLength?: number }; hidden: number[] };
+
+/** Сколько очков стоит сборка */
+export function cost({ sensors, hidden }: Build): number {
   const back = sensors.back ?? 0;
   const neurons = hidden.reduce((sum, n) => sum + n, 0);
   return (
     sensors.count * PRICES.sensor +
     Math.ceil((sensors.length - 80) / 10) * PRICES.reach +
     back * PRICES.back +
-    (back ? Math.ceil((sensors.backLength - 40) / 10) * PRICES.backReach : 0) +
+    (back ? Math.ceil(((sensors.backLength ?? 40) - 40) / 10) * PRICES.backReach : 0) +
     neurons * PRICES.neuron +
     Math.max(0, hidden.length - 1) * PRICES.layer
   );

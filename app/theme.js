@@ -3,7 +3,7 @@
 // Выбор хранится в браузере. Чтобы страница не мигала тёмным при светлой теме, его применяет ещё
 // крошечный скрипт в <head> (tools/build.mjs) — до того, как браузер нарисует первый кадр.
 import { load, save } from './storage.js';
-import { cssColor } from '../engine/render.js';
+import { cssColor } from '../engine/render.ts';
 import { $, $$ } from './ui.js';
 
 const THEMES = ['system', 'light', 'dark'];

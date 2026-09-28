@@ -1,5 +1,5 @@
 // Трассы по seed строятся один раз и дальше берутся из памяти.
-import { generateTrack } from '../engine/track.js';
+import { generateTrack } from '../engine/track.ts';
 
 const cache = new Map();
 

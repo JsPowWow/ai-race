@@ -7,7 +7,7 @@
 //  • «лазейки» к глобальному объекту (eval, конструктор функций).
 // Зависание ловит страница: если ответа нет несколько секунд, Worker просто уничтожают.
 import { runJob } from './job.js';
-import { mulberry32, hashString } from '../../engine/utils.js';
+import { mulberry32, hashString } from '../../engine/utils.ts';
 
 const post = self.postMessage.bind(self);
 

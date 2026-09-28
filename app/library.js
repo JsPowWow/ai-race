@@ -7,7 +7,7 @@
 // (обучение на заездах, старт роя, ручная правка, сброс, другая форма сети) текущий мозг
 // сам попадает в «Историю» — к любой версии можно вернуться. звёздочка закрепляет версию навсегда,
 // незакреплённых хранится HISTORY_MAX последних.
-import { cloneBrain, checkBrain } from '../engine/brain.js';
+import { cloneBrain, checkBrain } from '../engine/brain.ts';
 import { state, persist, sizesOf, sameSizes, setChampion, resetProgress, emit, on, thinkVariant, brainTitle } from './state.js';
 import { showBanner } from './stage.js';
 import { $$, esc, delegate } from './ui.js';

@@ -1,8 +1,23 @@
 // Машина: физика, сенсоры, столкновения, прогресс.
-import { clamp, lerp, segmentT } from './utils.js';
-import { castSegment, projectProgress, pointAt, signAt, zoneAt, freeSide, SLOW_SPEED } from './track.js';
-import { trafficAt } from './traffic.js';
-import { BUTTONS, NOTES } from './brain.js';
+import { clamp, lerp, segmentT } from './utils.ts';
+import { castSegment, projectProgress, pointAt, signAt, zoneAt, freeSide, SLOW_SPEED, type Track, type Side } from './track.ts';
+import { trafficAt, type TrafficSpot } from './traffic.ts';
+import { BUTTONS, NOTES, type Brain } from './brain.ts';
+
+/** Сенсоры: сколько лучей вперёд, угол веера (°), дальность (px); по желанию — лучи назад */
+export type Sensors = { count: number; spread: number; length: number; back?: number; backLength?: number; backSpread?: number };
+/** Луч сенсора: угол от носа машины (рад) и длина (px) */
+export type Ray = { angle: number; length: number };
+/** Как мозг думает: входы сети → нажатия (4 кнопки от 0 до 1, дальше — заметки). Варианты — student/think.js */
+export type Think = (inputs: number[], brain: Brain) => number[];
+/** Пульт: насколько нажата каждая кнопка, от 0 до 1 */
+export type Controls = { gas: number; brake: number; left: number; right: number };
+/** driving — едет; дальше — почему остановилась */
+export type CarStatus = 'driving' | 'crashed' | 'stalled' | 'timeout' | 'finished';
+/** Кто ведёт машину: мозг с вариантом «думания» или никто — тогда руками (controls) */
+export type Driver = { brain?: Brain | null; think?: Think | null; sensors?: Sensors };
+/** Точка в виде пары [x, y] — углы корпуса */
+type Corner = [number, number];
 
 export const CAR = {
   width: 24,
@@ -26,7 +41,7 @@ export const CAR = {
 };
 
 /** Кривизна дуги при руле до упора на скорости speed: на сколько радиан поворачиваем за пиксель пути */
-export const maxCurve = (speed) => Math.min(1 / CAR.minRadius, CAR.grip / (speed * speed || 1e-9));
+export const maxCurve = (speed: number): number => Math.min(1 / CAR.minRadius, CAR.grip / (speed * speed || 1e-9));
 
 /** Расстояние между передней и задней осью — так колёса и нарисованы */
 export const WHEELBASE = CAR.length * 0.6;
@@ -38,12 +53,12 @@ const WHEEL_FAST = (15 * Math.PI) / 180; // полный руль на полн�
  * На скорости чуть меньше — видно, что газ «съедает» поворот, — но полный руль заметен всегда.
  * Только для картинки: на физику не влияет.
  */
-export function wheelAngle(steer, speed) {
+export function wheelAngle(steer: number, speed: number): number {
   const fast = Math.min(1, Math.abs(speed) / CAR.maxSpeed);
   return steer * (WHEEL_SLOW + (WHEEL_FAST - WHEEL_SLOW) * fast);
 }
 
-export const DEFAULT_SENSORS = { count: 5, spread: 90, length: 160 };
+export const DEFAULT_SENSORS: Sensors = { count: 5, spread: 90, length: 160 };
 
 export const BACK_SPREAD = 30; // сенсоры назад по умолчанию — узким веером прямо за машиной: там догоняющие
 
@@ -51,9 +66,8 @@ export const BACK_SPREAD = 30; // сенсоры назад по умолчан�
  * Лучи сенсоров: угол от носа машины и длина. Сначала веер вперёд слева направо (крайние лучи — по краям угла обзора),
  * потом (если есть) сенсоры назад: back лучей длиной backLength в веере backSpread° — видят тех, кто догоняет.
  * Задний веер делим на равные сектора и смотрим в середину каждого: и при двух лучах машина прямо сзади видна.
- * @param {{ count: number, spread: number, length: number, back?: number, backLength?: number, backSpread?: number }} sensors
  */
-export function rays({ count, spread, length, back = 0, backLength = 0, backSpread = BACK_SPREAD }) {
+export function rays({ count, spread, length, back = 0, backLength = 0, backSpread = BACK_SPREAD }: Sensors): Ray[] {
   const front = Array.from({ length: count }, (_, i) => {
     const half = (spread * Math.PI) / 360;
     return { angle: count === 1 ? 0 : lerp(-half, half, i / (count - 1)), length };
@@ -64,17 +78,28 @@ export function rays({ count, spread, length, back = 0, backLength = 0, backSpre
 }
 
 /** Сколько всего сенсоров — от этого зависит, сколько у мозга входов */
-export const rayCount = (sensors) => sensors.count + (sensors.back ?? 0);
+export const rayCount = (sensors: Sensors): number => sensors.count + (sensors.back ?? 0);
 
-const safe = (v) => (Number.isFinite(v) ? clamp(v, 0, 1) : 0);
+/** Нажатие от 0 до 1; всё, что не число (NaN, undefined из кривого think), — «не нажато» */
+const safe = (v: number | undefined): number => (v !== undefined && Number.isFinite(v) ? clamp(v, 0, 1) : 0);
 
 export class Car {
-  /**
-   * @param {object} track трасса
-   * @param {{ brain?: object | null, think?: Function | null, sensors?: typeof DEFAULT_SENSORS }} [opts]
-   *   без brain машиной управляют руками (controls)
-   */
-  constructor(track, { brain = null, think = null, sensors = DEFAULT_SENSORS } = {}) {
+  x: number; y: number; angle: number; speed: number;
+  brain: Brain | null; think: Think | null;
+  sensors: Sensors; rays: Ray[];
+  readings: number[]; rayT: Float32Array;
+  sign: Side | 0; before: number[] | null; notes: number[];
+  controls: Controls; steer: number;
+  lastInputs: number[] | null; lastOutputs: number[] | null;
+  status: CarStatus; ticks: number;
+  road: number; bestAlong: number;
+  zone: { island: number; side: Side } | null; slow: boolean; slowdowns: number;
+  segIdx: number; s: number; bestS: number; lastImprove: number;
+  distance: number; wiggle: number; prevSteer: number;
+  crashSpeed: number; crashedInto: 'car' | 'wall' | null; topSpeed: number; finishTick: number | null;
+
+  /** Без brain машиной управляют руками (controls) */
+  constructor(track: Track, { brain = null, think = null, sensors = DEFAULT_SENSORS }: Driver = {}) {
     const start = pointAt(track, track.startS);
     this.x = start.x;
     this.y = start.y;
@@ -114,12 +139,12 @@ export class Car {
     this.finishTick = null;
   }
 
-  get done() {
+  get done(): boolean {
     return this.status !== 'driving';
   }
 
   /** traffic — положение машин трафика на этом тике (если не передано — посчитаем сами) */
-  step(track, maxTicks = Infinity, traffic) {
+  step(track: Track, maxTicks = Infinity, traffic?: TrafficSpot[] | null): void {
     if (this.done) return;
     const tick = this.ticks; // тик мира: по нему едет трафик и переключаются медленные зоны
     if (traffic === undefined) traffic = track.traffic ? trafficAt(track, track.traffic, tick) : null;
@@ -183,7 +208,7 @@ export class Car {
     }
   }
 
-  move() {
+  move(): void {
     const c = this.controls;
     this.speed += CAR.accel * safe(c.gas);
     this.speed -= CAR.brake * safe(c.brake);
@@ -211,15 +236,15 @@ export class Car {
   }
 
   /** Входы сети сейчас: [s1…sn, v, s1′…sn′, зн, m1…m3] */
-  inputs() {
+  inputs(): number[] {
     return [...this.readings, this.speed / CAR.maxSpeed, ...(this.before ?? this.readings), this.sign, ...this.notes];
   }
 
   /** Сенсоры: 0 — стены не видно, 1 — стена вплотную. Вперёд слева направо, потом назад (см. rays). */
-  sense(track, traffic = null) {
+  sense(track: Track, traffic: TrafficSpot[] | null = null): void {
     const reach = Math.max(...this.rays.map((r) => r.length));
     // машины трафика, до которых сенсор вообще может достать
-    const near = [];
+    const near: number[][] = [];
     if (traffic) for (const o of traffic) if (Math.abs(o.x - this.x) < reach + 30 && Math.abs(o.y - this.y) < reach + 30) near.push(o.poly);
     for (let i = 0; i < this.rays.length; i++) {
       const a = this.angle + this.rays[i].angle, length = this.rays[i].length;
@@ -236,7 +261,7 @@ export class Car {
     }
   }
 
-  hitsTraffic(traffic) {
+  hitsTraffic(traffic: TrafficSpot[] | null): boolean {
     if (!traffic) return false;
     const c = this.corners();
     for (const o of traffic) {
@@ -254,11 +279,11 @@ export class Car {
   }
 
   /** Едем по ходу попутной машины o быстрее её: тогда столкновение с ней — наша вина, хоть сзади, хоть сбоку */
-  fasterThan(o) {
+  fasterThan(o: TrafficSpot): boolean {
     return this.speed * Math.cos(this.angle - o.angle) > o.speed;
   }
 
-  corners() {
+  corners(): Corner[] {
     const cos = Math.cos(this.angle), sin = Math.sin(this.angle);
     const hl = CAR.length / 2, hw = CAR.width / 2;
     return [
@@ -269,7 +294,7 @@ export class Car {
     ];
   }
 
-  hitsWall(track) {
+  hitsWall(track: Track): boolean {
     const c = this.corners();
     for (let i = 0; i < 4; i++) {
       const a = c[i], b = c[(i + 1) % 4];
@@ -280,7 +305,13 @@ export class Car {
 }
 
 /** Всё, что видит функция fitness() студента */
-export function carReport(car, track) {
+export type CarReport = {
+  progress: number; trackLength: number; progressPct: number;
+  finished: boolean; crashed: boolean; hitCar: boolean; stalled: boolean;
+  ticks: number; avgSpeed: number; topSpeed: number; wiggle: number;
+};
+
+export function carReport(car: Car, track: Track): CarReport {
   const trackLength = track.finishS - track.startS;
   const progress = Math.max(0, Math.min(trackLength, car.bestS - track.startS));
   return {
@@ -298,6 +329,6 @@ export function carReport(car, track) {
   };
 }
 
-export function maxTicksFor(track) {
+export function maxTicksFor(track: Track): number {
   return Math.ceil((track.finishS - track.startS) / 1.2) + 300;
 }

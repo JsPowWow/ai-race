@@ -1,17 +1,29 @@
 // Картинка нейросети: слои слева направо, цвет связи — знак веса, яркость — сила.
-import { OUTPUT_LABELS, inputLabel } from './brain.js';
-import { cssColor as css } from './render.js';
+import { OUTPUT_LABELS, inputLabel, type Brain } from './brain.ts';
+import { cssColor as css } from './render.ts';
 
-/**
- * selected: { type: 'w', k, i, j } — связь i → j в слое k, или { type: 'b', k, j } — порог нейрона j.
- * hover: то же самое для подсветки под курсором.
- * Возвращает раскладку { xs, ys, r } — по ней страница понимает, куда щёлкнули.
- */
-export function drawNetwork(canvas, brain, trace = null, selected = null, hover = null) {
+/** Что выбрано на схеме: связь i → j в слое k (вес) или нейрон j слоя k (порог) */
+export type NetPick = { type: 'w'; k: number; i: number; j: number } | { type: 'b'; k: number; j: number };
+/** Раскладка схемы: x каждого слоя, y каждого нейрона, радиус кружка — по ней страница понимает, куда щёлкнули */
+export type NetLayout = { xs: number[]; ys: number[][]; r: number };
+/** Ход мысли: активации нейронов по слоям (trace[k][i]) — чтобы нейроны «горели» */
+export type Trace = (number[] | undefined)[];
+/** Точка графика обучения (строка истории роя) */
+type ChartPoint = { gen: number; best: number; median: number; finished: boolean };
+
+/** Холст для рисования: без него (очень старый браузер) рисовать нечем */
+function context2d(canvas: HTMLCanvasElement): CanvasRenderingContext2D {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('canvas 2d недоступен');
+  return ctx;
+}
+
+/** selected — что выбрано, hover — что под курсором (подсвечиваем слабее) */
+export function drawNetwork(canvas: HTMLCanvasElement, brain: Brain | null, trace: Trace | null = null, selected: NetPick | null = null, hover: NetPick | null = null): NetLayout | null {
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const cw = canvas.clientWidth, ch = canvas.clientHeight;
   if (canvas.width !== Math.round(cw * dpr)) { canvas.width = Math.round(cw * dpr); canvas.height = Math.round(ch * dpr); }
-  const ctx = canvas.getContext('2d');
+  const ctx = context2d(canvas);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, cw, ch);
   if (!brain) return null;
@@ -43,7 +55,8 @@ export function drawNetwork(canvas, brain, trace = null, selected = null, hover 
 
   // выбранная связь и связь под курсором
   const accent = css('--you-text');
-  for (const [sel, width] of [[hover, 5], [selected, 7]]) {
+  const marks: [NetPick | null, number][] = [[hover, 5], [selected, 7]];
+  for (const [sel, width] of marks) {
     if (!sel || sel.type !== 'w' || !brain.layers[sel.k]) continue;
     const { k, i, j } = sel;
     if (ys[k][i] === undefined || ys[k + 1][j] === undefined) continue;
@@ -79,7 +92,7 @@ export function drawNetwork(canvas, brain, trace = null, selected = null, hover 
       ctx.lineWidth = 2;
       ctx.strokeStyle = bias === null ? line : bias >= 0 ? pos : neg;
       ctx.stroke();
-      const isSel = (sel) => sel && sel.type === 'b' && sel.k === k - 1 && sel.j === i;
+      const isSel = (sel: NetPick | null): boolean => sel !== null && sel.type === 'b' && sel.k === k - 1 && sel.j === i;
       if (isSel(selected) || isSel(hover)) {
         ctx.beginPath();
         ctx.arc(x, y, r + 4, 0, Math.PI * 2);
@@ -103,7 +116,7 @@ export function drawNetwork(canvas, brain, trace = null, selected = null, hover 
 }
 
 /** Что под курсором: нейрон (порог) или связь (вес). x, y — в CSS-пикселях холста. */
-export function hitNetwork(layout, brain, x, y) {
+export function hitNetwork(layout: NetLayout | null, brain: Brain | null, x: number, y: number): NetPick | null {
   if (!layout || !brain) return null;
   const { xs, ys, r } = layout;
   // сначала нейроны скрытых и выходного слоёв (у входов порога нет)
@@ -113,7 +126,7 @@ export function hitNetwork(layout, brain, x, y) {
     }
   }
   // потом ближайшая связь
-  let best = null, bd = 6;
+  let best: NetPick | null = null, bd = 6;
   for (let k = 0; k < brain.layers.length; k++) {
     if (x < xs[k] - 2 || x > xs[k + 1] + 2) continue;
     for (let i = 0; i < ys[k].length; i++) {
@@ -126,18 +139,18 @@ export function hitNetwork(layout, brain, x, y) {
   return best;
 }
 
-function distToSegment(px, py, ax, ay, bx, by) {
+function distToSegment(px: number, py: number, ax: number, ay: number, bx: number, by: number): number {
   const dx = bx - ax, dy = by - ay;
   const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy || 1)));
   return Math.hypot(px - ax - dx * t, py - ay - dy * t);
 }
 
 /** График обучения: лучший и медианный фитнес по поколениям */
-export function drawChart(canvas, history) {
+export function drawChart(canvas: HTMLCanvasElement, history: ChartPoint[]): void {
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const cw = canvas.clientWidth, ch = canvas.clientHeight;
   if (canvas.width !== Math.round(cw * dpr)) { canvas.width = Math.round(cw * dpr); canvas.height = Math.round(ch * dpr); }
-  const ctx = canvas.getContext('2d');
+  const ctx = context2d(canvas);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, cw, ch);
   const muted = css('--muted'), line = css('--line'), accent = css('--you-text'), good = css('--good');
@@ -153,8 +166,8 @@ export function drawChart(canvas, history) {
   const vals = history.flatMap((h) => [h.best, h.median]).filter(Number.isFinite);
   const max = niceMax(Math.max(1, ...vals));
   const n = history.length;
-  const x = (i) => padL + (n === 1 ? W / 2 : (W * i) / (n - 1));
-  const y = (v) => padT + H - (H * Math.max(0, v)) / max;
+  const x = (i: number): number => padL + (n === 1 ? W / 2 : (W * i) / (n - 1));
+  const y = (v: number): number => padT + H - (H * Math.max(0, v)) / max;
 
   ctx.strokeStyle = line; ctx.lineWidth = 1; ctx.fillStyle = muted; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
   for (let k = 0; k <= 4; k++) {
@@ -168,10 +181,13 @@ export function drawChart(canvas, history) {
   const step = Math.max(1, Math.ceil(n / 6));
   for (let i = 0; i < n; i += step) ctx.fillText(String(history[i].gen), x(i), padT + H + 5);
 
-  const series = (key, color, width, dash) => {
+  const series = (key: 'best' | 'median', color: string, width: number, dash: number[]): void => {
     ctx.strokeStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash);
     ctx.beginPath();
-    history.forEach((h, i) => { const v = Number.isFinite(h[key]) ? h[key] : 0; i ? ctx.lineTo(x(i), y(v)) : ctx.moveTo(x(i), y(v)); });
+    history.forEach((h, i) => {
+      const v = Number.isFinite(h[key]) ? h[key] : 0;
+      if (i) ctx.lineTo(x(i), y(v)); else ctx.moveTo(x(i), y(v));
+    });
     ctx.stroke(); ctx.setLineDash([]);
   };
   series('median', muted, 1.5, [4, 4]);
@@ -184,12 +200,12 @@ export function drawChart(canvas, history) {
   });
 }
 
-function niceMax(v) {
+function niceMax(v: number): number {
   const p = 10 ** Math.floor(Math.log10(v));
   for (const m of [1, 2, 2.5, 5, 10]) if (v <= m * p) return m * p;
   return 10 * p;
 }
-function short(v) {
+function short(v: number): string {
   if (v >= 1e6) return (v / 1e6).toFixed(1) + 'M';
   if (v >= 1e4) return Math.round(v / 1e3) + 'k';
   if (v >= 1e3) return (v / 1e3).toFixed(1) + 'k';
@@ -197,11 +213,11 @@ function short(v) {
 }
 
 /** Простой график одной линии: например, ошибка по эпохам обучения */
-export function drawSeries(canvas, values, { label = '' } = {}) {
+export function drawSeries(canvas: HTMLCanvasElement, values: number[], { label = '' } = {}): void {
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const cw = canvas.clientWidth, ch = canvas.clientHeight;
   if (canvas.width !== Math.round(cw * dpr)) { canvas.width = Math.round(cw * dpr); canvas.height = Math.round(ch * dpr); }
-  const ctx = canvas.getContext('2d');
+  const ctx = context2d(canvas);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, cw, ch);
   const muted = css('--muted'), line = css('--line'), color = css('--ai');
@@ -215,8 +231,8 @@ export function drawSeries(canvas, values, { label = '' } = {}) {
   const padL = 44, padR = 10, padT = 10, padB = 20;
   const W = cw - padL - padR, H = ch - padT - padB;
   const max = Math.max(...values) * 1.1 || 1;
-  const x = (i) => padL + (values.length === 1 ? W / 2 : (W * i) / (values.length - 1));
-  const y = (v) => padT + H - (H * v) / max;
+  const x = (i: number): number => padL + (values.length === 1 ? W / 2 : (W * i) / (values.length - 1));
+  const y = (v: number): number => padT + H - (H * v) / max;
   ctx.strokeStyle = line; ctx.fillStyle = muted; ctx.lineWidth = 1;
   ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
   for (let k = 0; k <= 3; k++) {

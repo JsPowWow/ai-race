@@ -1,9 +1,9 @@
 // Одна задача расчёта финала: участник × этап. Без DOM — выполняется в Web Worker
 // (а если браузер не дал создать Worker — прямо на странице, но тогда без чужого кода).
 import { thinkVariants } from '../../student/think.js';
-import { compileMineThink } from '../../engine/compile.js';
-import { maxTicksFor } from '../../engine/car.js';
-import { driveRecorded, failedResult, stageTrack } from '../../engine/rally.js';
+import { compileMineThink } from '../../engine/compile.ts';
+import { maxTicksFor } from '../../engine/car.ts';
+import { driveRecorded, failedResult, stageTrack } from '../../engine/rally.ts';
 
 const tracks = new Map();
 const thinks = new Map(); // id участника → функция think или ошибка сборки

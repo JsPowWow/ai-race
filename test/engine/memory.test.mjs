@@ -1,11 +1,11 @@
 // Память мозга: сенсоры мгновение назад (s′) и заметки (m1…m3), которые мозг пишет сам себе. И дорожный знак (зн).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createBrain, layerSizes, inputCount, inputLabels, NOTES, BUTTONS, OUTPUTS } from '../../engine/brain.js';
-import { Car } from '../../engine/car.js';
-import { getTrainingTrack } from '../../engine/track.js';
-import { trainEpoch, sampleOf } from '../../engine/imitation.js';
-import { mulberry32 } from '../../engine/utils.js';
+import { createBrain, layerSizes, inputCount, inputLabels, NOTES, BUTTONS, OUTPUTS } from '../../engine/brain.ts';
+import { Car } from '../../engine/car.ts';
+import { getTrainingTrack } from '../../engine/track.ts';
+import { trainEpoch, sampleOf } from '../../engine/imitation.ts';
+import { mulberry32 } from '../../engine/utils.ts';
 import { thinkVariants } from '../../student/think.js';
 
 const SENSORS = { count: 5, spread: 90, length: 160 };

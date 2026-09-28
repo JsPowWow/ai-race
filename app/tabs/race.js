@@ -1,7 +1,7 @@
 // Вкладка «Гонка» (урок 5): участники, секретная трасса, отсчёт, таблица и номинации.
-import { Car, carReport, maxTicksFor } from '../../engine/car.js';
-import { cloneBrain } from '../../engine/brain.js';
-import { TRAFFIC_LEVELS, withTraffic } from '../../engine/traffic.js';
+import { Car, carReport, maxTicksFor } from '../../engine/car.ts';
+import { cloneBrain } from '../../engine/brain.ts';
+import { TRAFFIC_LEVELS, withTraffic } from '../../engine/traffic.ts';
 import { state, persist, thinkVariant, emit, CAR_COLORS } from '../state.js';
 import { live } from '../student-code.js';
 import { seedTrack } from '../tracks.js';

@@ -1,22 +1,32 @@
 // Рисование трассы и машин на canvas.
-import { CAR, WHEELBASE, wheelAngle, rays } from './car.js';
-import { pointAt, freeSide, signShows } from './track.js';
+import { CAR, WHEELBASE, wheelAngle, rays, type Car } from './car.ts';
+import { pointAt, freeSide, signShows, type Track, type Road, type Branch, type Island, type Point, type RoadPoint, type Side } from './track.ts';
+import type { TrafficSpot } from './traffic.ts';
+
+type Ctx = CanvasRenderingContext2D;
+/** Что нужно, чтобы нарисовать машину: где она и (если есть) что делает. Подходит и Car, и запись заезда */
+export type CarView = Pick<Car, 'x' | 'y' | 'angle'> & Partial<Pick<Car, 'status' | 'done' | 'controls' | 'steer' | 'speed' | 'rayT' | 'sensors'>>;
+/** Машина в стае финала: только место, цвет и прозрачность */
+export type PackCar = { x: number; y: number; angle: number; color: string; alpha?: number };
 
 /**
  * Цвет из CSS-переменной — готовый для canvas.
  * Сама переменная может быть «light-dark(светлый, тёмный)»: canvas такое не понимает,
  * поэтому просим браузер вычислить цвет на невидимом элементе — он учтёт текущую тему.
  */
-let probe = null;
-export function cssColor(name) {
+let probe: HTMLElement | null = null;
+export function cssColor(name: string): string {
   probe ??= document.documentElement.appendChild(Object.assign(document.createElement('i'), { hidden: true }));
   probe.style.color = `var(${name})`;
   return getComputedStyle(probe).color;
 }
 
-let palette = null;
+/** Цвета холста — из CSS-переменных, для текущей темы */
+export type Palette = Record<'board' | 'road' | 'roadEdge' | 'seam' | 'slot' | 'rail' | 'kerb' | 'kerb2' | 'sign' | 'signOff' | 'slow' | 'checkLight' | 'checkDark' | 'you' | 'ray' | 'rayHit' | 'traffic' | 'trafficOncoming' | 'trafficEdge' | 'crashed', string>;
+
+let palette: Palette | null = null;
 /** Перечитать цвета трассы — после смены темы */
-export function readPalette() {
+export function readPalette(): Palette {
   const v = cssColor;
   palette = {
     board: v('--board'), road: v('--road'), roadEdge: v('--road-edge'), seam: v('--seam'), slot: v('--slot'), rail: v('--rail'),
@@ -26,13 +36,13 @@ export function readPalette() {
   };
   return palette;
 }
-export const getPalette = () => palette || readPalette();
+export const getPalette = (): Palette => palette || readPalette();
 
 /** Шрифт подписей на холсте — тот же, что у интерфейса */
 export const UI_FONT = '"Rubik", system-ui, sans-serif';
 
 /** Подогнать размер canvas под CSS-размер size = { width, height } с учётом плотности пикселей */
-export function fitCanvas(canvas, size) {
+export function fitCanvas(canvas: HTMLCanvasElement, size: { width: number; height: number }): number {
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const w = Math.round(size.width * dpr), h = Math.round(size.height * dpr);
   if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
@@ -40,8 +50,11 @@ export function fitCanvas(canvas, size) {
 }
 
 export class Camera {
-  constructor() { this.x = 0; this.y = 0; this.scale = 1; this.mode = 'fit'; this.ready = false; }
-  update(canvas, track, target, dpr) {
+  x = 0; y = 0; scale = 1;
+  /** 'fit' — вся трасса целиком, иначе ('follow') — крупно за машиной */
+  mode = 'fit';
+  ready = false;
+  update(canvas: HTMLCanvasElement, track: Track, target: (Point & { angle?: number }) | null | undefined, dpr: number): void {
     const W = canvas.width, H = canvas.height;
     if (this.mode === 'fit' || !target) {
       const b = track.bbox, pad = 40;
@@ -59,36 +72,37 @@ export class Camera {
       this.ready = true;
     }
   }
-  apply(ctx, canvas) {
+  apply(ctx: Ctx, canvas: HTMLCanvasElement): void {
     ctx.setTransform(this.scale, 0, 0, this.scale, canvas.width / 2 - this.x * this.scale, canvas.height / 2 - this.y * this.scale);
   }
-  toWorld(canvas, px, py) {
+  toWorld(canvas: HTMLCanvasElement, px: number, py: number): Point {
     return { x: (px - canvas.width / 2) / this.scale + this.x, y: (py - canvas.height / 2) / this.scale + this.y };
   }
 }
 
-function polyPath(ctx, pts) {
+function polyPath(ctx: Ctx, pts: Point[]): void {
   ctx.beginPath();
   ctx.moveTo(pts[0].x, pts[0].y);
   for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
 }
 
 /** Центры полос: по ним идут прорези с рельсами (как у трассы для слот-каров) */
-const laneCenters = new WeakMap();
-function lanesOf(track) {
-  if (!laneCenters.has(track)) {
-    const edges = [track.left, ...(track.dividers ?? []), track.right];
-    const lanes = [];
+const laneCenters = new WeakMap<Road, Point[][]>();
+function lanesOf(road: Road): Point[][] {
+  let lanes = laneCenters.get(road);
+  if (!lanes) {
+    const edges = [road.left, ...road.dividers, road.right];
+    lanes = [];
     for (let k = 0; k < edges.length - 1; k++) {
       lanes.push(edges[k].map((a, i) => ({ x: (a.x + edges[k + 1][i].x) / 2, y: (a.y + edges[k + 1][i].y) / 2 })));
     }
-    laneCenters.set(track, lanes);
+    laneCenters.set(road, lanes);
   }
-  return laneCenters.get(track);
+  return lanes;
 }
 
 /** Контур дороги одним путём: левый край туда, правый обратно */
-function roadPath(ctx, { left, right }) {
+function roadPath(ctx: Ctx, { left, right }: Road): void {
   ctx.beginPath();
   ctx.moveTo(left[0].x, left[0].y);
   for (let i = 1; i < left.length; i++) ctx.lineTo(left[i].x, left[i].y);
@@ -102,7 +116,7 @@ const SECTION = 150; // длина одной секции игрушечной 
  * Игрушечная трасса: серые секции со швами, прорези с медными рельсами, пластиковые бордюры.
  * tick — тик заезда: от него зависит, где на островах медленная зона и что горит на знаке.
  */
-export function drawTrack(ctx, track, cam, tick = 0) {
+export function drawTrack(ctx: Ctx, track: Track, cam: Camera, tick = 0): void {
   const p = getPalette();
   const px = 1 / cam.scale;
   const roads = track.roads;
@@ -139,11 +153,11 @@ export function drawTrack(ctx, track, cam, tick = 0) {
 }
 
 /** Медленная зона — поперечные полосы на занятом пути острова, как на дорожных работах */
-function drawSlowZone(ctx, track, island, free, p) {
+function drawSlowZone(ctx: Ctx, track: Track, island: Island, free: Side, p: Palette): void {
   const [from, to] = island.zone;
   const onMain = free !== island.side; // занят путь, по которому идёт само кольцо
-  const branch = track.roads[island.road];
-  const at = (s) => (onMain ? pointAt(track, s) : pointAt(branch, ((s - branch.fromS) / (branch.toS - branch.fromS)) * branch.total));
+  const branch = track.roads[island.road] as Branch; // island.road ≥ 1 — второй путь острова
+  const at = (s: number): RoadPoint => (onMain ? pointAt(track, s) : pointAt(branch, ((s - branch.fromS) / (branch.toS - branch.fromS)) * branch.total));
   for (let s = from; s <= to; s += 22) line(ctx, at(s), track.width - 14, p.slow, 9);
 }
 
@@ -151,7 +165,7 @@ function drawSlowZone(ctx, track, island, free, p) {
  * Дорожный знак у обочины: синий круг с белой стрелкой — «свободно направо» или «налево». dir 0 — знак погас.
  * size — во сколько раз крупнее: когда видна вся трасса, знак рисуем больше, иначе стрелку не разглядеть
  */
-function drawSign(ctx, track, { x, y, angle }, dir, size, p) {
+function drawSign(ctx: Ctx, track: Track, { x, y, angle }: RoadPoint, dir: Side | 0, size: number, p: Palette): void {
   const r = 17, off = track.width / 2 + 9 + r * size;
   const cx = x - Math.sin(angle) * off, cy = y + Math.cos(angle) * off; // справа по ходу, как у настоящей дороги
   ctx.save();
@@ -167,7 +181,7 @@ function drawSign(ctx, track, { x, y, angle }, dir, size, p) {
   ctx.restore();
 }
 
-function line(ctx, pt, width, color, thick) {
+function line(ctx: Ctx, pt: RoadPoint, width: number, color: string, thick: number): void {
   const nx = -Math.sin(pt.angle), ny = Math.cos(pt.angle);
   ctx.beginPath();
   ctx.moveTo(pt.x - nx * width / 2, pt.y - ny * width / 2);
@@ -175,7 +189,7 @@ function line(ctx, pt, width, color, thick) {
   ctx.lineWidth = thick; ctx.strokeStyle = color; ctx.stroke();
 }
 
-function checkered(ctx, pt, width, p) {
+function checkered(ctx: Ctx, pt: RoadPoint, width: number, p: Palette): void {
   ctx.save();
   ctx.translate(pt.x, pt.y);
   ctx.rotate(pt.angle);
@@ -189,7 +203,13 @@ function checkered(ctx, pt, width, p) {
 
 /** Слот-кар: литой корпус, тёмное стекло, белый круг под номер на капоте. Разбитая — серая. */
 /** Машинка сверху: колёса повёрнуты рулём, при тормозе горят стоп-сигналы — видно, что делает водитель */
-export function drawCar(ctx, car, { color = null, alpha = 1, sensors = false, label = null, highlight = false, cam = null, number = null, ghost = false } = {}) {
+/** Как рисовать машину: цвет, прозрачность, сенсоры, подпись, рамка выбора, номер на капоте, «призрак» роя */
+export type CarLook = {
+  color?: string | null; alpha?: number; sensors?: boolean; label?: string | null; highlight?: boolean;
+  cam?: Camera | null; number?: number | string | null; ghost?: boolean;
+};
+
+export function drawCar(ctx: Ctx, car: CarView, { color = null, alpha = 1, sensors = false, label = null, highlight = false, cam = null, number = null, ghost = false }: CarLook = {}): void {
   const p = getPalette();
   if (ghost) return drawGhost(ctx, car, color ?? p.you, alpha, p);
   if (sensors && !car.done) drawSensors(ctx, car);
@@ -248,7 +268,7 @@ export function drawCar(ctx, car, { color = null, alpha = 1, sensors = false, la
  * Машина роя на заднем плане: только корпус и стекло, без теней, колёс и стоп-сигналов.
  * Размытая тень на холсте дорогая, а машин в рое сотня: с тенями кадр в начале поколения рисуется в разы дольше.
  */
-function drawGhost(ctx, car, color, alpha, p) {
+function drawGhost(ctx: Ctx, car: CarView, color: string, alpha: number, p: Palette): void {
   const L = CAR.length, W = CAR.width;
   ctx.save();
   ctx.globalAlpha = alpha;
@@ -262,10 +282,11 @@ function drawGhost(ctx, car, color, alpha, p) {
 }
 
 /** Колёса торчат из-под корпуса; передние показывают, куда повёрнут руль */
-function drawWheels(ctx, car, L, W) {
+function drawWheels(ctx: Ctx, car: CarView, L: number, W: number): void {
   const turn = car.done ? 0 : wheelAngle(car.steer ?? 0, car.speed ?? 0);
   ctx.fillStyle = '#16171a';
-  for (const [x, a] of [[WHEELBASE / 2, turn], [-WHEELBASE / 2, 0]]) {
+  const axles: [number, number][] = [[WHEELBASE / 2, turn], [-WHEELBASE / 2, 0]]; // передняя ось поворачивает, задняя нет
+  for (const [x, a] of axles) {
     for (const y of [-W / 2 - 1, W / 2 + 1]) { // чуть наружу из-под корпуса — поворот видно
       ctx.save(); ctx.translate(x, y); ctx.rotate(a);
       roundRect(ctx, -6, -3, 12, 6, 2); ctx.fill();
@@ -275,7 +296,7 @@ function drawWheels(ctx, car, L, W) {
 }
 
 /** Много машин сразу, попроще (для финала на сотни участников): [{ x, y, angle, color, alpha }] */
-export function drawPack(ctx, cars) {
+export function drawPack(ctx: Ctx, cars: PackCar[]): void {
   const L = CAR.length, W = CAR.width;
   const m = ctx.getTransform(); // камера: масштаб k и сдвиг, без поворота
   const k = m.a;
@@ -290,7 +311,8 @@ export function drawPack(ctx, cars) {
   ctx.setTransform(m);
 }
 
-export function drawSensors(ctx, car, sensors = car.sensors) {
+export function drawSensors(ctx: Ctx, car: CarView, sensors = car.sensors): void {
+  if (!sensors) return; // запись заезда без сенсоров — рисовать нечего
   const p = getPalette();
   const beams = rays(sensors);
   ctx.lineWidth = 2;
@@ -310,7 +332,7 @@ export function drawSensors(ctx, car, sensors = car.sensors) {
   }
 }
 
-function roundRect(ctx, x, y, w, h, r) {
+function roundRect(ctx: Ctx, x: number, y: number, w: number, h: number, r: number): void {
   ctx.beginPath();
   ctx.moveTo(x + r, y);
   ctx.arcTo(x + w, y, x + w, y + h, r);
@@ -320,14 +342,14 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-export function clear(ctx, canvas) {
+export function clear(ctx: Ctx, canvas: HTMLCanvasElement): void {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = getPalette().board;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 }
 
 /** Машины трафика — игрушечные: попутные серые со стоп-сигналами, встречные светлые с жёлтыми фарами */
-export function drawTraffic(ctx, traffic) {
+export function drawTraffic(ctx: Ctx, traffic: TrafficSpot[] | null | undefined): void {
   if (!traffic) return;
   const p = getPalette();
   const L = CAR.length, W = CAR.width;

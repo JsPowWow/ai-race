@@ -6,7 +6,7 @@
 //  • в финале чужой код выполняется в Web Worker (app/final/worker.js): там нет страницы,
 //    хранилища и cookies, а зависший расчёт просто останавливается.
 // Опасные глобальные имена подменены на undefined — от случайностей и простых шалостей, не от взлома.
-import { lerp, randomBetween, randomGauss, sigmoid, clamp } from './utils.js';
+import { lerp, randomBetween, randomGauss, sigmoid, clamp } from './utils.ts';
 
 export const BLOCKED = [
   'window', 'self', 'globalThis', 'document', 'localStorage', 'sessionStorage', 'indexedDB', 'caches',
@@ -15,8 +15,11 @@ export const BLOCKED = [
 ];
 const HELPERS = { lerp, randomBetween, randomGauss, sigmoid, clamp };
 
+/** Экспорты модуля студента: что там объявлено, заранее не знаем */
+export type StudentModule = Record<string, unknown>;
+
 /** Бросает то, что бросил код студента (с исходным стеком) */
-export function compileSource(src) {
+export function compileSource(src: string): StudentModule {
   const names = [...src.matchAll(/export\s+(?:async\s+)?(?:function\*?|const|let|var|class)\s+([A-Za-z_$][\w$]*)/g)].map((m) => m[1]);
   const body = src
     .replace(/^[ \t]*import\s[^;]*;?/gm, (m) => m.replace(/[^\n]/g, '')) // строки не сдвигаются
@@ -27,8 +30,12 @@ export function compileSource(src) {
 }
 
 /** Свой вариант мозга из текста think.js: функция thinkVariants.mine.think */
-export function compileMineThink(src) {
-  const think = compileSource(src).thinkVariants?.mine?.think;
+/** Функция из кода студента: что она принимает и возвращает, проверяют уже там, где её зовут */
+export type StudentFunction = (...args: unknown[]) => unknown;
+
+export function compileMineThink(src: string): StudentFunction {
+  const variants = compileSource(src).thinkVariants as { mine?: { think?: unknown } } | undefined;
+  const think = variants?.mine?.think;
   if (typeof think !== 'function') throw new Error('в коде нет thinkVariants.mine.think');
-  return think;
+  return think as StudentFunction; // проверили выше: это функция
 }

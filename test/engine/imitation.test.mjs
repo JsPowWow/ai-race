@@ -1,9 +1,9 @@
 // Обучение на примерах: сеть учится повторять за «учителем».
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createBrain } from '../../engine/brain.js';
-import { trainEpoch, agreement, packSample, unpackSample } from '../../engine/imitation.js';
-import { mulberry32 } from '../../engine/utils.js';
+import { createBrain } from '../../engine/brain.ts';
+import { trainEpoch, agreement, packSample, unpackSample } from '../../engine/imitation.ts';
+import { mulberry32 } from '../../engine/utils.ts';
 
 test('пример упаковывается в строку и обратно почти без потерь', () => {
   const sample = { x: [0, 0.25, 0.5, 1, 0.8, -0.3], y: [1, 0, 0, 1] };

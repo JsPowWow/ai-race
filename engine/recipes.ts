@@ -1,16 +1,21 @@
 // Рецепты роя: за что хвалить машину (фитнес по частям) и как делать детей (мутация, кроссовер).
 // Выбираются на вкладке «Учится само». Каждый вариант проверен опытом: tools/swarm-check.mjs.
 // Случайность здесь — только при рождении детей, не на пути заезда: заезд по-прежнему детерминирован.
-import { randomGauss } from './utils.js';
+import { randomGauss } from './utils.ts';
+import type { Brain } from './brain.ts';
 
-/** @typedef {{ progress: number, finished: boolean, crashed: boolean, ticks: number, wiggle: number }} Report отчёт о заезде (carReport) */
+/** Отчёт о заезде: то, что из carReport нужно фитнесу */
+export type Report = { progress: number; finished: boolean; crashed: boolean; ticks: number; wiggle: number };
+/** Поправка к оценке: одна галочка фитнеса */
+type FitnessPart = { title: string; hint: string; apply: (score: number, car: Report) => number };
+/** Как встряхнуть мозг ребёнка; rate — сила мутации */
+export type Mutate = (brain: Brain, rate: number) => void;
 
 /**
  * Фитнес по частям: основа — всегда расстояние, каждая галочка добавляет одну мысль.
  * Порядок важен: сначала «половина разбившимся», потом бонус и штраф.
- * @type {Record<string, { title: string, hint: string, apply: (score: number, car: Report) => number }>}
  */
-export const FITNESS_PARTS = {
+export const FITNESS_PARTS: Record<string, FitnessPart> = {
   careful: {
     title: 'Половина очков разбившимся',
     hint: 'Рой учится не биться: реже врезается во встречных. В опыте с этой галочкой рой застревает реже всего.',
@@ -33,26 +38,21 @@ export const DEFAULT_PARTS = ['careful', 'finish'];
 
 /**
  * Фитнес из выбранных частей: расстояние, а к нему — поправки в порядке FITNESS_PARTS.
- * @param {string[]} parts
- * @returns {(car: Report) => number}
  */
-export function fitnessOf(parts) {
+export function fitnessOf(parts: string[]): (car: Report) => number {
   const chosen = Object.entries(FITNESS_PARTS).filter(([id]) => parts.includes(id)).map(([, part]) => part.apply);
   return (car) => chosen.reduce((score, apply) => apply(score, car), car.progress);
 }
 
-/** @typedef {{ layers: { weights: number[][], biases: number[] }[] }} Brain */
-
 /** Пройтись по всем числам мозга: каждое заменить на change(число) */
-function eachNumber(brain, change) {
+function eachNumber(brain: Brain, change: (w: number) => number): void {
   for (const layer of brain.layers) {
     layer.biases = layer.biases.map(change);
     layer.weights = layer.weights.map((row) => row.map(change));
   }
 }
 
-/** @type {Record<string, { title: string, hint: string, mutate: (brain: Brain, rate: number) => void }>} */
-export const MUTATIONS = {
+export const MUTATIONS: Record<string, { title: string; hint: string; mutate: Mutate }> = {
   spot: {
     title: 'Точечная',
     hint: 'Каждое число с шансом «сила мутации» чуть сдвигаем, остальные не трогаем. Ребёнок похож на родителя, но где-то пробует новое.',
@@ -73,11 +73,8 @@ export const MUTATIONS = {
 /**
  * Ребёнок от двух родителей — целыми нейронами: монетка на каждый нейрон решает,
  * чьи все его входящие связи и порог он получит. Нейрон — цельная «идея» («справа близко — рули влево»), её не рвём.
- * @param {Brain} mom
- * @param {Brain} dad
- * @returns {Brain}
  */
-export function crossover(mom, dad) {
+export function crossover(mom: Brain, dad: Brain): Brain {
   return {
     layers: mom.layers.map((layer, k) => {
       const fromMom = layer.biases.map(() => Math.random() < 0.5);

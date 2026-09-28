@@ -1,7 +1,7 @@
 // Расчёт финала в нескольких Web Worker сразу.
 // Каждый Worker берёт по одной задаче; если задача не отвечает JOB_TIMEOUT_MS — Worker уничтожаем,
 // участник получает статус 'hung', а на его место запускаем новый Worker.
-import { failedResult } from '../../engine/rally.js';
+import { failedResult } from '../../engine/rally.ts';
 import { WORKER_SOURCE } from '../generated/race-worker.js';
 import { runJob } from './job.js';
 

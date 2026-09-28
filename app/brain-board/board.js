@@ -1,8 +1,8 @@
 // «Табло мозга»: живая схема сети. Снаружи — одна функция и три метода; внутри — раскладка, подписи,
 // «теплота», импульсы, формула нейрона, зум и нажатие на сенсор. Форму мозга (сенсоры, слои, заметки)
-// табло узнаёт из самого мозга: она одна на весь курс (engine/brain.js).
+// табло узнаёт из самого мозга: она одна на весь курс (engine/brain.ts).
 import { liveSize } from '../ui.js';
-import { inputLabels, sensorsOf, OUTPUT_LABELS, NOTES } from '../../engine/brain.js';
+import { inputLabels, sensorsOf, OUTPUT_LABELS, NOTES } from '../../engine/brain.ts';
 import { layout, buttonCenter } from './layout.js';
 import { formulaHTML, SMOOTH } from './formula.js';
 import { drawFire, readSkin } from './fire-skin.js';

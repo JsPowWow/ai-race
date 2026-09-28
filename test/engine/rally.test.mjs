@@ -1,7 +1,7 @@
 // Правила финала: время этапа, штраф за сход, места с ничьими.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { stageTime, standings, STAGES, stageTrack, hardStages } from '../../engine/rally.js';
+import { stageTime, standings, STAGES, stageTrack, hardStages } from '../../engine/rally.ts';
 
 const finished = (seconds) => ({ status: 'finished', finishTick: seconds * 60, limit: 60 * 60, progress: 1 });
 const crashed = (progress) => ({ status: 'crashed', finishTick: null, limit: 60 * 60, progress });

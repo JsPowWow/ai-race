@@ -1,9 +1,9 @@
 // Титульная страница: о чём курс, живое демо бота, «потрогай мозг» (стенд + табло), дорожка уроков.
-import { Camera, fitCanvas, clear, drawTrack, drawTraffic, drawCar } from '../../engine/render.js';
+import { Camera, fitCanvas, clear, drawTrack, drawTraffic, drawCar } from '../../engine/render.ts';
 import { createStand } from '../brain-stand.js';
 import { createBrainBoard } from '../brain-board/board.js';
-import { withTraffic, trafficAt } from '../../engine/traffic.js';
-import { Car, maxTicksFor } from '../../engine/car.js';
+import { withTraffic, trafficAt } from '../../engine/traffic.ts';
+import { Car, maxTicksFor } from '../../engine/car.ts';
 import { fromCarFile } from '../car-file.js';
 import { seedTrack } from '../tracks.js';
 import { BOTS } from '../generated/bots.js';

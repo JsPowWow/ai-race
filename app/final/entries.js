@@ -4,9 +4,9 @@
 // просто несколько .json. Автор определяется по пути: «папка автора/что-угодно.json» или «ник.json».
 // Другие JSON (package.json и т. п.) молча пропускаем.
 // Запечатанные файлы (car.sealed.json) сначала открываем секретным ключом курса — см. openSealedFiles.
-import { parseCarFile, CAR_COLORS } from '../../engine/car-file.js';
-import { SEALED_FORMAT, openSealed } from '../../engine/seal.js';
-import { hashString } from '../../engine/utils.js';
+import { parseCarFile, CAR_COLORS } from '../../engine/car-file.ts';
+import { SEALED_FORMAT, openSealed } from '../../engine/seal.ts';
+import { hashString } from '../../engine/utils.ts';
 
 const MAX_FILE_BYTES = 2_000_000;
 const SIMILAR = 0.97; // косинусное сходство весов, выше которого мозги считаем «похожими»

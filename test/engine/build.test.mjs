@@ -1,9 +1,9 @@
 // Очки сборки: у всех один бюджет, «всё на максимум» не купить (#19).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { BUDGET, cost } from '../../engine/build.js';
-import { DEFAULT_SENSORS } from '../../engine/car.js';
-import { parseCarFile } from '../../engine/car-file.js';
+import { BUDGET, cost } from '../../engine/build.ts';
+import { DEFAULT_SENSORS } from '../../engine/car.ts';
+import { parseCarFile } from '../../engine/car-file.ts';
 import { bot } from '../helpers.mjs';
 
 const basic = { sensors: DEFAULT_SENSORS, hidden: [6] };

@@ -1,10 +1,10 @@
 // Сенсоры: веер вперёд и (по желанию) сенсоры назад — они видят тех, кто догоняет.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { Car, rays, rayCount } from '../../engine/car.js';
-import { inputCount, layerSizes } from '../../engine/brain.js';
-import { getTrainingTrack, pointAt } from '../../engine/track.js';
-import { rectPoly } from '../../engine/traffic.js';
+import { Car, rays, rayCount } from '../../engine/car.ts';
+import { inputCount, layerSizes } from '../../engine/brain.ts';
+import { getTrainingTrack, pointAt } from '../../engine/track.ts';
+import { rectPoly } from '../../engine/traffic.ts';
 
 const track = getTrainingTrack('warmup');
 const FRONT = { count: 5, spread: 90, length: 160 };

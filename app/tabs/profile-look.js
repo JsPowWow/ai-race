@@ -1,6 +1,6 @@
 // «Профиль», облик машины: имя, цвет и аватар. Их видно на всех трассах, в таблице гонки и на стриме финала.
 import { state, persist, CAR_COLORS, on } from '../state.js';
-import { checkAvatar, avatarUrl } from '../../engine/car-file.js';
+import { checkAvatar, avatarUrl } from '../../engine/car-file.ts';
 import { $, $$, delegate, showError } from '../ui.js';
 
 const swatches = CAR_COLORS.map((c) =>

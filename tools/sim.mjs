@@ -1,7 +1,7 @@
 // Общие помощники для скриптов в tools/: прогнать машину и обучить мозг без браузера.
-import { Car, carReport, maxTicksFor } from '../engine/car.js';
-import { createBrain, cloneBrain } from '../engine/brain.js';
-import { MUTATIONS, crossover } from '../engine/recipes.js';
+import { Car, carReport, maxTicksFor } from '../engine/car.ts';
+import { createBrain, cloneBrain } from '../engine/brain.ts';
+import { MUTATIONS, crossover } from '../engine/recipes.ts';
 
 const { mutate } = MUTATIONS.spot;
 

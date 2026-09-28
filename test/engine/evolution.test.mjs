@@ -1,10 +1,10 @@
 // Отбор в рое: кто станет родителем следующего поколения.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { Evolution } from '../../engine/evolution.js';
-import { createBrain, layerSizes } from '../../engine/brain.js';
-import { getTrainingTrack } from '../../engine/track.js';
-import { mulberry32 } from '../../engine/utils.js';
+import { Evolution } from '../../engine/evolution.ts';
+import { createBrain, layerSizes } from '../../engine/brain.ts';
+import { getTrainingTrack } from '../../engine/track.ts';
+import { mulberry32 } from '../../engine/utils.ts';
 
 const SENSORS = { count: 5, spread: 90, length: 160 };
 const sizes = layerSizes(SENSORS.count, [6]);
@@ -33,11 +33,11 @@ test('кто лучше по фитнесу, тот и родитель', () => 
 // в опыте (tools/swarm-check.mjs) — 15 финишей из 15 на «Змейке», «Шпильке» и «Развилке» со встречными.
 test('рой по умолчанию учится: на «Змейке» со встречными лучший доезжает за 30 поколений', async () => {
   const { thinkVariants, DEFAULT_THINK } = await import('../../student/think.js');
-  const { fitnessOf, MUTATIONS, DEFAULT_RECIPE, crossover } = await import('../../engine/recipes.js');
+  const { fitnessOf, MUTATIONS, DEFAULT_RECIPE, crossover } = await import('../../engine/recipes.ts');
   const fitness = fitnessOf(DEFAULT_RECIPE.parts), { mutate } = MUTATIONS[DEFAULT_RECIPE.mutation];
-  const { withTraffic } = await import('../../engine/traffic.js');
-  const { withCoins } = await import('../../engine/track.js');
-  const { DEFAULT_SENSORS } = await import('../../engine/car.js');
+  const { withTraffic } = await import('../../engine/traffic.ts');
+  const { withCoins } = await import('../../engine/track.ts');
+  const { DEFAULT_SENSORS } = await import('../../engine/car.ts');
   const track = withTraffic(getTrainingTrack('snake'), 'all');
   const saved = Math.random;
   try {
