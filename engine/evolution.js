@@ -7,7 +7,7 @@ import { trafficAt } from './traffic.js';
  * Настройки роя. think/mutate/fitness/crossover — функции студента: их можно подменять между поколениями.
  * @typedef {object} EvolutionOptions
  * @property {number[]} sizes размеры слоёв сети
- * @property {{ count: number, spread: number, length: number }} sensors лучи
+ * @property {{ count: number, spread: number, length: number }} sensors сенсоры
  * @property {Function} think как сеть превращает входы в нажатия
  * @property {(brain: object, rate: number) => void} mutate встряхнуть веса
  * @property {(report: object) => number} fitness оценка заезда

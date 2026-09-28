@@ -4,16 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>AI Race — научи машину ездить без водителя</title>
-<meta name="description" content="Курс JavaScript: машинка с лучами-сенсорами и маленькой нейросетью учится ездить — на твоих примерах и сама, эволюцией. В конце — гонка на секретной трассе.">
+<meta name="description" content="Курс JavaScript: машинка с сенсорами и маленькой нейросетью учится ездить — на твоих примерах и сама, эволюцией. В конце — гонка на секретной трассе.">
 <meta name="theme-color" content="#eef0f3" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0b0d12" media="(prefers-color-scheme: dark)">
 <meta property="og:title" content="AI Race — научи машину ездить без водителя">
-<meta property="og:description" content="Курс JavaScript: машинка с лучами-сенсорами и маленькой нейросетью учится ездить — на твоих примерах и сама, эволюцией. В конце — гонка на секретной трассе.">
+<meta property="og:description" content="Курс JavaScript: машинка с сенсорами и маленькой нейросетью учится ездить — на твоих примерах и сама, эволюцией. В конце — гонка на секретной трассе.">
 <meta property="og:type" content="website">
 <script>try{const t=JSON.parse(localStorage.getItem('ai-race:theme'));if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch{}</script>
 <link rel="icon" href="app/icon.svg" type="image/svg+xml">
 <link rel="preload" href="app/fonts/rubik-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="modulepreload" href="app/generated/chunks/chunk-4LRCOCR7.js">
+<link rel="modulepreload" href="app/generated/chunks/chunk-FJNFPKJN.js">
 <link rel="stylesheet" href="app/generated/app.css">
 <script type="module" src="app/generated/app.js"></script>
 </head>
@@ -38,7 +38,7 @@
   <div class="intro-hero">
     <div class="intro-copy">
       <h1 class="intro-title">Научи машину ездить без водителя</h1>
-      <p class="intro-lead">Маленькая нейросеть смотрит на дорогу лучами-сенсорами и каждую долю секунды решает: газ, тормоз, влево или вправо. Ты пишешь код на JavaScript, эволюция подбирает машине «мозг», а в конце — гонка на трассе, которую никто не видел.</p>
+      <p class="intro-lead">Маленькая нейросеть смотрит на дорогу сенсорами и каждую долю секунды решает: газ, тормоз, влево или вправо. Ты пишешь код на JavaScript, эволюция подбирает машине «мозг», а в конце — гонка на трассе, которую никто не видел.</p>
       <ul class="intro-promise">
         <li><span class="tag ai">ИИ</span><span>Поймёшь, <b>как учится нейросеть</b>: на твоих примерах и сама, через эволюцию.</span></li>
         <li><span class="tag js">JS</span><span>Получишь <b>базовые навыки JavaScript</b>: функции, массивы, объекты, JSON.</span></li>
@@ -51,7 +51,7 @@
     </div>
     <figure class="intro-demo">
       <canvas id="introCanvas" aria-label="Бот едет по трассе со встречными машинами"></canvas>
-      <figcaption>Бот «Сквозняк» едет по трассе, которую видит впервые. Его никто не программировал — он научился сам.</figcaption>
+      <figcaption>Бот «Торетто» едет по трассе, которую видит впервые. Его никто не программировал — он научился сам.</figcaption>
     </figure>
   </div>
 
@@ -59,7 +59,7 @@
     <section class="intro-block">
       <h2>Что делаем</h2>
       <ol class="intro-steps">
-        <li><b>Даём машине «глаза» и «мозг».</b> Лучи меряют расстояние до бордюров и машин, нейросеть превращает эти числа в руль и педали.</li>
+        <li><b>Даём машине «глаза» и «мозг».</b> Сенсоры меряют расстояние до бордюров и машин, нейросеть превращает эти числа в руль и педали.</li>
         <li><b>Учим её ездить.</b> Сначала сам: ты ездишь, сеть повторяет за тобой. Потом она учится сама: рой из ста машин пробует, лучшие становятся родителями следующего поколения.</li>
         <li><b>Проверяем и соревнуемся.</b> Экзамен на незнакомых трассах, потом общая гонка по секретному seed.</li>
       </ol>
@@ -91,12 +91,30 @@
   </div>
 
   <section class="intro-block intro-brain">
-    <h2>Что такое нейросеть здесь</h2>
+    <h2>Потрогай мозг</h2>
+    <div class="brain-lab">
+      <div class="brain-top">
+        <p class="brain-hint">Машина «Торетто» стоит на стенде: колёса крутятся, а сама она не уезжает. <b>Зажми любой сенсор</b> — кружок <b>s1…s7</b> на табло или жёлтую линию у машины. Мозг «увидит» стену вплотную: сигнал побежит к кнопкам пульта, передние колёса повернут, загорятся стоп-сигналы.</p>
+      <figure class="brain-stand">
+        <canvas id="standCanvas" aria-label="Машина на стенде с сенсорами"></canvas>
+        <figcaption>Стенд: дорога бежит, машина стоит</figcaption>
+      </figure>
+      </div>
+      <div class="brain-board">
+        <div class="brain-board-bar">
+          <span>Табло мозга</span>
+          <div class="zoom" role="group" aria-label="Масштаб табло"><button class="btn" data-z="in" aria-label="Приблизить">+</button><button class="btn" data-z="out" aria-label="Отдалить">−</button><button class="btn" data-z="reset" aria-label="Обычный масштаб" hidden>1:1</button></div>
+        </div>
+        <div class="brain-board-screen">
+          <canvas id="brainBoard" aria-label="Схема нейросети: сигнал идёт от сенсоров к кнопкам пульта"></canvas>
+          <div class="formula" id="brainFormula" hidden></div>
+        </div>
+      </div>
+    </div>
     <div class="brain-grid">
       <div class="brain-explain">
-        <p>Слева — <b>входы</b>: что видят лучи (0 — пусто, 1 — вплотную) и скорость. Справа — <b>выходы</b>: газ, тормоз, влево, вправо. Посередине — нейроны.</p>
-        <p>Каждая линия — это <b>вес</b>, одно число: красные толкают к действию, синие мешают. Нейрон складывает входы, умноженные на веса, и решает, «загореться» ли ему.</p>
-        <canvas id="introNet" class="net" aria-label="Схема нейросети бота"></canvas>
+        <p>Слева — <b>входы</b>: что видят сенсоры <b>s1…s7</b> (0 — пусто, 1 — вплотную) и скорость <b>v</b>. Справа — <b>выходы</b>: газ, тормоз, влево, вправо. Посередине — нейроны.</p>
+        <p>Каждая линия — это <b>вес</b>, одно число. Нейрон складывает входы, умноженные на веса, и решает, «загореться» ли ему. Чем сильнее сигнал, тем ярче горит линия. Наведи на нейрон или нажми на него — увидишь его формулу с настоящими числами.</p>
       </div>
       <div class="brain-file">
         <p>Весь «мозг» машины — это маленький файл: <b id="brainSize">—</b>, в нём <b id="brainCount">—</b>. Обучение — это поиск правильных чисел. Этот файл вы и приносите на гонку.</p>
@@ -220,7 +238,7 @@
       <h2 class="parts-title">Детали набора</h2>
       <section class="block">
         <h2>Мои заезды</h2>
-        <p class="hint" id="runsHint">Просто езди: заезд записывается сам — от старта до финиша или аварии. Каждый тик — пример «что видят лучи → что ты нажал».</p>
+        <p class="hint" id="runsHint">Просто езди: заезд записывается сам — от старта до финиша или аварии. Каждый тик — пример «что видят сенсоры → что ты нажал».</p>
         <ol class="runs" id="runsList"></ol>
         <button class="btn primary" id="teachGo" disabled>Учить на заездах</button>
         <p class="note" id="teachStatus" role="status"></p>
@@ -248,10 +266,10 @@
       </div>
       <details class="block fold" id="eyesFold">
         <summary><h2>Глаза</h2></summary>
-        <div class="field"><label for="sCount">Лучей</label><input type="range" id="sCount" min="3" max="15" step="1"><output id="sCountOut"></output></div>
+        <div class="field"><label for="sCount">Сенсоров</label><input type="range" id="sCount" min="3" max="15" step="1"><output id="sCountOut"></output></div>
         <div class="field"><label for="sSpread">Угол обзора</label><input type="range" id="sSpread" min="30" max="180" step="10"><output id="sSpreadOut"></output></div>
         <div class="field"><label for="sLength">Дальность</label><input type="range" id="sLength" min="80" max="260" step="10"><output id="sLengthOut"></output></div>
-        <p class="hint">Пока «Глаза» открыты, числа лучей видно вверху трассы: 0 — пусто, 1 — препятствие вплотную.</p>
+        <p class="hint">Пока «Глаза» открыты, числа сенсоров видно вверху трассы: 0 — пусто, 1 — препятствие вплотную.</p>
       </details>
       <details class="block fold">
         <summary><h2>Сеть</h2></summary>
@@ -352,7 +370,7 @@
       </section>
       <section class="block">
         <h2>На гонку</h2>
-        <div class="field"><label for="pName">Имя машины</label><input type="text" id="pName" maxlength="24" placeholder="Например, Сквозняк"></div>
+        <div class="field"><label for="pName">Имя машины</label><input type="text" id="pName" maxlength="24" placeholder="Например, Торетто"></div>
         <div class="colors" id="pColors" role="radiogroup" aria-label="Цвет машины"></div>
         <div class="avatar-row">
           <img id="pAvatarImg" class="avatar big" alt="Аватар машины" hidden>

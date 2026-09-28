@@ -1,6 +1,7 @@
-// Титульная страница: о чём курс, живое демо бота, как устроен «мозг», дорожка уроков.
+// Титульная страница: о чём курс, живое демо бота, «потрогай мозг» (стенд + табло), дорожка уроков.
 import { Camera, fitCanvas, clear, drawTrack, drawTraffic, drawCar } from '../../engine/render.js';
-import { drawNetwork } from '../../engine/netviz.js';
+import { createStand } from '../brain-stand.js';
+import { createBrainBoard } from '../brain-board/board.js';
 import { withTraffic, trafficAt } from '../../engine/traffic.js';
 import { Car, maxTicksFor } from '../../engine/car.js';
 import { fromCarFile } from '../car-file.js';
@@ -10,8 +11,8 @@ import { $, liveSize } from '../ui.js';
 
 const DEMO_SEED = 'витрина';
 const DEMO_SPEED = 3; // тиков за кадр
-const demoBot = fromCarFile(BOTS.find((b) => b.name === 'Сквозняк') ?? BOTS[0]);
-const smallBot = BOTS.reduce((a, b) => (JSON.stringify(a).length <= JSON.stringify(b).length ? a : b));
+const toretto = BOTS.find((b) => b.name === 'Торетто') ?? BOTS[0];
+const demoBot = fromCarFile(toretto);
 
 const canvas = $('#introCanvas');
 const canvasSize = liveSize(canvas);
@@ -20,6 +21,25 @@ const cam = new Camera();
 const track = withTraffic(seedTrack(DEMO_SEED), 'all');
 let car = null;
 let pauseUntil = 0;
+
+// «Потрогай мозг»: стенд и табло одного бота, зажатый сенсор общий
+const stand = createStand($('#standCanvas'), toretto);
+const sensorNames = Array.from({ length: stand.sensorCount }, (_, i) => `s${i + 1}`);
+const board = createBrainBoard({
+  canvas: $('#brainBoard'), card: $('#brainFormula'), zoomBar: $('.brain-board .zoom'), brain: stand.brain,
+  labels: {
+    inputs: [...sensorNames, 'v'],
+    outputs: ['Газ', 'Тормоз', 'Влево', 'Вправо'],
+    // [обычная подпись, короткая — для узкого экрана]
+    layers: [
+      [[`ВХОД · ${toretto.layers[0]}`, `сенсоры s1–s${stand.sensorCount} и скорость v`], [`ВХОД · ${toretto.layers[0]}`, 'сенсоры и v']],
+      [[`СЛОЙ 1 · ${toretto.layers[1]} нейронов`, 'tanh(2z)'], [`СЛОЙ 1 · ${toretto.layers[1]}`, 'tanh']],
+      [[`ВЫХОД · ${toretto.layers.at(-1)}`, 'σ(3z) · кнопки пульта'], [`ВЫХОД · ${toretto.layers.at(-1)}`, 'σ']],
+    ],
+  },
+  onSensor: (i, down) => stand.press(i, down),
+});
+let lastFrame = performance.now();
 
 export const introTab = {
   enter() {
@@ -44,19 +64,25 @@ export const introTab = {
     drawTrack(ctx, track, cam);
     drawTraffic(ctx, trafficAt(track, track.traffic, car.ticks));
     drawCar(ctx, car, { color: demoBot.color, sensors: true, cam });
+
+    const now = performance.now();
+    const trace = stand.tick();
+    stand.draw();
+    board.frame(trace, stand.pressed, (now - lastFrame) / 1000);
+    lastFrame = now;
   },
 };
 
-/** Схема сети и настоящий фрагмент файла с весами */
+/** Настоящий фрагмент файла с весами того же бота, что на стенде */
 function renderBrain() {
-  drawNetwork($('#introNet'), smallBot.brain);
-  const numbers = smallBot.brain.layers.reduce((n, l) => n + l.biases.length + l.weights.flat().length, 0);
+  const numbers = toretto.brain.layers.reduce((n, l) => n + l.biases.length + l.weights.flat().length, 0);
   $('#brainCount').textContent = `${numbers} ${plural(numbers, 'число', 'числа', 'чисел')}`;
-  $('#brainSize').textContent = `${(JSON.stringify(smallBot).length / 1024).toFixed(1).replace('.', ',')} КБ`;
-  $('#brainJson').textContent = preview(smallBot);
+  $('#brainSize').textContent = `${(JSON.stringify(toretto).length / 1024).toFixed(1).replace('.', ',')} КБ`;
+  $('#brainJson').textContent = preview(toretto);
 }
 
-export const redrawIntro = () => drawNetwork($('#introNet'), smallBot.brain);
+/** После смены темы: табло берёт цвета из токенов */
+export const redrawIntro = () => board.readColors();
 
 const round = (x) => Math.round(x * 100) / 100;
 const short = (list, n = 3) => `[${list.slice(0, n).map(round).join(', ')}, …]`;

@@ -30,7 +30,7 @@
 .btn.file input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 
 /* Переключатель из нескольких кнопок — как у вкладок: выбранная приподнята */
-.seg { display: inline-flex; gap: 2px; padding: 3px; background: var(--bg-2); border-radius: var(--r-m); }
+.seg { display: inline-flex; flex-wrap: wrap; max-inline-size: 100%; gap: 2px; padding: 3px; background: var(--bg-2); border-radius: var(--r-m); }
 .seg button {
   white-space: nowrap; border: 0; border-radius: var(--r-s); background: transparent; cursor: pointer;
   padding: 7px 12px; font: 500 13px/1.1 var(--font); color: var(--muted);

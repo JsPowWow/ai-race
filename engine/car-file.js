@@ -55,7 +55,7 @@ export function parseCarFile(file) {
 
   const s = file.sensors ?? {};
   const sensors = { count: s.count | 0, spread: +s.spread, length: +s.length };
-  if (sensors.count < LIMITS.sensorsMin || sensors.count > LIMITS.sensorsMax) fail(`лучей должно быть от ${LIMITS.sensorsMin} до ${LIMITS.sensorsMax}`);
+  if (sensors.count < LIMITS.sensorsMin || sensors.count > LIMITS.sensorsMax) fail(`сенсоров должно быть от ${LIMITS.sensorsMin} до ${LIMITS.sensorsMax}`);
   if (!(sensors.spread >= 30 && sensors.spread <= 180)) fail('угол обзора вне 30–180°');
   if (!(sensors.length >= 80 && sensors.length <= 260)) fail('дальность вне 80–260 px');
 

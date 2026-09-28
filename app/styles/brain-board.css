@@ -1,0 +1,29 @@
+/* «Табло мозга»: экран игрушки со схемой сети. Цвета холста — токены --bb-* (tokens.css) */
+.brain-board { display: flex; flex-direction: column; gap: 8px; min-inline-size: 0; }
+.brain-board-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; font: 600 13px/1.3 var(--font); color: var(--muted); }
+.brain-board .zoom { display: flex; gap: 4px; }
+.brain-board .zoom .btn { min-inline-size: 36px; min-block-size: 36px; padding-inline: 8px; font: 600 15px/1 var(--mono); }
+.brain-board .zoom [data-z="reset"] { font-size: 12px; }
+
+/* экран утоплен в корпус: внутренняя тень поверх холста */
+.brain-board-screen {
+  position: relative; container-type: inline-size; overflow: hidden;
+  background: var(--bb-bg); border: 1px solid var(--line); border-radius: var(--r-l);
+}
+.brain-board-screen::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; box-shadow: inset 0 2px 12px rgb(0 0 0 / 0.35); }
+.brain-board-screen canvas { display: block; inline-size: 100%; block-size: 470px; cursor: crosshair; }
+/* узкое табло рисуется сверху вниз — ему нужна высота */
+@container (max-width: 639px) { .brain-board-screen canvas { block-size: 540px; } }
+
+/* формула нейрона — карточка поверх табло; числа моноширинные, чтобы не прыгали */
+.brain-board .formula {
+  position: absolute; z-index: 1; box-sizing: border-box; inline-size: 292px; max-inline-size: calc(100% - 16px);
+  display: flex; flex-direction: column; gap: 3px; pointer-events: none;
+  padding: 10px 12px; background: var(--hud-bg); color: color-mix(in srgb, var(--hud-ink) 85%, transparent);
+  border-radius: var(--r-m); box-shadow: var(--shadow-lift);
+  font: 12px/1.45 var(--mono); font-variant-numeric: tabular-nums;
+}
+.brain-board .formula b { font: 600 14px/1.3 var(--font); color: var(--hud-ink); margin-block-end: 2px; }
+.brain-board .formula em { font-style: normal; font-weight: 600; color: var(--hud-digit); }
+.brain-board .formula .src, .brain-board .formula .more { color: color-mix(in srgb, var(--hud-ink) 55%, transparent); white-space: pre; }
+.brain-board .formula .sep { border-block-start: 1px solid rgb(255 255 255 / 0.14); padding-block-start: 4px; margin-block-start: 2px; }

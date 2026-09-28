@@ -153,7 +153,11 @@ function checkered(ctx, pt, width, p) {
 }
 
 /** Слот-кар: литой корпус, тёмное стекло, белый круг под номер на капоте. Разбитая — серая. */
-export function drawCar(ctx, car, { color = null, alpha = 1, sensors = false, label = null, highlight = false, cam = null, number = null } = {}) {
+/**
+ * wheels — показать, что делает водитель: передние колёса повёрнуты рулём, стоп-сигналы горят при тормозе
+ * (на стенде машина стоит, и иначе реакцию мозга не увидеть)
+ */
+export function drawCar(ctx, car, { color = null, alpha = 1, sensors = false, label = null, highlight = false, cam = null, number = null, wheels = false } = {}) {
   const p = getPalette();
   if (sensors && !car.done) drawSensors(ctx, car);
   ctx.save();
@@ -167,6 +171,7 @@ export function drawCar(ctx, car, { color = null, alpha = 1, sensors = false, la
     ctx.strokeStyle = p.you;
     roundRect(ctx, -L / 2 - 5, -W / 2 - 5, L + 10, W + 10, 8); ctx.stroke();
   }
+  if (wheels) drawWheels(ctx, car.controls, L, W);
   // тень под машинкой — она стоит на трассе
   ctx.shadowColor = 'rgb(0 0 0 / 0.35)'; ctx.shadowBlur = 6; ctx.shadowOffsetY = 3;
   ctx.fillStyle = body;
@@ -177,6 +182,13 @@ export function drawCar(ctx, car, { color = null, alpha = 1, sensors = false, la
   roundRect(ctx, L * 0.04, -W / 2 + 3, L * 0.22, W - 6, 3); ctx.fill(); // лобовое стекло
   ctx.fillStyle = p.kerb2;
   ctx.beginPath(); ctx.arc(-L * 0.2, 0, W * 0.3, 0, Math.PI * 2); ctx.fill(); // круг под номер
+  if (wheels && car.controls.brake > 0.05) { // стоп-сигналы: чем сильнее тормоз, тем ярче
+    ctx.fillStyle = `rgb(255 40 40 / ${Math.min(1, 0.25 + car.controls.brake)})`;
+    ctx.shadowColor = 'rgb(255 40 40 / 0.8)'; ctx.shadowBlur = 8 * car.controls.brake;
+    roundRect(ctx, -L / 2 - 1, -W / 2 + 2, 4, 6, 1.5); ctx.fill();
+    roundRect(ctx, -L / 2 - 1, W / 2 - 8, 4, 6, 1.5); ctx.fill();
+    ctx.shadowColor = 'transparent';
+  }
   if (number !== null) {
     ctx.translate(-L * 0.2, 0); // номер стоит ровно, когда машина едет вправо — как на старте
     ctx.fillStyle = p.checkDark;
@@ -195,6 +207,19 @@ export function drawCar(ctx, car, { color = null, alpha = 1, sensors = false, la
     ctx.fillStyle = p.kerb2;
     ctx.fillText(label, car.x, car.y - 30 * Math.max(1, s * 0.8));
     ctx.restore();
+  }
+}
+
+/** Колёса торчат из-под корпуса; передние повёрнуты на разницу «вправо − влево» */
+function drawWheels(ctx, controls, L, W) {
+  const steer = Math.max(-1, Math.min(1, (controls.right ?? 0) - (controls.left ?? 0)));
+  ctx.fillStyle = '#16171a';
+  for (const [x, turn] of [[L * 0.3, steer * 0.45], [-L * 0.3, 0]]) {
+    for (const y of [-W / 2, W / 2]) {
+      ctx.save(); ctx.translate(x, y); ctx.rotate(turn);
+      roundRect(ctx, -6, -3, 12, 6, 2); ctx.fill();
+      ctx.restore();
+    }
   }
 }
 

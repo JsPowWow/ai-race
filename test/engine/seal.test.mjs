@@ -6,7 +6,7 @@ import { bot } from '../helpers.mjs';
 
 const keys = await generateCourseKeys();
 const secret = await importPrivateKey(keys.privateFile);
-const car = bot('Сквозняк');
+const car = bot('Торетто');
 
 test('запечатали открытым ключом — открыли секретным', async () => {
   const sealed = await sealCar(car, 'student-1', keys.publicFile);

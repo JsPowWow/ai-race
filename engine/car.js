@@ -66,7 +66,7 @@ export class Car {
     this.ticks++;
     this.sense(track, traffic);
 
-    // что «видит» машина на этом тике: лучи и скорость до шага (так же записывает пример «Учитель»)
+    // что «видит» машина на этом тике: сенсоры и скорость до шага (так же записывает пример «Учитель»)
     const inputs = this.readings.slice();
     inputs.push(this.speed / CAR.maxSpeed);
     this.lastInputs = inputs;
@@ -132,11 +132,11 @@ export class Car {
     this.topSpeed = Math.max(this.topSpeed, this.speed);
   }
 
-  /** Лучи-сенсоры: 0 — стены не видно, 1 — стена вплотную. Слева направо. */
+  /** Сенсоры: 0 — стены не видно, 1 — стена вплотную. Слева направо. */
   sense(track, traffic = null) {
     const { count, spread, length } = this.sensors;
     const half = (spread * Math.PI) / 360;
-    // машины трафика, до которых луч вообще может достать
+    // машины трафика, до которых сенсор вообще может достать
     const near = [];
     if (traffic) for (const o of traffic) if (Math.abs(o.x - this.x) < length + 30 && Math.abs(o.y - this.y) < length + 30) near.push(o.poly);
     for (let i = 0; i < count; i++) {

@@ -22,13 +22,13 @@ const RECIPES = [
     tracksFor: () => [training('warmup', 'none')],
   },
   {
-    name: 'Сквозняк', color: '#1c7ed6', think: 'smooth',
+    name: 'Торетто', color: '#1c7ed6', think: 'smooth',
     sensors: { count: 7, spread: 120, length: 180 }, hidden: [8],
     generations: 60, population: 60, rate: 0.1, fitness: byDistance,
     tracksFor: (g) => [training('snake', 'same'), training('hairpin', 'same'), random(`bot-t-${g}`, 'same'), random(`bot-t2-${g}`)],
   },
   {
-    name: 'Черепаха', color: '#2f9e44', think: 'smooth',
+    name: 'Бабушка', color: '#2f9e44', think: 'smooth',
     sensors: { count: 7, spread: 120, length: 200 }, hidden: [8, 6],
     generations: 110, population: 60, rate: 0.08, fitness: bySpeed,
     tracksFor: (g) => [training('snake'), training('hairpin'), random(`bot-s-${g}`), random(`bot-s2-${g}`), random(`bot-s3-${g}`)],

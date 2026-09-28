@@ -10,6 +10,7 @@
 @import "./styles/layout.css" layer(layout);
 @import "./styles/stage.css" layer(stage);
 @import "./styles/components.css" layer(components);
+@import "./styles/brain-board.css" layer(components);
 @import "./styles/lesson.css" layer(pages);
 @import "./styles/intro.css" layer(pages);
 @import "./styles/teach.css" layer(pages);

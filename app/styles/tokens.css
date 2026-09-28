@@ -67,6 +67,25 @@
   --hud-ink: #f3f4f6;
   --hud-digit: #ffd23f;
 
+  /* «Табло мозга» — схема сети, которая «горит»: угли → жар. В тёмной теме — экран игрушки,
+     в светлой — огонь на бумаге: сильный сигнал темнее и насыщеннее, а не светлее */
+  --bb-bg: light-dark(#fffaf4, #0e0c0b);
+  --bb-edge: light-dark(#ebe4db, #27221e);            /* связь в покое — дымка */
+  --bb-fire-0: light-dark(#ffe9cf, #2e0e08);          /* шкала жара: 0 — слабый … 4 — сильнейший */
+  --bb-fire-1: light-dark(#ffc27a, #8c1c10);
+  --bb-fire-2: light-dark(#f28a1e, #e04e0c);
+  --bb-fire-3: light-dark(#d4520c, #ffa818);
+  --bb-fire-4: light-dark(#9c2308, #ffeec4);
+  --bb-node: light-dark(#f6efe6, #181412);            /* лампочка нейрона без сигнала */
+  --bb-ring: light-dark(#dccfc0, #3a322c);
+  --bb-ink-dark: light-dark(#2a1a10, #1f0e04);       /* цифры на светлой заливке… */
+  --bb-ink-light: light-dark(#fffaf4, #efe6db);      /* …и на тёмной: выбираем по яркости заливки */
+  --bb-muted: light-dark(#8a7564, #9a8f86);
+  --bb-frame: light-dark(rgb(196 110 40 / 0.35), rgb(255 168 24 / 0.28));
+  --bb-title: light-dark(#8a3f0c, #ffcf8a);
+  --bb-sub: light-dark(#c0501a, #e0703a);
+  --bb-press: light-dark(#d69600, #ffc814);          /* зажатый сенсор — жёлтый «ты» */
+
   /* код */
   --code-bg: light-dark(#f7f8fa, #0b0c0f);
   --code-ink: light-dark(#1f2430, #e6e9ef);
