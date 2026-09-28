@@ -19,12 +19,12 @@ const SANS = 'Rubik, system-ui, sans-serif';
 const track = getTrainingTrack('warmup');
 let bot, driver, car, trace = null;
 let paused = false;
-const pressed = new Set(); // номера лучей, которые сейчас зажаты на табло
+const pressed = new Set(); // номера сенсоров, которые сейчас зажаты на табло
 function loadBot(name) {
   bot = BOTS.find((b) => b.name === name);
   const f = parseCarFile(bot);
   const think = thinkVariants[f.thinkId].think;
-  // нажатый сенсор: подменяем показание луча, как будто стена совсем близко — и машина, и сеть реагируют по-настоящему
+  // нажатый сенсор: подменяем его показание, как будто стена совсем близко — и машина, и сеть реагируют по-настоящему
   driver = {
     brain: f.brain, sensors: f.sensors,
     think(inputs, br) {
@@ -138,13 +138,13 @@ function inputLabels(ctx, lay, color, caption = true) {
   ctx.fillStyle = color; ctx.font = `500 12px ${SANS}`; ctx.textBaseline = 'middle';
   lay.pos[0].forEach(([x, y], i) => {
     const speed = i === n - 1;
-    if (lay.vertical) { ctx.textAlign = 'center'; ctx.fillText(speed ? 'v' : String(i + 1), x, y - lay.r - 14); }
+    if (lay.vertical) { ctx.textAlign = 'center'; ctx.fillText(speed ? 'v' : `s${i + 1}`, x, y - lay.r - 14); }
     else {
       ctx.textAlign = 'right'; if (lay.narrow) ctx.font = `500 11px ${SANS}`;
-      ctx.fillText(speed ? (lay.narrow ? 'скор.' : 'скорость') : `луч ${i + 1}`, x - lay.r - (lay.narrow ? 6 : 10), y);
+      ctx.fillText(speed ? 'v' : `s${i + 1}`, x - lay.r - (lay.narrow ? 6 : 10), y);
     }
   });
-  if (lay.vertical && caption) { ctx.textAlign = 'left'; ctx.font = `500 11px ${SANS}`; ctx.fillText('лучи 1–7 и скорость v', 12, 14); }
+  if (lay.vertical && caption) { ctx.textAlign = 'left'; ctx.font = `500 11px ${SANS}`; ctx.fillText('сенсоры s1–s7 и скорость v', 12, 14); }
 }
 /** Победитель пары (газ/тормоз, влево/вправо): машина слушает разницу, заметный перевес — светится */
 const pairWins = (p, i) => p[i] - p[i ^ 1] > 0.08;
@@ -228,8 +228,8 @@ function lampNode(ctx, lay, key, k, i, s) {
 function layerFrames(ctx, lay, c, pad = [16, 16], buttons = false, part = 'box') {
   const z = lay.zoom ?? 1, px = 1 / z, last = lay.sizes.length - 1;
   const titles = lay.narrow
-    ? [['ВХОД · 8', 'лучи и v'], ['СЛОЙ 1 · 8', 'tanh'], ['ВЫХОД · 4', 'σ']]
-    : [['ВХОД · 8', 'лучи 1–7 и скорость'], ['СЛОЙ 1 · 8 нейронов', 'tanh(2z)'], ['ВЫХОД · 4', 'σ(3z) · кнопки пульта']];
+    ? [['ВХОД · 8', 'сенсоры и v'], ['СЛОЙ 1 · 8', 'tanh'], ['ВЫХОД · 4', 'σ']]
+    : [['ВХОД · 8', 'сенсоры s1–s7 и скорость v'], ['СЛОЙ 1 · 8 нейронов', 'tanh(2z)'], ['ВЫХОД · 4', 'σ(3z) · кнопки пульта']];
   const [pa, pb] = lay.vertical ? [pad[0], pad[1]] : [pad[1], pad[0]]; // pa — отступ по x, pb — по y
   lay.pos.forEach((col, k) => {
     const xs = col.map((q) => q[0]), ys = col.map((q) => q[1]);
@@ -487,7 +487,7 @@ const VARIANTS = [
 const slow = (n) => (n % 10 === 1 && n % 100 !== 11 ? 'слабый' : 'слабых');
 function sourceName(k, n) {
   if (k > 0) return `н${n + 1}`;
-  return n === brain().layers[0].weights.length - 1 ? 'скор.' : `луч ${n + 1}`;
+  return n === brain().layers[0].weights.length - 1 ? 'v' : `s${n + 1}`;
 }
 function formulaHTML(lay, k, i) {
   const L = brain().layers[k - 1];
@@ -567,7 +567,7 @@ const boards = VARIANTS.map((v) => {
   b.canvas.style.touchAction = 'pan-y';
   b.canvas.addEventListener('pointerdown', (e) => {
     const ray = b.lay && inputAt(b, local(b, e));
-    if (ray !== null && ray !== undefined) { // держишь кружок луча — луч «видит» стену, пока не отпустишь
+    if (ray !== null && ray !== undefined) { // держишь кружок сенсора — он «видит» стену, пока не отпустишь
       pressed.add(ray); b.holding = { id: e.pointerId, ray }; b.canvas.setPointerCapture(e.pointerId); return;
     }
     touches.set(e.pointerId, local(b, e));
@@ -611,7 +611,7 @@ const boards = VARIANTS.map((v) => {
   return b;
 });
 
-/** Какой луч под указателем (скорость не нажимается) */
+/** Какой сенсор под указателем (скорость не нажимается) */
 function inputAt(b, [mx, my]) {
   const { s: z, x: vx, y: vy } = b.view, lay = b.lay;
   const m = [(mx - vx) / z, (my - vy) / z];
@@ -632,7 +632,7 @@ function drawBoard(b, t) {
   const lay = { ...layout(W, H, vertical, b.v.top ?? 0), zoom: z };
   b.v.draw(ctx, lay);
   b.lay = lay;
-  // зажатые лучи: кольцо «нажато»
+  // зажатые сенсоры: кольцо «нажато»
   for (const i of pressed) {
     const [x, y] = lay.pos[0][i];
     ctx.beginPath(); ctx.arc(x, y, Math.max(lay.r, 10) + 5, 0, Math.PI * 2);
@@ -700,7 +700,7 @@ botSel.innerHTML = BOTS.filter((b) => b.think !== 'step').map((b) => `<option>${
 botSel.onchange = () => loadBot(botSel.value);
 
 readPalette();
-loadBot('Сквозняк');
+loadBot('Торетто');
 // холст рисует текст сразу — ждём свои шрифты, иначе первые кадры будут запасным шрифтом
 Promise.all([document.fonts.load(`600 12px ${MONO}`), document.fonts.load(`600 12px ${SANS}`)])
   .finally(() => requestAnimationFrame(frame));
