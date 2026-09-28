@@ -1,5 +1,5 @@
 // Вкладка «Учится само» (урок 2): рой и эволюция — поколения, отбор, мутация, кроссовер.
-import { TRAINING_TRACKS, getTrainingTrack } from '../../engine/track.js';
+import { TRAINING_TRACKS, getTrainingTrack, forksPassed } from '../../engine/track.js';
 import { Car } from '../../engine/car.js';
 import { cloneBrain, checkBrain } from '../../engine/brain.js';
 import { Evolution } from '../../engine/evolution.js';
@@ -21,6 +21,7 @@ let evo = null;       // идущая эволюция (null — ещё не з�
 let running = false;
 let track = null;     // трасса текущего поколения
 let picked = [];      // машины, выбранные щелчком в родители
+let leaderInDeadEnd = false; // лидер прошлого поколения застрял в тупике «Лабиринта»
 
 export const isTraining = () => running;
 
@@ -136,12 +137,13 @@ function startGeneration() {
 }
 
 function endGeneration() {
-  const { entry, report } = evo.evaluate(picked);
+  const { entry, report, parentCar } = evo.evaluate(picked);
   entry.trackName = track.name;
   state.history = [...state.history, entry].slice(-300);
   setChampion(cloneBrain(evo.parent), { by: 'train', generation: evo.generation });
   if (track.id === 'snake') emit('did', 'train:snake'); // шаг 1 урока 2 — рой учится на «Змейке»
-  if (isMaze() && entry.finished) emit('did', 'train:maze'); // шаг 3 — рой прошёл «Лабиринт»
+  leaderInDeadEnd = parentCar.road > 0;
+  if (isMaze() && forksPassed(track, parentCar.bestS) >= 2) emit('did', 'train:maze'); // шаг 3 — рой прошёл хотя бы две развилки
   addToHall(entry, report);
   showStudentErrors();
   saveOften();
@@ -294,7 +296,7 @@ function swarmAdvice() {
   }
   const before = h.at(-STUCK_GENS - 1);
   if (!last.finished && before && h.slice(-STUCK_GENS).every((e) => !e.finished && e.best <= before.best)) {
-    if (isMaze()) return `${STUCK_GENS} поколений лидер сворачивает в тупик. Знак остался позади, а свернуть надо у развилки — нужна память. Помоги рою: щёлкни машину, что свернула верно, или подними мутацию до 0,2.`;
+    if (isMaze() && leaderInDeadEnd) return `${STUCK_GENS} поколений лидер сворачивает в тупик. Знак остался позади, а свернуть надо у развилки — нужна память. Помоги рою: щёлкни машину, что свернула верно, или подними мутацию до 0,2.`;
     return `${STUCK_GENS} поколений без улучшения: рой застрял на ${pct(last.progressPct)}. Помоги: щёлкни машину, которая едет лучше, — или поставь «Без машин», а потом верни встречных.`;
   }
   if (last.finished) return `Лучший доехал за ${secs(last.ticks)}. Рой ищет мозг, который фитнес оценит ещё выше.`;

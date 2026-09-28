@@ -1,7 +1,7 @@
 // Лабиринт: развилки с тупиками, знаки перед ними, перекрёсток, где трасса пересекает саму себя.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { getTrainingTrack, projectProgress, signAt, castSegment, pointAt, SIGN_VIEW } from '../../engine/track.js';
+import { getTrainingTrack, projectProgress, signAt, castSegment, pointAt, forksPassed, SIGN_VIEW } from '../../engine/track.js';
 import { drawMaze, SIGN_GAP } from '../../engine/maze.js';
 import { Car } from '../../engine/car.js';
 
@@ -60,6 +60,30 @@ test('прогресс вдоль основной дороги растёт д�
   assert.ok(trip.every((w) => w.road === 0), 'с основной дороги не сворачиваем');
   for (let i = 1; i < trip.length; i++) assert.ok(trip[i].s - trip[i - 1].s < 30, `скачок прогресса на точке ${i}`);
   assert.ok(trip.at(-1).s >= maze.finishS);
+});
+
+test('на перекрёстке не срежешь: свернул на петлю задом наперёд — прогресс стоит', () => {
+  const c = main.center;
+  // перекрёсток — две точки основной дороги рядом друг с другом, но далеко по пути
+  let i = 0, j = 0;
+  for (let a = 0; a < c.length && !j; a++) {
+    for (let b = a + 60; b < c.length; b++) if (Math.hypot(c[a].x - c[b].x, c[a].y - c[b].y) < 8) { i = a; j = b; break; }
+  }
+  assert.ok(j > 0, 'в лабиринте есть перекрёсток');
+  let where = { road: 0, idx: 0 }, most = 0;
+  for (const p of [...c.slice(0, i + 1), ...c.slice(i + 20, j + 1).reverse()]) {
+    where = projectProgress(maze, p.x, p.y, where.idx, where.road);
+    most = Math.max(most, where.s);
+  }
+  assert.ok(most < main.cum[i] + 40, `прогресс ушёл до ${Math.round(most)}, а перекрёсток на ${Math.round(main.cum[i])}`);
+});
+
+test('развилка засчитывается, только если проехал за неё, а не в тупик', () => {
+  const [first, second] = deadEnds;
+  assert.equal(forksPassed(maze, first.fromS - 10), 0);
+  assert.equal(forksPassed(maze, first.fromS + 180), 0, 'из тупика прогресс так далеко не уходит');
+  assert.equal(forksPassed(maze, (first.fromS + second.fromS) / 2), 1);
+  assert.equal(forksPassed(maze, maze.finishS), deadEnds.length);
 });
 
 test('в тупике прогресс только падает: чем глубже заехал, тем дальше от финиша', () => {

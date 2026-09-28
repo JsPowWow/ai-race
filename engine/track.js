@@ -199,13 +199,14 @@ export function pointAt(track, s) {
 
 /**
  * Где машина на трассе: ближайшая точка центральной линии рядом с прошлой (road — номер дороги, hint — отрезок).
- * Ищем только рядом: если на перекрёстке свернуть на дальний участок трассы, прогресс не прыгнет вперёд.
+ * Ищем только рядом — на пару отрезков вокруг: за тик машина проезжает меньше одного.
+ * Тогда на перекрёстке, где бордюров нет, прогресс не «перескочит» на другой участок трассы и не «поползёт» за ним.
  * У развилки смотрим и на соседнюю дорогу — так машина переезжает с основной на тупик и обратно.
  * progress — сколько проехано к финишу: в тупике чем глубже, тем меньше (финиш-то в другой стороне).
  */
 export function projectProgress(track, x, y, hint, road = 0) {
-  const roads = track.roads ?? [track];
-  let best = { ...nearestOn(roads[road], x, y, hint - 6, hint + 16), road };
+  const roads = track.roads;
+  let best = { ...nearestOn(roads[road], x, y, hint - 2, hint + 3), road };
   const tryRoad = (k, lo, hi) => {
     const p = nearestOn(roads[k], x, y, lo, hi);
     if (p.d2 < best.d2) best = { ...p, road: k };
@@ -215,6 +216,8 @@ export function projectProgress(track, x, y, hint, road = 0) {
   } else {
     tryRoad(0, roads[road].fromIdx - 6, roads[road].fromIdx + 16);
   }
+  // Дальше края дороги — значит, машина съехала на другой участок (на перекрёстке): прогресс стоит, где был
+  if (best.d2 > (track.width / 2 + 10) ** 2) best = { road, idx: hint, s: roads[road].cum[hint], d2: best.d2 };
   const progress = best.road === 0 ? best.s : roads[best.road].fromS - best.s;
   return { road: best.road, idx: best.idx, s: progress };
 }
@@ -226,6 +229,11 @@ export function signAt(track, road, s) {
   if (road !== 0 || !track.signs) return 0;
   for (const sg of track.signs) if (s > sg.s - SIGN_VIEW && s <= sg.s) return sg.dir;
   return 0;
+}
+
+/** Сколько развилок позади: прогресс ушёл за развилку дальше, чем пускает тупик, — значит, свернул верно */
+export function forksPassed(track, s) {
+  return track.roads.slice(1).filter((r) => s > r.fromS + 300).length;
 }
 
 /** Луч или отрезок против бордюров: минимальная доля пути до столкновения, или -1 */

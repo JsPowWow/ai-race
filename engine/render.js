@@ -102,7 +102,7 @@ const SECTION = 150; // длина одной секции игрушечной 
 export function drawTrack(ctx, track, cam) {
   const p = getPalette();
   const px = 1 / cam.scale;
-  const roads = track.roads ?? [track];
+  const roads = track.roads;
   // тень: трасса лежит на столе
   ctx.save();
   ctx.translate(0, 5);
@@ -123,7 +123,7 @@ export function drawTrack(ctx, track, cam) {
   }
   // бордюры: красные и белые пластиковые блоки. На развилках и перекрёстках их нет — там проезд
   const kw = Math.max(9, 3 * px);
-  for (const side of track.walls ?? [track.left, track.right]) {
+  for (const side of track.walls) {
     ctx.lineWidth = kw; ctx.strokeStyle = p.kerb; polyPath(ctx, side); ctx.stroke();
     ctx.setLineDash([16, 16]); ctx.strokeStyle = p.kerb2; ctx.stroke();
     ctx.setLineDash([]);

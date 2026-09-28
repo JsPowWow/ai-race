@@ -7,7 +7,7 @@
 //   • знак + заметки — всё как на сайте;
 //   • знак, без заметок — заметки на входе всегда нули: помнить можно только «телом» (где едешь, как быстро);
 //   • без знака — вход «зн» всегда 0.
-import { getTrainingTrack } from '../engine/track.js';
+import { getTrainingTrack, forksPassed } from '../engine/track.js';
 import { SIGN_GAP } from '../engine/maze.js';
 import { Evolution } from '../engine/evolution.js';
 import { layerSizes, NOTES } from '../engine/brain.js';
@@ -37,10 +37,7 @@ function withSeed(seed, fn) {
 }
 
 /** Сколько развилок прошёл лидер поколения: цифра, или F — доехал до финиша */
-function forksPassed(car) {
-  if (car.status === 'finished') return 'F';
-  return String(track.roads.slice(1).filter((r) => car.bestS > r.fromS + 600).length);
-}
+const passed = (car) => (car.status === 'finished' ? 'F' : String(forksPassed(track, car.bestS)));
 
 function swarm(see, seed) {
   return withSeed(seed, () => {
@@ -50,7 +47,7 @@ function swarm(see, seed) {
       evo.spawn(track);
       while (evo.step() > 0 && evo.tick < evo.maxTicks);
       const { parentCar } = evo.evaluate();
-      line += forksPassed(parentCar);
+      line += passed(parentCar);
       if (parentCar.status === 'finished') finishedAt ??= g + 1;
     }
     return { line, finishedAt };
