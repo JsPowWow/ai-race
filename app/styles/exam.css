@@ -13,16 +13,6 @@
 .st-meh { color: var(--warn); font-weight: 600; }
 .verdict { font-size: 14px; padding: 10px 12px; background: color-mix(in srgb, var(--you) 14%, var(--surface-2)); border-radius: var(--r-m); }
 .verdict:empty { display: none; }
-.colors { display: flex; gap: 8px; flex-wrap: wrap; }
-.colors button { width: 30px; height: 30px; border: 2px solid var(--surface); cursor: pointer; box-shadow: 0 0 0 1px var(--line); border-radius: var(--r-s); }
-.colors button[aria-checked="true"] { box-shadow: 0 0 0 2px var(--ink); }
-.colors .custom-color {
-  position: relative; width: 30px; height: 30px; cursor: pointer; border-radius: var(--r-s);
-  border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--line);
-  background: conic-gradient(#ff3b30, #ffd60a, #3ddc84, #22d3ee, #9b5cff, #ff3d7f, #ff3b30);
-}
-.colors .custom-color.on { box-shadow: 0 0 0 2px var(--ink); }
-.colors .custom-color input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
 .gh-check { display: flex; align-items: center; gap: 10px; min-height: 22px; font-size: 13px; color: var(--muted); }
 .gh-check img { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line); }
 .gh-check.good { color: var(--ink); }

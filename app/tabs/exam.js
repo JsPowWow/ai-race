@@ -2,15 +2,14 @@
 import { TRAINING_TRACKS, getTrainingTrack } from '../../engine/track.js';
 import { Car, carReport, maxTicksFor } from '../../engine/car.js';
 import { withTraffic } from '../../engine/traffic.js';
-import { state, persist, thinkFn, on, emit, CAR_COLORS } from '../state.js';
+import { state, persist, thinkFn, on, emit } from '../state.js';
 import { seedTrack } from '../tracks.js';
 import { toCarFile } from '../car-file.js';
 import { drawScene, paintCar, trafficOn, setHud, lapText, showBanner } from '../stage.js';
-import { $, $$, esc, secs, pct, delegate, showError } from '../ui.js';
+import { $, esc, secs, pct, delegate } from '../ui.js';
 import { canDownload, saveFile } from '../download.js';
 import { sealCar, GITHUB_LOGIN } from '../../engine/seal.js';
 import { COURSE_KEY } from '../generated/course-key.js';
-import { checkAvatar, avatarUrl } from '../../engine/car-file.js';
 
 const UNKNOWN_SEEDS = ['экзамен-1', 'экзамен-2', 'экзамен-3'];
 const REPLAY_SPEED = 3;
@@ -108,18 +107,7 @@ delegate('#examTable', 'click', 'tr[data-i]', (row) => playReplay(+row.dataset.i
 
 // ── файл для гонки ──
 
-const swatches = CAR_COLORS.map((c) =>
-  `<button role="radio" aria-checked="false" data-color="${c}" style="background:${c}" aria-label="Цвет ${c}"></button>`).join('');
-$('#pColors').innerHTML = `${swatches}<label class="custom-color" title="Свой цвет"><input type="color" id="pColorCustom" aria-label="Свой цвет"></label>`;
-$('#pName').value = state.profile.name;
-
 function renderExport() {
-  const custom = !CAR_COLORS.includes(state.profile.color);
-  for (const b of $$('#pColors button')) b.setAttribute('aria-checked', String(b.dataset.color === state.profile.color));
-  $('#pColorCustom').value = state.profile.color;
-  $('#pColorCustom').parentElement.classList.toggle('on', custom);
-  $('#pColorCustom').parentElement.style.background = custom ? state.profile.color : '';
-  renderAvatar();
   const file = toCarFile();
   $('#pJson').value = file ? JSON.stringify(file) : 'Сначала обучи мозг.';
   $('#pCopy').disabled = $('#pDownload').disabled = !file;
@@ -127,47 +115,6 @@ function renderExport() {
   if (loginLooksValid() && !loginChecks.has(currentLogin().toLowerCase())) checkLogin(); // раз за сессию, чтобы не тратить лимит GitHub
   renderResults();
 }
-
-function setColor(color) {
-  state.profile.color = color;
-  persist();
-  renderExport();
-}
-delegate('#pColors', 'click', '[data-color]', (b) => setColor(b.dataset.color));
-$('#pColorCustom').addEventListener('change', (e) => setColor(e.target.value));
-$('#pName').addEventListener('input', (e) => {
-  state.profile.name = e.target.value;
-  persist();
-  renderExport();
-});
-
-// ── аватар: маленькая SVG-картинка, её покажут в таблице гонки и на стриме ──
-
-function renderAvatar(error = '') {
-  const url = avatarUrl(state.profile.avatar);
-  $('#pAvatarImg').hidden = !url;
-  if (url) $('#pAvatarImg').src = url;
-  $('#pAvatarClear').hidden = !url;
-  showError('#pAvatarError', error);
-}
-
-$('#pAvatarFile').addEventListener('change', async (e) => {
-  const [file] = e.target.files;
-  e.target.value = '';
-  if (!file) return;
-  try {
-    state.profile.avatar = checkAvatar(await file.text());
-    persist();
-    renderExport();
-  } catch (err) {
-    renderAvatar(`Не подошло: ${err.message}`);
-  }
-});
-$('#pAvatarClear').addEventListener('click', () => {
-  delete state.profile.avatar;
-  persist();
-  renderExport();
-});
 
 $('#pCopy').addEventListener('click', async () => {
   try {

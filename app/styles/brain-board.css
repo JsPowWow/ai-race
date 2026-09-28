@@ -5,8 +5,8 @@
 .brain-board .zoom .btn { min-inline-size: 36px; min-block-size: 36px; padding-inline: 8px; font: 600 15px/1 var(--mono); }
 .brain-board .zoom [data-z="reset"] { font-size: 12px; }
 /* у «Мозга лидера» свой заголовок — подпись «Табло мозга» не нужна */
-.leader-brain .brain-board-bar > span { display: none; }
-.leader-brain .brain-board-bar { justify-content: flex-end; }
+.brain-fold .brain-board-bar > span { display: none; }
+.brain-fold .brain-board-bar { justify-content: flex-end; }
 
 /* на широком экране зум — внутри табло, в правом нижнем углу: табло целиком влезает в экран вместе со стендом */
 @media (min-width: 901px) {
@@ -37,3 +37,11 @@
 .brain-board .formula em { font-style: normal; font-weight: 600; color: var(--hud-digit); }
 .brain-board .formula .src, .brain-board .formula .more { color: color-mix(in srgb, var(--hud-ink) 55%, transparent); white-space: pre; }
 .brain-board .formula .sep { border-block-start: 1px solid rgb(255 255 255 / 0.14); padding-block-start: 4px; margin-block-start: 2px; }
+
+/* Сворачиваемый блок с табло («Мозг лидера», «Мозг» в профиле) */
+.brain-fold > summary { display: flex; align-items: center; gap: 8px; color: var(--ink); list-style: none; }
+.brain-fold > summary::-webkit-details-marker { display: none; }
+.brain-fold > summary::before { content: "▶"; font-size: 10px; color: var(--muted); transition: rotate 0.15s; }
+.brain-fold[open] > summary::before { rotate: 90deg; }
+.brain-fold > summary h2 { margin: 0; }
+.brain-fold[open] > summary { margin-block-end: 8px; }

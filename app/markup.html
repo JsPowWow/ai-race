@@ -195,7 +195,7 @@
       <p class="swarm-say" id="swarmSay" role="status"></p>
     </section>
 
-    <details class="block leader-brain" data-panel="train" hidden open>
+    <details class="block brain-fold leader-brain" data-panel="train" hidden open>
       <summary><h2>Мозг лидера</h2></summary>
       <p class="hint" id="leaderHint">Нажми «Старт» — здесь загорится мозг машины, которая едет впереди.</p>
       <div class="brain-board">
@@ -206,6 +206,21 @@
         <div class="brain-board-screen">
           <canvas id="leaderBoard" aria-label="Схема нейросети лидера роя: что он видит и что жмёт"></canvas>
           <div class="formula" id="leaderFormula" hidden></div>
+        </div>
+      </div>
+    </details>
+
+    <details class="block brain-fold profile-brain" data-panel="profile" hidden open>
+      <summary><h2>Мозг</h2></summary>
+      <p class="hint" id="profileBrainHint"></p>
+      <div class="brain-board">
+        <div class="brain-board-bar">
+          <span>Табло мозга</span>
+          <div class="zoom" role="group" aria-label="Масштаб табло"><button class="btn" data-z="in" aria-label="Приблизить">+</button><button class="btn" data-z="out" aria-label="Отдалить" disabled>−</button><button class="btn" data-z="reset" aria-label="Обычный масштаб" hidden>1:1</button></div>
+        </div>
+        <div class="brain-board-screen">
+          <canvas id="profileBoard" aria-label="Схема нейросети с этой сборкой: что видят сенсоры и что жмёт мозг"></canvas>
+          <div class="formula" id="profileFormula" hidden></div>
         </div>
       </div>
     </details>
@@ -290,19 +305,24 @@
 
     <!-- ПРОФИЛЬ -->
     <div data-panel="profile" hidden>
+      <section class="block look">
+        <h2>Облик</h2>
+        <div class="field"><label for="pName">Имя машины</label><input type="text" id="pName" maxlength="24" placeholder="Например, Торетто"></div>
+        <div class="colors" id="pColors" role="radiogroup" aria-label="Цвет машины"></div>
+        <div class="avatar-row">
+          <img id="pAvatarImg" class="avatar big" alt="Аватар машины" hidden>
+          <label class="btn small file">Аватар .svg<input type="file" id="pAvatarFile" accept=".svg,image/svg+xml"></label>
+          <button class="btn small" id="pAvatarClear" hidden>Убрать</button>
+        </div>
+        <p class="hint">Аватар — необязательная SVG-картинка до 8 КБ: её покажут в таблице гонки и на стриме. Без скриптов и ссылок на другие сайты.</p>
+        <div class="error" id="pAvatarError" hidden></div>
+      </section>
       <section class="block build">
         <h2>Сборка</h2>
         <p class="budget"><b id="bSpent">50</b> из <span id="bBudget">100</span> очков <span class="note" id="bLeft"></span></p>
         <div class="budget-bar" aria-hidden="true"><span id="bBar"></span></div>
         <p class="hint">Очки у всех одни. Больше глаз — дальше видно, больше нейронов — умнее, но рою дольше учиться. Всё сразу не купить: выбирай под трассу.</p>
         <p class="error" id="bMsg" role="status" hidden></p>
-        <div class="pending" id="shapeConfirm" hidden>
-          <p id="shapeConfirmText"></p>
-          <div class="row">
-            <button class="btn small danger" id="shapeYes">Поменять</button>
-            <button class="btn small" id="shapeNo">Оставить как было</button>
-          </div>
-        </div>
       </section>
       <section class="block">
         <h2>Глаза вперёд</h2>
@@ -315,7 +335,8 @@
         <h2>Глаза назад</h2>
         <div class="field"><label for="sBack">Сенсоров</label><input type="range" id="sBack" min="0" max="4" step="1"><output id="sBackOut"></output></div>
         <div class="field"><label for="sBackLength">Дальность</label><input type="range" id="sBackLength" min="40" max="200" step="10"><output id="sBackLengthOut"></output></div>
-        <p class="hint">Видят тех, кто догоняет, — на кольце обгоняют и тебя.</p>
+        <div class="field"><label for="sBackSpread">Угол обзора</label><input type="range" id="sBackSpread" min="10" max="180" step="10"><output id="sBackSpreadOut"></output></div>
+        <p class="hint">Видят тех, кто догоняет, — на кольце обгоняют и тебя. Узкий веер смотрит прямо назад, широкий — ещё и на соседние полосы. Угол бесплатный.</p>
       </section>
       <section class="block">
         <h2>Мозг</h2>
@@ -328,6 +349,13 @@
         <h2>Цены</h2>
         <ul class="prices" id="bPrices"></ul>
       </section>
+      <div class="draft" id="draftBar" role="status" hidden>
+        <p id="draftText"></p>
+        <div class="row">
+          <button class="btn small primary" id="draftApply">Применить</button>
+          <button class="btn small" id="draftCancel">Отменить</button>
+        </div>
+      </div>
     </div>
 
     <!-- УЧИТСЯ САМО -->
@@ -408,15 +436,7 @@
       </section>
       <section class="block">
         <h2>На гонку</h2>
-        <div class="field"><label for="pName">Имя машины</label><input type="text" id="pName" maxlength="24" placeholder="Например, Торетто"></div>
-        <div class="colors" id="pColors" role="radiogroup" aria-label="Цвет машины"></div>
-        <div class="avatar-row">
-          <img id="pAvatarImg" class="avatar big" alt="Аватар машины" hidden>
-          <label class="btn small file">Аватар .svg<input type="file" id="pAvatarFile" accept=".svg,image/svg+xml"></label>
-          <button class="btn small" id="pAvatarClear" hidden>Убрать</button>
-        </div>
-        <p class="hint">Аватар — необязательная SVG-картинка до 8 КБ: её покажут в таблице гонки и на стриме. Без скриптов и ссылок на другие сайты.</p>
-        <div class="error" id="pAvatarError" hidden></div>
+        <p class="hint">Имя, цвет и аватар машины — на вкладке «Профиль».</p>
         <div class="field wide"><label for="pLogin">Логин GitHub</label><input type="text" id="pLogin" maxlength="39" placeholder="например, JsPowWow" autocomplete="username" autocapitalize="off" spellcheck="false"></div>
         <div class="gh-check" id="pLoginCheck" role="status"></div>
         <div class="row">

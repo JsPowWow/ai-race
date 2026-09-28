@@ -40,3 +40,8 @@ test('файл машины дороже бюджета не принимает�
   file.sensors.count = 15;
   assert.throws(() => parseCarFile(file), /Торетто: сборка стоит \d+ очков/);
 });
+
+test('угол обзора сзади — тоже выбор, а не покупка', () => {
+  const back = { ...DEFAULT_SENSORS, back: 2, backLength: 80 };
+  assert.equal(cost({ ...basic, sensors: { ...back, backSpread: 120 } }), cost({ ...basic, sensors: back }));
+});

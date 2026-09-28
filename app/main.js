@@ -16,7 +16,7 @@ import { raceTab } from './tabs/race.js';
 import { introTab, redrawIntro } from './tabs/intro.js';
 import { initTheme } from './theme.js';
 import { teachTab, redrawLoss, renderNetwork } from './tabs/teach.js';
-import { profileTab } from './tabs/profile.js';
+import { profileTab, redrawProfileBrain } from './tabs/profile.js';
 
 const TABS = { intro: introTab, profile: profileTab, teach: teachTab, train: trainTab, code: codeTab, exam: examTab, race: raceTab };
 /** Финал нужен только кураторам: его код (Worker, печать, экспорт) грузим, когда вкладку открыли */
@@ -108,6 +108,7 @@ function redrawCharts() {
   readPalette();
   if (state.tab === 'intro') redrawIntro();
   if (state.tab === 'train') redrawLeaderBrain();
+  if (state.tab === 'profile') redrawProfileBrain();
   if (state.tab === 'teach') {
     renderNetwork();
     redrawLoss();

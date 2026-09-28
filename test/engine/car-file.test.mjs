@@ -36,3 +36,17 @@ test('аватар: скрипты и внешние ссылки не прох�
   assert.throws(() => checkAvatar('<svg><script>alert(1)</script></svg>'));
   assert.throws(() => checkAvatar('<svg onload="alert(1)"></svg>'));
 });
+
+test('угол обзора сзади читается из файла; нет его — узкий веер по умолчанию', async () => {
+  const { createBrain, layerSizes } = await import('../../engine/brain.js');
+  const withBack = (extra) => {
+    const file = good();
+    Object.assign(file.sensors, { back: 2, backLength: 80, ...extra });
+    file.layers = layerSizes(file.sensors.count + 2, file.layers.slice(1, -1));
+    file.brain = createBrain(file.layers);
+    return file;
+  };
+  assert.equal(parseCarFile(withBack({ backSpread: 90 })).sensors.backSpread, 90);
+  assert.equal(parseCarFile(withBack({})).sensors.backSpread, 30);
+  assert.throws(() => parseCarFile(withBack({ backSpread: 300 })), /угол обзора сзади/);
+});

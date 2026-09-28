@@ -39,20 +39,20 @@ export function wheelAngle(curve) {
 
 export const DEFAULT_SENSORS = { count: 5, spread: 90, length: 160 };
 
-const BACK_SPREAD = 30; // сенсоры назад — узким веером прямо за машиной: там догоняющие и соседние полосы
+export const BACK_SPREAD = 30; // сенсоры назад по умолчанию — узким веером прямо за машиной: там догоняющие
 
 /**
  * Лучи сенсоров: угол от носа машины и длина. Сначала веер вперёд слева направо (крайние лучи — по краям угла обзора),
- * потом (если есть) сенсоры назад: back лучей длиной backLength — видят тех, кто догоняет.
+ * потом (если есть) сенсоры назад: back лучей длиной backLength в веере backSpread° — видят тех, кто догоняет.
  * Задний веер делим на равные сектора и смотрим в середину каждого: и при двух лучах машина прямо сзади видна.
- * @param {{ count: number, spread: number, length: number, back?: number, backLength?: number }} sensors
+ * @param {{ count: number, spread: number, length: number, back?: number, backLength?: number, backSpread?: number }} sensors
  */
-export function rays({ count, spread, length, back = 0, backLength = 0 }) {
+export function rays({ count, spread, length, back = 0, backLength = 0, backSpread = BACK_SPREAD }) {
   const front = Array.from({ length: count }, (_, i) => {
     const half = (spread * Math.PI) / 360;
     return { angle: count === 1 ? 0 : lerp(-half, half, i / (count - 1)), length };
   });
-  const sector = (BACK_SPREAD * Math.PI) / 180 / Math.max(1, back);
+  const sector = (backSpread * Math.PI) / 180 / Math.max(1, back);
   const rear = Array.from({ length: back }, (_, i) => ({ angle: Math.PI + (i - (back - 1) / 2) * sector, length: backLength }));
   return [...front, ...rear];
 }

@@ -41,3 +41,11 @@ test('машина сзади видна только сенсорами наз�
   assert.ok(chased.slice(5).some((v) => v > 0), 'сзади видно догоняющего');
   assert.deepEqual(look(FRONT, [carAt(-80)]), look(FRONT, []), 'без сенсоров назад его не видно');
 });
+
+test('угол обзора сзади настраивается, по умолчанию — узкий веер 30°', () => {
+  const spanOf = (sensors) => { const back = rays(sensors).slice(5).map((r) => r.angle); return Math.max(...back) - Math.min(...back); };
+  const narrow = spanOf({ ...BOTH, back: 3 });
+  const wide = spanOf({ ...BOTH, back: 3, backSpread: 90 });
+  assert.ok(Math.abs(narrow - (20 * Math.PI) / 180) < 1e-9, 'три луча в 30° — через 10°: по серединам секторов');
+  assert.ok(Math.abs(wide - (60 * Math.PI) / 180) < 1e-9, 'в 90° — через 30°');
+});
