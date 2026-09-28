@@ -10,7 +10,7 @@ import { onStorageFull, load, save, remove } from './storage.js';
 import { startGarage } from './garage.js';
 import { checkBrain } from '../engine/brain.ts';
 import { $, $$, esc, secs, pct, delegate } from './ui.js';
-import { trainTab, updateTraining, isTraining, redrawLeaderBrain } from './tabs/train.js';
+import { trainTab, updateTraining, isTraining, redrawLeaderBrain } from './tabs/train.tsx';
 import { codeTab, runAllTests } from './tabs/code.js';
 import { examTab } from './tabs/exam.js';
 import { raceTab } from './tabs/race.js';
