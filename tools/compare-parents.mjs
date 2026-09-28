@@ -5,9 +5,9 @@ import { withTraffic } from '../engine/traffic.js';
 import { layerSizes } from '../engine/brain.js';
 import { Evolution } from '../engine/evolution.js';
 import { thinkVariants } from '../student/think.js';
-import { mutate } from '../student/mutate.js';
-import { fitness } from '../student/fitness.js';
-import { crossover } from '../student/crossover.js';
+import { FITNESS, MUTATIONS, crossover } from '../engine/recipes.js';
+
+const { fitness } = FITNESS.fast, { mutate } = MUTATIONS.spot;
 
 const [trackId = 'hairpin', runs = 20, generations = 30] = process.argv.slice(2);
 const track = withTraffic(getTrainingTrack(trackId), 'all');
@@ -16,7 +16,7 @@ const sensors = { count: 5, spread: 90, length: 160 };
 /** Сколько поколений понадобилось до финиша (или null, если не доехал) */
 function generationsToFinish(parents) {
   const evo = new Evolution({
-    sizes: layerSizes(sensors.count, [6]), sensors, think: thinkVariants.step.think,
+    sizes: layerSizes(sensors.count, [6]), sensors, think: thinkVariants.smooth.think,
     mutate, fitness, crossover, parents, population: 100, rate: 0.1,
   });
   for (let gen = 1; gen <= +generations; gen++) {

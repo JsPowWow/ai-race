@@ -20,7 +20,7 @@ export const NOTE_LABELS = Array.from({ length: NOTES }, (_, i) => `m${i + 1}`);
 export const OUTPUT_LABELS = [...BUTTONS, ...NOTE_LABELS];
 export const OUTPUTS = OUTPUT_LABELS.length;
 
-export const LIMITS = { sensorsMin: 3, sensorsMax: 15, hiddenLayersMax: 3, neuronsMin: 2, neuronsMax: 16 };
+export const LIMITS = { sensorsMin: 3, sensorsMax: 15, backMax: 4, hiddenLayersMax: 3, neuronsMin: 2, neuronsMax: 16 };
 
 export const SIGN_LABEL = 'зн';
 

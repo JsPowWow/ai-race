@@ -10,21 +10,18 @@
 //
 //  Включается на вкладке «Учится само»: «Родителей: 2».
 //
-//  Сейчас здесь «монетка»: каждое число берём у мамы или у папы наугад.
+//  Как сейчас: целыми нейронами. Для каждого нейрона одна монетка решает, чьи ВСЕ его входящие связи
+//  и порог он получит — мамины или папины. Нейрон — цельная «идея» («справа близко — рули влево»), её не рвём.
 
 export function crossover(mom, dad) {
   return {
-    layers: mom.layers.map((layer, k) => ({
-      weights: layer.weights.map((row, i) =>
-        row.map((w, j) => (Math.random() < 0.5 ? w : dad.layers[k].weights[i][j])),
-      ),
-      biases: layer.biases.map((b, j) => (Math.random() < 0.5 ? b : dad.layers[k].biases[j])),
-    })),
+    layers: mom.layers.map((layer, k) => {
+      const fromMom = layer.biases.map(() => Math.random() < 0.5); // монетка на каждый нейрон следующего слоя
+      const other = dad.layers[k];
+      return {
+        weights: layer.weights.map((row, i) => row.map((w, j) => (fromMom[j] ? w : other.weights[i][j]))),
+        biases: layer.biases.map((b, j) => (fromMom[j] ? b : other.biases[j])),
+      };
+    }),
   };
-
-  // TODO: попробуй другие способы и сравни на графике. Идеи:
-  //  • среднее: (w + dad...) / 2 — логично, но проверь, как поедет
-  //  • целыми нейронами: для каждого нейрона j одна монетка решает,
-  //    чьи ВСЕ входящие связи weights[*][j] и порог biases[j] он получит.
-  //    Нейрон — это цельная «идея» («справа близко — рули влево»), её лучше не рвать.
 }

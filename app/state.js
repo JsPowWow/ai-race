@@ -1,5 +1,5 @@
 // Общее состояние приложения, его сохранение и простые события между вкладками.
-import { DEFAULT_SENSORS } from '../engine/car.js';
+import { DEFAULT_SENSORS, rayCount } from '../engine/car.js';
 import { layerSizes, checkBrain } from '../engine/brain.js';
 import { CAR_COLORS } from '../engine/car-file.js';
 import { load, save, remove } from './storage.js';
@@ -22,7 +22,7 @@ export const state = {
   /** История мозга: прежние версии сохраняются сами — [{ id, at, brain, config, generation, handEdited, brainNote, pinned }] */
   versions: load('versions', null) ?? migrateLibrary(),
   /** Настройки вкладок */
-  train: { trackId: 'warmup', seed: 'тренировка', traffic: 'all', parents: 1, population: 100, rate: 0.1, speed: '1', camera: 'fit', ...load('train', {}) },
+  train: { trackId: 'warmup', seed: 'тренировка', traffic: 'all', parents: 2, fitness: 'fast', mutation: 'spot', population: 100, rate: 0.1, speed: '1', camera: 'fit', ...load('train', {}) },
   /** «Я учу»: трасса и машины (раньше это был «Гараж») */
   drive: { trackId: 'warmup', traffic: 'none', ...(load('drive', null) ?? load('garage', {})) },
   race: { seed: 'урок-1', traffic: 'all', ...load('race', {}) },
@@ -30,7 +30,7 @@ export const state = {
 };
 
 // Мозг, сохранённый до памяти (#4), другой формы: на нём машина не поедет. Начинаем с чистого листа.
-if (state.champion && checkBrain(state.champion, layerSizes(state.config.sensors.count, state.config.hidden))) {
+if (state.champion && checkBrain(state.champion, layerSizes(rayCount(state.config.sensors), state.config.hidden))) {
   Object.assign(state, { champion: null, generation: 0, history: [], hall: [], handEdited: false, brainNote: '' });
 }
 
@@ -58,7 +58,7 @@ export function persistSoon() {
 // ── производные значения ──
 
 /** Размеры слоёв: [входы, …скрытые, 4 выхода] */
-export const sizesOf = (config = state.config) => layerSizes(config.sensors.count, config.hidden);
+export const sizesOf = (config = state.config) => layerSizes(rayCount(config.sensors), config.hidden);
 export const sameSizes = (a, b) => sizesOf(a).join() === sizesOf(b).join();
 
 /** Как называть текущий мозг людям */

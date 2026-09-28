@@ -1,5 +1,5 @@
 // Рисование трассы и машин на canvas.
-import { CAR, wheelAngle } from './car.js';
+import { CAR, wheelAngle, rays } from './car.js';
 import { pointAt, freeSide, signShows } from './track.js';
 
 /**
@@ -292,12 +292,11 @@ export function drawPack(ctx, cars) {
 
 export function drawSensors(ctx, car, sensors = car.sensors) {
   const p = getPalette();
-  const { count, spread, length } = sensors;
-  const half = (spread * Math.PI) / 360;
+  const beams = rays(sensors);
   ctx.lineWidth = 2;
-  for (let i = 0; i < count; i++) {
-    const a = car.angle + (count === 1 ? 0 : -half + (2 * half * i) / (count - 1));
-    const t = car.rayT && car.rayT.length === count ? car.rayT[i] : -1;
+  for (let i = 0; i < beams.length; i++) {
+    const a = car.angle + beams[i].angle, length = beams[i].length;
+    const t = car.rayT && car.rayT.length === beams.length ? car.rayT[i] : -1;
     const ex = car.x + Math.cos(a) * length, ey = car.y + Math.sin(a) * length;
     const hx = t < 0 ? ex : car.x + Math.cos(a) * length * t, hy = t < 0 ? ey : car.y + Math.sin(a) * length * t;
     ctx.strokeStyle = p.ray;

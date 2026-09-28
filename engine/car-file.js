@@ -2,6 +2,8 @@
 // Здесь только проверка: модуль не знает ни про страницу, ни про код студента,
 // поэтому его используют и вкладки, и расчёт финала в Web Worker, и скрипты в tools/.
 import { layerSizes, checkBrain, LIMITS } from './brain.js';
+import { rayCount } from './car.js';
+import { BUDGET, cost } from './build.js';
 
 // car@3 — мозг с памятью и дорожным знаком: сенсоры мгновение назад, знак и заметки (см. engine/brain.js).
 // Мозги car@1 и car@2 к ней не подходят: у них другое число входов.
@@ -63,11 +65,18 @@ export function parseCarFile(file) {
   if (sensors.count < LIMITS.sensorsMin || sensors.count > LIMITS.sensorsMax) fail(`сенсоров должно быть от ${LIMITS.sensorsMin} до ${LIMITS.sensorsMax}`);
   if (!(sensors.spread >= 30 && sensors.spread <= 180)) fail('угол обзора вне 30–180°');
   if (!(sensors.length >= 80 && sensors.length <= 260)) fail('дальность вне 80–260 px');
+  if (s.back) { // сенсоры назад — по желанию; в старых файлах их нет
+    Object.assign(sensors, { back: s.back | 0, backLength: +s.backLength });
+    if (sensors.back < 0 || sensors.back > LIMITS.backMax) fail(`сенсоров назад — не больше ${LIMITS.backMax}`);
+    if (!(sensors.backLength >= 40 && sensors.backLength <= 200)) fail('дальность сенсоров назад вне 40–200 px');
+  }
 
   const hidden = Array.isArray(file.layers) ? file.layers.slice(1, -1) : [];
   const tooBig = hidden.length > LIMITS.hiddenLayersMax || hidden.some((n) => !(n >= LIMITS.neuronsMin && n <= LIMITS.neuronsMax));
   if (tooBig) fail('сеть больше разрешённой');
-  const sizes = layerSizes(sensors.count, hidden);
+  const price = cost({ sensors, hidden });
+  if (price > BUDGET) fail(`сборка стоит ${price} очков, а бюджет — ${BUDGET}`);
+  const sizes = layerSizes(rayCount(sensors), hidden);
   const brainError = checkBrain(file.brain, sizes);
   if (brainError) fail(brainError);
 

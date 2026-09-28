@@ -28,3 +28,34 @@ test('кто лучше по фитнесу, тот и родитель', () => 
   assert.equal(evo.evaluate().parentCar, evo.cars[3]);
   assert.equal(evo.parent.layers[0].biases[0], 0.5, 'новый родитель — мутировавший ребёнок');
 });
+
+// Рецепт «из коробки» (think «Плавный», точечная мутация, кроссовер нейронами, фитнес «Дальше и быстрее») учится надёжно:
+// в опыте (tools/swarm-check.mjs) — 15 финишей из 15 на «Змейке», «Шпильке» и «Развилке» со встречными.
+test('рой по умолчанию учится: на «Змейке» со встречными лучший доезжает за 30 поколений', async () => {
+  const { thinkVariants, DEFAULT_THINK } = await import('../../student/think.js');
+  const { FITNESS, MUTATIONS, DEFAULT_RECIPE, crossover } = await import('../../engine/recipes.js');
+  const { fitness } = FITNESS[DEFAULT_RECIPE.fitness], { mutate } = MUTATIONS[DEFAULT_RECIPE.mutation];
+  const { withTraffic } = await import('../../engine/traffic.js');
+  const { withCoins } = await import('../../engine/track.js');
+  const { DEFAULT_SENSORS } = await import('../../engine/car.js');
+  const track = withTraffic(getTrainingTrack('snake'), 'all');
+  const saved = Math.random;
+  try {
+    for (const seed of [1, 2]) {
+      Math.random = mulberry32(seed);
+      const evo = new Evolution({
+        sizes: layerSizes(DEFAULT_SENSORS.count, [6]), sensors: DEFAULT_SENSORS, population: 100, rate: 0.1,
+        think: thinkVariants[DEFAULT_THINK].think, mutate, crossover, fitness,
+      });
+      let finishedAt = null;
+      for (let g = 0; g < 30 && !finishedAt; g++) {
+        evo.spawn(withCoins(track, g));
+        while (evo.step() > 0 && evo.tick < evo.maxTicks);
+        if (evo.evaluate().entry.finished) finishedAt = g + 1;
+      }
+      assert.ok(finishedAt, `опыт ${seed}: за 30 поколений никто не доехал`);
+    }
+  } finally {
+    Math.random = saved;
+  }
+});

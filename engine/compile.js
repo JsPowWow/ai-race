@@ -6,14 +6,14 @@
 //  • в финале чужой код выполняется в Web Worker (app/final/worker.js): там нет страницы,
 //    хранилища и cookies, а зависший расчёт просто останавливается.
 // Опасные глобальные имена подменены на undefined — от случайностей и простых шалостей, не от взлома.
-import { lerp, randomBetween, sigmoid, clamp } from './utils.js';
+import { lerp, randomBetween, randomGauss, sigmoid, clamp } from './utils.js';
 
 export const BLOCKED = [
   'window', 'self', 'globalThis', 'document', 'localStorage', 'sessionStorage', 'indexedDB', 'caches',
   'fetch', 'XMLHttpRequest', 'WebSocket', 'EventSource', 'navigator', 'location', 'history',
   'open', 'alert', 'Function', 'Worker', 'importScripts', 'postMessage', 'BroadcastChannel',
 ];
-const HELPERS = { lerp, randomBetween, sigmoid, clamp };
+const HELPERS = { lerp, randomBetween, randomGauss, sigmoid, clamp };
 
 /** Бросает то, что бросил код студента (с исходным стеком) */
 export function compileSource(src) {

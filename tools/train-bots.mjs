@@ -3,16 +3,18 @@
 import { writeFileSync } from 'node:fs';
 import { getTrainingTrack, generateTrack, withCoins } from '../engine/track.js';
 import { layerSizes } from '../engine/brain.js';
+import { rayCount } from '../engine/car.js';
 import { FORMAT } from '../engine/car-file.js';
 import { withTraffic } from '../engine/traffic.js';
 import { thinkVariants } from '../student/think.js';
+import { FITNESS } from '../engine/recipes.js';
 import { drive, evolveOnTracks, resultText } from './sim.mjs';
 
 const training = (id, traffic = 'all') => withTraffic(getTrainingTrack(id), traffic);
 const random = (seed, traffic = 'all') => withTraffic(generateTrack(seed), traffic);
 
-const byDistance = (r) => r.progress;
-const bySpeed = (r) => r.progress + (r.finished ? 3 * (12000 - r.ticks) : 0); // три круга — это 3–5 тыс. тиков
+const byDistance = FITNESS.far.fitness;
+const bySpeed = FITNESS.fast.fitness;
 
 const RECIPES = [
   {
@@ -25,7 +27,7 @@ const RECIPES = [
   {
     name: 'Торетто', color: '#1c7ed6', think: 'smooth',
     sensors: { count: 7, spread: 120, length: 180 }, hidden: [8],
-    generations: 80, population: 60, rate: 0.1, fitness: byDistance,
+    generations: 80, population: 60, rate: 0.1, fitness: bySpeed,
     tracksFor: (g) => [training('snake', 'same'), training('hairpin', 'same'), random(`bot-t-${g}`, 'same'), random(`bot-t2-${g}`)],
   },
   {
@@ -42,7 +44,7 @@ const RECIPES = [
 ];
 
 const bots = RECIPES.map(({ name, color, think, sensors, hidden, ...plan }) => {
-  const sizes = layerSizes(sensors.count, hidden);
+  const sizes = layerSizes(rayCount(sensors), hidden);
   const brain = evolveOnTracks({
     ...plan, sizes, sensors, think: thinkVariants[think].think,
     log: (gen, score) => gen % 10 === 0 && console.log(`${name}: поколение ${gen}, фитнес ${Math.round(score)}`),

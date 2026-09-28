@@ -13,9 +13,9 @@
 <script>try{const t=JSON.parse(localStorage.getItem('ai-race:theme'));if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch{}</script>
 <link rel="icon" href="app/icon.svg" type="image/svg+xml">
 <link rel="preload" href="app/fonts/rubik-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="modulepreload" href="app/generated/chunks/chunk-N3EF75JS.js">
+<link rel="modulepreload" href="app/generated/chunks/chunk-N3NYN6TX.js">
 <link rel="stylesheet" href="app/generated/app.css?v=d68cb05787">
-<script type="module" src="app/generated/app.js?v=a28f526a00"></script>
+<script type="module" src="app/generated/app.js?v=7adf3a71eb"></script>
 </head>
 <body>
 <a class="skip-link" href="#content">К содержимому</a>
@@ -208,8 +208,8 @@
     <section class="block swarm-now" data-panel="train" hidden aria-label="Рой сейчас">
       <ol class="swarm-cycle" aria-label="Как учится рой: одно поколение">
         <li data-phase="drive"><span class="n">1</span><span><b>Едут <span id="cycPop">100</span> машин</b>мозги у всех чуть разные</span></li>
-        <li data-phase="pick"><span class="n">2</span><span><b>Отбор</b>у кого фитнес больше — тот родитель</span></li>
-        <li data-phase="mutate"><span class="n">3</span><span><b>Мутация</b>копии родителя, числа чуть встряхнуты</span></li>
+        <li data-phase="pick"><span class="n">2</span><span><b>Отбор</b>лучшие 10% по фитнесу — родители</span></li>
+        <li data-phase="mutate"><span class="n">3</span><span><b>Дети</b>нейроны от родителей и немного мутации</span></li>
       </ol>
       <p class="swarm-say" id="swarmSay" role="status"></p>
     </section>
@@ -330,21 +330,28 @@
 
     <!-- УЧИТСЯ САМО -->
     <div data-panel="train" hidden>
+      <section class="block recipe">
+        <h2>Рецепт роя</h2>
+        <div class="field wide"><label for="tFitness">За что хвалим</label><select id="tFitness"></select></div>
+        <p class="hint" id="tFitnessHint"></p>
+        <div class="field wide"><label for="tMutation">Как меняем детей</label><select id="tMutation"></select></div>
+        <p class="hint" id="tMutationHint"></p>
+        <div class="field wide"><label for="tThink">Как думает мозг</label><select id="tThink"></select></div>
+        <p class="hint" id="tThinkHint"></p>
+        <div class="field wide"><span class="lbl">Родителей</span>
+          <div class="seg" role="group" aria-label="Сколько родителей">
+            <button data-parents="1" aria-pressed="false">1</button>
+            <button data-parents="2" aria-pressed="true">2</button>
+          </div>
+        </div>
+        <p class="hint">Родители — лучшие 10% поколения. С двумя ребёнок берёт нейроны от обоих (кроссовер), с одним — копия одного. Лучший всегда едет дальше без изменений.</p>
+        <p class="hint">Новый рецепт действует со следующего поколения.</p>
+      </section>
       <section class="block">
         <h2>Поколение</h2>
         <div class="field"><label for="tPop">Машин</label><input type="range" id="tPop" min="10" max="300" step="10"><output id="tPopOut"></output></div>
-        <div class="field"><label for="tRate">Мутация</label><input type="range" id="tRate" min="0" max="0.5" step="0.01"><output id="tRateOut"></output></div>
-        <p class="hint">Мутация — насколько сильно встряхивать числа в копиях. Новые значения действуют со следующего поколения.</p>
-        <details class="more">
-          <summary>Два родителя (бонус урока 3)</summary>
-          <div class="field wide"><span class="lbl">Родителей</span>
-            <div class="seg" role="group" aria-label="Сколько родителей">
-              <button data-parents="1" aria-pressed="true">1</button>
-              <button data-parents="2" aria-pressed="false">2</button>
-            </div>
-          </div>
-          <p class="hint">С двумя родителями ребёнок берёт веса от обоих (кроссовер, файл <code>crossover.js</code>), потом мутирует. Щёлкнуть на трассе тогда можно две машины.</p>
-        </details>
+        <div class="field"><label for="tRate">Сила мутации</label><input type="range" id="tRate" min="0" max="0.5" step="0.01"><output id="tRateOut"></output></div>
+        <p class="hint">Сила мутации — сколько чисел у детей меняется (у «Лёгкого шума» — насколько сильно).</p>
         <div class="pending" id="pickedBar" hidden>
           <p id="pickedText">Выбрана машина вручную: она станет родителем следующего поколения.</p>
           <button class="btn small" id="pickedCancel">Отменить выбор</button>

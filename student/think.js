@@ -100,4 +100,4 @@ export const thinkVariants = {
   },
 };
 
-export const DEFAULT_THINK = 'step';
+export const DEFAULT_THINK = 'smooth'; // в опыте рой с ним учится надёжнее всего (tools/swarm-check.mjs)

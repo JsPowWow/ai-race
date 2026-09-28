@@ -3,13 +3,14 @@ import { TRAINING_TRACKS, getTrainingTrack, forksPassed, withCoins } from '../..
 import { Car } from '../../engine/car.js';
 import { cloneBrain, checkBrain } from '../../engine/brain.js';
 import { Evolution } from '../../engine/evolution.js';
+import { FITNESS, MUTATIONS, crossover } from '../../engine/recipes.js';
 import { TRAFFIC_LEVELS, withTraffic } from '../../engine/traffic.js';
 import { drawChart } from '../../engine/netviz.js';
 import { createBrainBoard } from '../brain-board/board.js';
 import { SMOOTH, ANY_ACT } from '../brain-board/formula.js';
 import { state, persist, persistSoon, sizesOf, thinkFn, setChampion, on, emit } from '../state.js';
 import { setBrain, remember, renderLibrary } from '../library.js';
-import { live, errorLine, isEdited } from '../student-code.js';
+import { live, errorLine } from '../student-code.js';
 import { seedTrack } from '../tracks.js';
 import { canvas, drawScene, paintCar, trafficOn, carAt, setHud, lapText, showBanner } from '../stage.js';
 import { $, $$, esc, secs, pct, options, setPressed, delegate, showError } from '../ui.js';
@@ -115,14 +116,19 @@ function trackForGeneration(gen) {
   return withCoins(withTraffic(base, traffic), gen); // у каждого поколения судьи бросают монетку по-своему
 }
 
-/** Настройки и свежий код студента — с каждого нового поколения */
+/** Варианты фитнеса: готовые и «Мой вариант» — функция fitness из student/fitness.js */
+const fitnessVariants = () => ({ ...FITNESS, mine: { title: 'Мой вариант', hint: 'Своя функция fitness из файла student/fitness.js (вкладка «Код»).', fitness: live.fitness.fitness } });
+const fitnessOf = (id) => (fitnessVariants()[id] ?? FITNESS.fast).fitness;
+const mutationOf = (id) => (MUTATIONS[id] ?? MUTATIONS.spot).mutate;
+
+/** Рецепт и настройки — с каждого нового поколения */
 const settings = () => ({
   sizes: sizesOf(),
   sensors: { ...state.config.sensors },
   think: thinkFn(),
-  mutate: live.mutate.mutate,
-  fitness: live.fitness.fitness,
-  crossover: live.crossover.crossover,
+  mutate: mutationOf(state.train.mutation),
+  fitness: fitnessOf(state.train.fitness),
+  crossover,
   parents: state.train.parents,
   population: state.train.population,
   rate: state.train.rate,
@@ -200,6 +206,7 @@ $('#tTrack').innerHTML = options([
   { id: 'mix', title: 'Микс: каждый раз новая' },
 ]);
 $('#tTraffic').innerHTML = options(TRAFFIC_LEVELS);
+$('#tMutation').innerHTML = options(Object.entries(MUTATIONS).map(([id, v]) => ({ id, title: v.title })));
 
 /** Поменять настройку; трасса меняется сразу, если обучение на паузе */
 function setTrain(key, value, { retrack = false } = {}) {
@@ -214,6 +221,13 @@ $('#tTraffic').addEventListener('change', (e) => setTrain('traffic', e.target.va
 $('#tSeed').addEventListener('change', (e) => setTrain('seed', e.target.value.trim() || 'тренировка', { retrack: true }));
 $('#tPop').addEventListener('input', (e) => setTrain('population', +e.target.value));
 $('#tRate').addEventListener('input', (e) => setTrain('rate', +e.target.value));
+$('#tFitness').addEventListener('change', (e) => setTrain('fitness', e.target.value));
+$('#tMutation').addEventListener('change', (e) => setTrain('mutation', e.target.value));
+$('#tThink').addEventListener('change', (e) => {
+  state.config.think = e.target.value; // форма сети та же — мозг остаётся, меняется только то, как он считает
+  persist();
+  syncControls();
+});
 delegate('.toolbar[data-for="train"]', 'click', '[data-speed]', (b) => setTrain('speed', b.dataset.speed));
 delegate('.toolbar[data-for="train"]', 'click', '[data-cam]', (b) => setTrain('camera', b.dataset.cam));
 delegate('[data-panel="train"]', 'click', '[data-parents]', (b) => {
@@ -235,6 +249,16 @@ function syncControls() {
   setPressed('[data-speed]', (b) => b.dataset.speed === t.speed);
   setPressed('[data-cam]', (b) => b.dataset.cam === t.camera);
   setPressed('[data-parents]', (b) => +b.dataset.parents === t.parents);
+  const fitness = fitnessVariants();
+  $('#tFitness').innerHTML = options(Object.entries(fitness).map(([id, v]) => ({ id, title: v.title })));
+  $('#tFitness').value = fitness[t.fitness] ? t.fitness : 'fast';
+  $('#tFitnessHint').textContent = fitness[$('#tFitness').value].hint;
+  $('#tMutation').value = MUTATIONS[t.mutation] ? t.mutation : 'spot';
+  $('#tMutationHint').textContent = MUTATIONS[$('#tMutation').value].hint;
+  const thinks = live.think.thinkVariants ?? {};
+  $('#tThink').innerHTML = options(Object.entries(thinks).map(([id, v]) => ({ id, title: v.title || id })));
+  $('#tThink').value = state.config.think;
+  $('#tThinkHint').textContent = thinks[state.config.think]?.hint ?? '';
 }
 
 // ── выбор родителей щелчком по трассе ──
@@ -285,7 +309,9 @@ function swarmAdvice() {
   if (!last) return 'Смотри, какая машина уедет дальше всех: от неё пойдёт следующее поколение. Долго — жми «Турбо».';
   const tail = h.slice(-SAME_GENS);
   if (isMaze() && last.finished && leader.slowdowns > 0) {
-    return `Доехал, но в медленную зону на развилке заехал ${leader.slowdowns} раз. Фитнесу «за расстояние» всё равно — кто доехал, тот и хорош. Хвалить за время научит урок 3.`;
+    return state.train.fitness === 'far'
+      ? `Доехал, но в медленную зону на развилке заехал ${leader.slowdowns} раз. Фитнесу «Только дальше» всё равно — кто доехал, тот и хорош. Выбери «Дальше и быстрее».`
+      : `Доехал, но в медленную зону на развилке заехал ${leader.slowdowns} раз. Время дороже — рой ещё научится читать знак.`;
   }
   if (isMaze() && last.finished) {
     return 'Каждый круг — по свободному пути: рой читает знак. Посмотри в «Мозге лидера», как горит вход «зн» у знака и что делают заметки m1…m3 после него — знак-то остаётся позади раньше развилки.';
@@ -294,9 +320,9 @@ function swarmAdvice() {
     if (TRAINING_TRACKS.some((t) => t.id === track.id) && track.id !== 'snake') {
       return 'Здесь рой уже доехал. Цель урока — «Змейка» с машинами: выбери её в «Трасса».';
     }
-    return isEdited('fitness')
-      ? `${SAME_GENS} поколений подряд никто не обогнал родителя по фитнесу. Попробуй мутацию посильнее или другую трассу.`
-      : 'Рой доехал — и больше не ускоряется. Фитнес хвалит только за расстояние, а все, кто доехал, для него равны. Ехать быстрее научит фитнес за скорость — урок 3, шаг 1.';
+    return state.train.fitness === 'far'
+      ? 'Рой доехал — и больше не ускоряется. «Только дальше» хвалит за расстояние, а все, кто доехал, для него равны. Выбери «Дальше и быстрее».'
+      : `${SAME_GENS} поколений подряд никто не обогнал лучшего. Попробуй «Смелую» мутацию или другую трассу.`;
   }
   const before = h.at(-STUCK_GENS - 1);
   if (!last.finished && before && h.slice(-STUCK_GENS).every((e) => !e.finished && e.best <= before.best)) {

@@ -8,18 +8,18 @@
 //  rate  — сила мутации от 0 до 1 (слайдер на вкладке «Учится само»).
 //          0 — ничего не менять, 1 — полностью случайный мозг.
 //
-//  Сейчас здесь самая простая версия: каждое число немного «тянем» к случайному.
+//  Как сейчас: каждое число с вероятностью rate чуть сдвигаем случайным шумом, остальные не трогаем.
+//  Так ребёнок похож на родителя, но где-то чуть другой: хорошее не теряется, новое пробуется.
+//  В опыте (tools/swarm-check.mjs) так рой учится куда надёжнее, чем если «тянуть» к случайному все числа сразу.
 
-import { lerp, randomBetween } from '../engine/utils.js';
+import { randomGauss } from '../engine/utils.js';
+
+const STEP = 0.4; // насколько сдвигаем выбранное число: обычно меньше чем на STEP
 
 export function mutate(brain, rate) {
+  const nudge = (w) => (Math.random() < rate ? w + randomGauss() * STEP : w);
   for (const layer of brain.layers) {
-    layer.biases = layer.biases.map((b) => lerp(b, randomBetween(-1, 1), rate));
-    layer.weights = layer.weights.map((row) => row.map((w) => lerp(w, randomBetween(-1, 1), rate)));
+    layer.biases = layer.biases.map(nudge);
+    layer.weights = layer.weights.map((row) => row.map(nudge));
   }
-
-  // TODO: попробуй сделать лучше. Идеи:
-  //  • менять не все числа, а каждое с вероятностью rate (остальные оставить как есть)
-  //  • вместо «тянуть к случайному» прибавлять маленький шум: w + randomBetween(-rate, rate)
-  //  • не выпускать числа за пределы -1..1 (или выпускать? проверь, что будет)
 }

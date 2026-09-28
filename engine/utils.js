@@ -8,6 +8,12 @@ export const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 /** Случайное число от min до max */
 export const randomBetween = (min, max) => min + Math.random() * (max - min);
 
+/** Случайное число «колоколом»: чаще около 0, реже дальше; примерно две трети — от -1 до 1 */
+export function randomGauss() {
+  const u = 1 - Math.random(), v = Math.random(); // u > 0: логарифм нуля не бывает
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+
 /** Плавная «ступенька»: большое отрицательное → 0, большое положительное → 1 */
 export const sigmoid = (x) => 1 / (1 + Math.exp(-x));
 

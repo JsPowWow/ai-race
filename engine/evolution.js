@@ -12,16 +12,18 @@ import { trafficAt } from './traffic.js';
  * @property {(brain: object, rate: number) => void} mutate встряхнуть веса
  * @property {(report: object) => number} fitness оценка заезда
  * @property {Function} [crossover] ребёнок от двух родителей
- * @property {1 | 2} [parents] сколько родителей
+ * @property {1 | 2} [parents] 1 — дети копируют одного родителя, 2 — скрещивают двух (crossover)
  * @property {number} population машин в поколении
  * @property {number} rate сила мутации
  * @property {object} [parent] лучший мозг прошлого поколения
  * @property {object} [parent2] второй родитель
  */
 
+const POOL_SHARE = 0.1; // сколько лучших машин поколения становятся родителями
+
 export class Evolution {
   /** @param {EvolutionOptions} opts */
-  constructor({ sizes, sensors, think, mutate, fitness, crossover = null, parents = 1, population, rate, parent = null, parent2 = null }) {
+  constructor({ sizes, sensors, think, mutate, fitness, crossover = null, parents = 2, population, rate, parent = null, parent2 = null }) {
     // форма сети и «глаза»
     this.sizes = sizes;
     this.sensors = sensors;
@@ -37,6 +39,7 @@ export class Evolution {
     // с кого начинаем
     this.parent = parent;
     this.parent2 = parent2;
+    this.pool = null; // из кого берём родителей для детей: лучшие прошлого поколения
     this.generation = 0;
     this.history = [];
     this.cars = [];
@@ -50,14 +53,16 @@ export class Evolution {
     this.cars = [];
     this.errors = [];
     this.lastError = null;
-    const two = this.parents === 2 && this.parent && this.parent2 && this.crossover;
+    const pool = this.pool ?? [this.parent, this.parent2].filter(Boolean);
+    const two = this.parents === 2 && this.crossover && pool.length > 1;
+    const any = () => pool[Math.floor(Math.random() * pool.length)];
     for (let i = 0; i < this.population; i++) {
       let brain;
       if (!this.parent) brain = createBrain(this.sizes);
       else if (i === 0) brain = cloneBrain(this.parent); // лучший едет без изменений
-      else if (i === 1 && two) brain = cloneBrain(this.parent2); // и второй родитель тоже
+      else if (i === 1 && two && this.parent2) brain = cloneBrain(this.parent2); // и второй тоже
       else {
-        brain = two ? this.makeChild() : cloneBrain(this.parent);
+        brain = two ? this.makeChild(any(), any()) : cloneBrain(any());
         try {
           this.mutate(brain, this.rate);
         } catch (e) {
@@ -69,16 +74,16 @@ export class Evolution {
   }
 
   /** Ребёнок двух родителей через crossover() студента, с проверкой формы */
-  makeChild() {
+  makeChild(mom, dad) {
     try {
-      const child = this.crossover(cloneBrain(this.parent), cloneBrain(this.parent2));
+      const child = this.crossover(cloneBrain(mom), cloneBrain(dad));
       const err = checkBrain(child, this.sizes);
       if (!err) return child;
       this.report(`crossover() вернула мозг не той формы: ${err}`);
     } catch (e) {
       this.report(`crossover(): ${e.message}`, e);
     }
-    return cloneBrain(this.parent);
+    return cloneBrain(mom);
   }
 
   report(msg, error = null) {
@@ -129,7 +134,8 @@ export class Evolution {
 
   /**
    * Поколение закончилось: выбрать родителей.
-   * picked — машины, выбранные вручную кликом (0, 1 или 2). Остальных родителей добираем лучшими по фитнесу.
+   * Родители детей — лучшие POOL_SHARE поколения: с одним родителем рой легко застревает там, где лучший разбился.
+   * picked — машины, выбранные вручную кликом (0, 1 или 2): тогда родители только они (если выбрана одна — добираем лучшего).
    */
   evaluate(picked = []) {
     if (!Array.isArray(picked)) picked = picked ? [picked] : [];
@@ -144,6 +150,8 @@ export class Evolution {
     const parentCar = chosen[0];
     this.parent = cloneBrain(parentCar.brain);
     this.parent2 = chosen[1] ? cloneBrain(chosen[1].brain) : null;
+    const top = picked.length ? chosen : scored.slice(0, Math.max(2, Math.round(this.population * POOL_SHARE))).map((s) => s.car);
+    this.pool = top.map((car) => cloneBrain(car.brain));
     const report = carReport(parentCar, this.track);
     const scores = scored.map((s) => s.score).filter(Number.isFinite);
     const entry = {

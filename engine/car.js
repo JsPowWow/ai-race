@@ -36,6 +36,27 @@ export function wheelAngle(steer, speed) {
 
 export const DEFAULT_SENSORS = { count: 5, spread: 90, length: 160 };
 
+const BACK_SPREAD = 30; // сенсоры назад — узким веером прямо за машиной: там догоняющие и соседние полосы
+
+/**
+ * Лучи сенсоров: угол от носа машины и длина. Сначала веер вперёд слева направо (крайние лучи — по краям угла обзора),
+ * потом (если есть) сенсоры назад: back лучей длиной backLength — видят тех, кто догоняет.
+ * Задний веер делим на равные сектора и смотрим в середину каждого: и при двух лучах машина прямо сзади видна.
+ * @param {{ count: number, spread: number, length: number, back?: number, backLength?: number }} sensors
+ */
+export function rays({ count, spread, length, back = 0, backLength = 0 }) {
+  const front = Array.from({ length: count }, (_, i) => {
+    const half = (spread * Math.PI) / 360;
+    return { angle: count === 1 ? 0 : lerp(-half, half, i / (count - 1)), length };
+  });
+  const sector = (BACK_SPREAD * Math.PI) / 180 / Math.max(1, back);
+  const rear = Array.from({ length: back }, (_, i) => ({ angle: Math.PI + (i - (back - 1) / 2) * sector, length: backLength }));
+  return [...front, ...rear];
+}
+
+/** Сколько всего сенсоров — от этого зависит, сколько у мозга входов */
+export const rayCount = (sensors) => sensors.count + (sensors.back ?? 0);
+
 const safe = (v) => (Number.isFinite(v) ? clamp(v, 0, 1) : 0);
 
 export class Car {
@@ -53,11 +74,12 @@ export class Car {
     this.brain = brain;
     this.think = think;
     this.sensors = { ...sensors };
-    this.readings = new Array(sensors.count).fill(0);
+    this.rays = rays(sensors);
+    this.readings = new Array(this.rays.length).fill(0);
     this.sign = 0; // дорожный знак рядом: -1 налево, 1 направо, 0 — нет
     this.before = null; // что сенсоры видели тиком раньше (на первом тике — то же, что сейчас)
     this.notes = new Array(NOTES).fill(0); // заметки мозга самому себе: на старте пустые
-    this.rayT = new Float32Array(sensors.count).fill(-1);
+    this.rayT = new Float32Array(this.rays.length).fill(-1);
     this.controls = { gas: 0, brake: 0, left: 0, right: 0 };
     this.steer = 0; // где сейчас руль: -1 до упора влево, 1 вправо. Догоняет кнопки плавно
     this.lastInputs = null;
@@ -178,15 +200,14 @@ export class Car {
     return [...this.readings, this.speed / CAR.maxSpeed, ...(this.before ?? this.readings), this.sign, ...this.notes];
   }
 
-  /** Сенсоры: 0 — стены не видно, 1 — стена вплотную. Слева направо. */
+  /** Сенсоры: 0 — стены не видно, 1 — стена вплотную. Вперёд слева направо, потом назад (см. rays). */
   sense(track, traffic = null) {
-    const { count, spread, length } = this.sensors;
-    const half = (spread * Math.PI) / 360;
+    const reach = Math.max(...this.rays.map((r) => r.length));
     // машины трафика, до которых сенсор вообще может достать
     const near = [];
-    if (traffic) for (const o of traffic) if (Math.abs(o.x - this.x) < length + 30 && Math.abs(o.y - this.y) < length + 30) near.push(o.poly);
-    for (let i = 0; i < count; i++) {
-      const a = this.angle + (count === 1 ? 0 : lerp(-half, half, i / (count - 1)));
+    if (traffic) for (const o of traffic) if (Math.abs(o.x - this.x) < reach + 30 && Math.abs(o.y - this.y) < reach + 30) near.push(o.poly);
+    for (let i = 0; i < this.rays.length; i++) {
+      const a = this.angle + this.rays[i].angle, length = this.rays[i].length;
       const x2 = this.x + Math.cos(a) * length, y2 = this.y + Math.sin(a) * length;
       let t = castSegment(track, this.x, this.y, x2, y2);
       for (const p of near) {
