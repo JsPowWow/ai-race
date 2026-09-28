@@ -12,6 +12,7 @@
 //
 // Исходники остаются обычными ES-модулями: сборка нужна, чтобы браузер скачал один файл, а не полсотни.
 import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync } from 'fs';
+import { createHash } from 'crypto';
 import * as esbuild from 'esbuild';
 
 const r = (p) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
@@ -91,6 +92,12 @@ const eagerChunks = (metafile) => metafile.outputs['app/generated/app.js'].impor
  */
 const THEME_SCRIPT = `<script>try{const t=JSON.parse(localStorage.getItem('ai-race:theme'));if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch{}</script>`;
 
+/**
+ * Метка версии в адресе: у app.js и app.css имена постоянные, а Pages разрешает кэшировать их 10 минут.
+ * Без метки после выкладки браузер берёт новый index.html со старым скриптом — и новые блоки страницы пустые.
+ */
+const version = (file) => createHash('sha256').update(readFileSync(file)).digest('hex').slice(0, 10);
+
 function writeIndex(metafile) {
   const preload = [
     ...PRELOAD_FONTS.map((f) => `<link rel="preload" href="app/fonts/${f}.woff2" as="font" type="font/woff2" crossorigin>`),
@@ -100,8 +107,8 @@ function writeIndex(metafile) {
     THEME_SCRIPT,
     '<link rel="icon" href="app/icon.svg" type="image/svg+xml">',
     ...preload,
-    '<link rel="stylesheet" href="app/generated/app.css">',
-    '<script type="module" src="app/generated/app.js"></script>',
+    `<link rel="stylesheet" href="app/generated/app.css?v=${version('app/generated/app.css')}">`,
+    `<script type="module" src="app/generated/app.js?v=${version('app/generated/app.js')}"></script>`,
   ]), r('app/markup.html')));
 }
 
