@@ -42,7 +42,7 @@ export function drawNetwork(canvas, brain, trace = null, selected = null, hover 
   ctx.globalAlpha = 1;
 
   // выбранная связь и связь под курсором
-  const accent = css('--accent-text');
+  const accent = css('--you-text');
   for (const [sel, width] of [[hover, 5], [selected, 7]]) {
     if (!sel || sel.type !== 'w' || !brain.layers[sel.k]) continue;
     const { k, i, j } = sel;
@@ -72,7 +72,7 @@ export function drawNetwork(canvas, brain, trace = null, selected = null, hover 
       ctx.fill();
       if (act !== null && Number.isFinite(act)) {
         ctx.globalAlpha = Math.min(1, Math.abs(act));
-        ctx.fillStyle = act >= 0 ? css('--accent') : neg;
+        ctx.fillStyle = act >= 0 ? css('--you') : neg;
         ctx.fill();
         ctx.globalAlpha = 1;
       }
@@ -140,7 +140,7 @@ export function drawChart(canvas, history) {
   const ctx = canvas.getContext('2d');
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, cw, ch);
-  const muted = css('--muted'), line = css('--line'), accent = css('--accent'), good = css('--good');
+  const muted = css('--muted'), line = css('--line'), accent = css('--you-text'), good = css('--good');
   ctx.font = '11px "JetBrains Mono", ui-monospace, monospace';
   const padL = 44, padR = 10, padT = 10, padB = 20;
   const W = cw - padL - padR, H = ch - padT - padB;

@@ -1,0 +1,60 @@
+/* «Учится само»: под трассой — одно поколение роя в трёх шагах и одна фраза «что сейчас и что делать».
+   Шаги — синие, как всё про мозг; идущий шаг залит. */
+.swarm-now { display: flex; flex-direction: column; gap: 12px; }
+.swarm-cycle {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;
+  margin: 0; padding: 0; list-style: none; counter-reset: none;
+}
+.swarm-cycle li {
+  position: relative; display: flex; gap: 10px; align-items: flex-start;
+  padding: 8px 10px; border-radius: var(--r-m); background: var(--surface-2);
+  font-size: 13px; line-height: 1.35; color: var(--muted);
+}
+.swarm-cycle li b { display: block; font-size: 14px; font-weight: 600; color: var(--ink); }
+/* стрелка к следующему шагу: поколение идёт по кругу 1 → 2 → 3 → снова 1 */
+.swarm-cycle li + li::before {
+  content: "→"; position: absolute; inset-inline-start: -8px; inset-block-start: 50%; translate: -50% -50%;
+  color: var(--muted); font-size: 13px;
+}
+.swarm-cycle .n {
+  flex: none; inline-size: 24px; block-size: 24px; border-radius: 50%; display: grid; place-items: center;
+  border: 1px solid var(--line-strong); background: var(--surface); color: var(--muted);
+  font: 600 12px/1 var(--font); font-variant-numeric: tabular-nums;
+}
+.swarm-cycle li.on .n { background: var(--brain); border-color: var(--brain); color: var(--on-brain); }
+.swarm-cycle li.flash { animation: swarm-flash 1.1s ease-out; }
+.swarm-cycle li.flash .n { animation: swarm-flash-n 1.1s ease-out; }
+@keyframes swarm-flash { from { background: color-mix(in srgb, var(--brain) 22%, var(--surface-2)); } }
+@keyframes swarm-flash-n { from { background: var(--brain); border-color: var(--brain); color: var(--on-brain); } }
+.swarm-say { max-inline-size: 80ch; font-size: 15px; line-height: 1.45; color: var(--ink); text-wrap: pretty; }
+
+.more summary { font-size: 13px; }
+.more[open] summary { margin-block-end: 10px; }
+.more .hint { margin-block-start: 8px; }
+
+@media (prefers-reduced-motion: reduce) { .swarm-cycle li.flash, .swarm-cycle li.flash .n { animation: none; } }
+
+/* Телефон: шаги столбиком, стрелки не нужны — порядок читается сверху вниз */
+@media (max-width: 700px) {
+  .swarm-cycle { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .swarm-cycle li { align-items: center; padding-block: 6px; }
+  .swarm-cycle li b { display: inline; margin-inline-end: 6px; }
+  .swarm-cycle li + li::before { content: none; }
+}
+
+/* «Мозг лидера» сворачивается (на телефоне свёрнут сразу): заголовок — в одной строке с треугольником */
+.leader-brain > summary { display: flex; align-items: center; gap: 8px; color: var(--ink); list-style: none; }
+.leader-brain > summary::-webkit-details-marker { display: none; }
+.leader-brain > summary::before { content: "▶"; font-size: 10px; color: var(--muted); transition: rotate 0.15s; }
+.leader-brain[open] > summary::before { rotate: 90deg; }
+.leader-brain > summary h2 { margin: 0; }
+.leader-brain[open] > summary { margin-block-end: 8px; }
+
+/* Телефон: над трассой только поколение, сколько едут и доехали — время и трасса есть ниже */
+@media (max-width: 700px) {
+  body[data-tab="train"] .hud span:nth-child(n + 4) { display: none; }
+}
+
+/* выбор трассы и машин — в строке кнопок, по ширине текста, а не на всю строку */
+.toolbar[data-for="train"] select { inline-size: auto; max-inline-size: 18rem; }
+.toolbar[data-for="train"] input[type="text"] { inline-size: 10rem; }

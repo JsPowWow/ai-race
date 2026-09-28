@@ -14,6 +14,7 @@
 @import "./styles/lesson.css" layer(pages);
 @import "./styles/intro.css" layer(pages);
 @import "./styles/teach.css" layer(pages);
+@import "./styles/train.css" layer(pages);
 @import "./styles/code.css" layer(pages);
 @import "./styles/exam.css" layer(pages);
 @import "./styles/race.css" layer(pages);

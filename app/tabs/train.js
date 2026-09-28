@@ -7,12 +7,12 @@ import { TRAFFIC_LEVELS, withTraffic } from '../../engine/traffic.js';
 import { drawChart } from '../../engine/netviz.js';
 import { createBrainBoard } from '../brain-board/board.js';
 import { SMOOTH, ANY_ACT } from '../brain-board/formula.js';
-import { state, persist, persistSoon, sizesOf, thinkFn, setChampion, on } from '../state.js';
+import { state, persist, persistSoon, sizesOf, thinkFn, setChampion, on, emit } from '../state.js';
 import { setBrain, remember, renderLibrary } from '../library.js';
-import { live, errorLine } from '../student-code.js';
+import { live, errorLine, isEdited } from '../student-code.js';
 import { seedTrack } from '../tracks.js';
 import { canvas, drawScene, paintCar, trafficOn, carAt, setHud, showBanner } from '../stage.js';
-import { $, esc, secs, pct, options, setPressed, delegate, showError } from '../ui.js';
+import { $, $$, esc, secs, pct, options, setPressed, delegate, showError } from '../ui.js';
 
 const TURBO_BUDGET_MS = 22;
 const HALL_SIZE = 8;
@@ -26,9 +26,10 @@ export const isTraining = () => running;
 
 // «Мозг лидера»: то же табло, что на титульной, только мозг — у машины, которая сейчас впереди
 const LEADER_IDLE = 'Нажми «Старт» — здесь загорится мозг машины, которая едет впереди.';
-const LEADER_HINT = 'Горит то, что лидер видит и жмёт прямо сейчас. Пунктир — память: сенсоры мгновение назад и заметки m1…m3 — их рой учится писать сам.';
+const LEADER_HINT = 'Горит то, что лидер видит и жмёт прямо сейчас. Пунктир — память.';
 let board = null, boardAt = performance.now();
 function showLeaderBrain(lead) {
+  if (!$('.leader-brain').open) return; // табло свёрнуто — не считаем и не рисуем
   if (lead && !lead.lastInputs && board) return; // новое поколение ещё не тронулось: держим прошлый кадр, иначе табло мигнёт и страница прыгнет
   const ready = Boolean(lead?.brain && lead.lastInputs);
   const hint = ready ? LEADER_HINT : LEADER_IDLE;
@@ -46,6 +47,8 @@ function showLeaderBrain(lead) {
   boardAt = now;
 }
 export const redrawLeaderBrain = () => board?.readColors();
+// на телефоне табло большое: свёрнуто, чтобы график и настройки были ближе к кнопкам
+if (matchMedia('(max-width: 700px)').matches) $('.leader-brain').open = false;
 
 export const trainTab = {
   enter() {
@@ -137,10 +140,12 @@ function endGeneration() {
   entry.trackName = track.name;
   state.history = [...state.history, entry].slice(-300);
   setChampion(cloneBrain(evo.parent), { by: 'train', generation: evo.generation });
+  if (track.id === 'snake') emit('did', 'train:snake'); // шаг 1 урока 2 — рой учится на «Змейке»
   addToHall(entry, report);
   showStudentErrors();
   saveOften();
   renderPanel();
+  if (state.train.speed === '1' || state.train.speed === '4') renderSwarmNow({ flash: true });
   startGeneration();
 }
 
@@ -177,6 +182,7 @@ function setRunning(on) {
   }
   running = on;
   $('#tToggle').textContent = on ? 'Пауза' : evo ? 'Продолжить' : 'Старт';
+  renderSwarmNow();
 }
 
 $('#tToggle').addEventListener('click', () => setRunning(!running));
@@ -186,8 +192,8 @@ $('#tEndGen').addEventListener('click', () => evo && endGeneration());
 
 $('#tTrack').innerHTML = options([
   ...TRAINING_TRACKS.map(({ id, name }) => ({ id, title: name })),
-  { id: 'seed', title: 'Случайная по seed' },
-  { id: 'mix', title: 'Микс: новая трасса каждое поколение' },
+  { id: 'seed', title: 'По seed' },
+  { id: 'mix', title: 'Микс: каждый раз новая' },
 ]);
 $('#tTraffic').innerHTML = options(TRAFFIC_LEVELS);
 
@@ -249,14 +255,67 @@ function renderPicked() {
     : `Выбрано вручную: ${picked.length} из 2. ${picked.length === 2 ? 'Эти двое станут родителями.' : 'Второго родителя возьмём лучшего по фитнесу — или щёлкни ещё одну машину.'}`;
 }
 
+// ── «Рой сейчас»: что происходит и что делать дальше ──
+
+const STUCK_GENS = 10; // столько поколений без улучшения — рой застрял
+const SAME_GENS = 5;   // столько поколений подряд лучший не меняется — рою нечему учиться
+
+/** Поколения подряд на той же трассе, что сейчас, — только их и можно сравнивать */
+function sameTrackHistory() {
+  const h = state.history, out = [];
+  for (let i = h.length - 1; i >= 0 && h[i].trackId === track?.id; i--) out.unshift(h[i]);
+  return out;
+}
+
+function swarmAdvice() {
+  if (!evo) {
+    return state.champion
+      ? 'Нажми «Старт»: рой начнёт с текущего мозга и будет его улучшать.'
+      : 'Нажми «Старт»: сто машин со случайными мозгами поедут разом. Сначала почти все разобьются — это нормально.';
+  }
+  if (!running) return 'Пауза. «Продолжить» — рой пойдёт дальше с того же места.';
+  const h = sameTrackHistory(), last = h.at(-1);
+  if (!last) return 'Смотри, какая машина уедет дальше всех: от неё пойдёт следующее поколение. Долго — жми «Турбо».';
+  const tail = h.slice(-SAME_GENS);
+  if (tail.length === SAME_GENS && tail.every((e) => e.finished && e.best === last.best)) {
+    if (TRAINING_TRACKS.some((t) => t.id === track.id) && track.id !== 'snake') {
+      return 'Здесь рой уже доехал. Цель урока — «Змейка» с машинами: выбери её в «Трасса».';
+    }
+    return isEdited('fitness')
+      ? `${SAME_GENS} поколений подряд никто не обогнал родителя по фитнесу. Попробуй мутацию посильнее или другую трассу.`
+      : 'Рой доехал — и больше не ускоряется. Фитнес хвалит только за расстояние, а все, кто доехал, для него равны. Ехать быстрее научит фитнес за скорость — урок 3, шаг 1.';
+  }
+  const before = h.at(-STUCK_GENS - 1);
+  if (!last.finished && before && h.slice(-STUCK_GENS).every((e) => !e.finished && e.best <= before.best)) {
+    return `${STUCK_GENS} поколений без улучшения: рой застрял на ${pct(last.progressPct)}. Помоги: щёлкни машину, которая едет лучше, — или поставь «Без машин», а потом верни встречных.`;
+  }
+  if (last.finished) return `Лучший доехал за ${secs(last.ticks)}. Рой ищет мозг, который фитнес оценит ещё выше.`;
+  return `Лучший в прошлом поколении проехал ${pct(last.progressPct)}. Пусть линия на графике ползёт вверх.`;
+}
+
+function renderSwarmNow({ flash = false } = {}) {
+  $('#swarmSay').textContent = swarmAdvice();
+  $('#cycPop').textContent = state.train.population;
+  for (const li of $$('.swarm-cycle li')) {
+    li.classList.toggle('on', running && li.dataset.phase === 'drive');
+    // конец поколения на медленной скорости: коротко подсветить отбор и мутацию — видно, что они случились
+    if (flash && li.dataset.phase !== 'drive') {
+      li.classList.remove('flash');
+      void li.offsetWidth; // перезапустить анимацию
+      li.classList.add('flash');
+    }
+  }
+}
+
 // ── статистика, график, рекорды роя ──
 
 export function renderPanel() {
   syncControls();
+  renderSwarmNow();
   const last = state.history.at(-1);
-  $('#stGen').textContent = state.generation;
-  $('#stBest').textContent = last ? (last.finished ? secs(last.ticks) : pct(last.progressPct)) : '—';
-  $('#stFin').textContent = last ? last.finishers : '—';
+  $('#stBest').textContent = last ? (last.finished ? `финиш за ${secs(last.ticks)}` : `${pct(last.progressPct)} трассы`) : '—';
+  $('#stFin').textContent = last ? `${last.finishers} из ${state.train.population}` : '—';
+  $('#chartLegend').hidden = !state.history.length;
   drawChart($('#chart'), state.history);
   $('#hall').innerHTML = state.hall.length
     ? state.hall.map((h, i) => `

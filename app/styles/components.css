@@ -90,11 +90,11 @@ input[type="range"] { inline-size: 100%; min-block-size: 24px; accent-color: var
 .sw { display: inline-block; inline-size: 14px; block-size: 4px; border-radius: 2px; }
 .sw.pos { background: var(--pos); } .sw.neg { background: var(--neg); }
 .sw.act { inline-size: 10px; block-size: 10px; border-radius: 50%; background: var(--you); }
-.sw.line { background: var(--you); block-size: 3px; }
+.sw.line { background: var(--you-text); block-size: 3px; }
 .sw.dash { background: repeating-linear-gradient(90deg, var(--muted) 0 4px, transparent 4px 7px); block-size: 2px; }
 .sw.dot { inline-size: 8px; block-size: 8px; border-radius: 50%; background: var(--good); }
 
-.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0; }
+.stats { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 8px; margin: 0; }
 .stats div { display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; background: var(--surface-2); border-radius: var(--r-m); }
 .stats dt { font-size: 12px; color: var(--muted); }
 .stats dd { margin: 0; font: 700 20px/1.1 var(--font); font-variant-numeric: tabular-nums; color: var(--ink); }
