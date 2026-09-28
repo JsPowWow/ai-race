@@ -183,3 +183,45 @@ test('гараж: новая машина, пересесть обратно, ч
   await close();
   assert.deepEqual(problems, []);
 });
+
+test('гараж: копия в папке на диске — машины приезжают из папки, правки пишутся туда', async () => {
+  const { page, problems, close } = await openPage(SCREENS[0]);
+  // Настоящий выбор папки в тесте не нажать — вместо папки на диске даём папку «disk» внутри OPFS
+  await page.addInitScript(() => {
+    window.showDirectoryPicker = async () => (await navigator.storage.getDirectory()).getDirectoryHandle('disk', { create: true });
+  });
+  await page.goto(`${base}#profile`);
+  await page.waitForSelector('#gDisk [data-disk="choose"]');
+  // в папке уже лежит машина — например, с другого компьютера
+  await page.evaluate(async () => {
+    const root = await navigator.storage.getDirectory();
+    const [[, mine]] = await Array.fromAsync((await root.getDirectoryHandle('cars')).entries());
+    const car = JSON.parse(await (await (await mine.getFileHandle('car.json')).getFile()).text());
+    const folder = await (await (await root.getDirectoryHandle('disk', { create: true })).getDirectoryHandle('cars', { create: true })).getDirectoryHandle('old1', { create: true });
+    const file = await (await folder.getFileHandle('car.json', { create: true })).createWritable();
+    await file.write(JSON.stringify({ ...car, created: 1, profile: { ...car.profile, name: 'С диска' } }));
+    await file.close();
+  });
+  const diskNames = () => page.evaluate(async () => {
+    const cars = await (await (await navigator.storage.getDirectory()).getDirectoryHandle('disk')).getDirectoryHandle('cars');
+    const names = [];
+    for await (const [, dir] of cars.entries()) names.push(JSON.parse(await (await (await dir.getFileHandle('car.json')).getFile()).text()).profile.name);
+    return names.sort();
+  });
+
+  await page.click('#gDisk [data-disk="choose"]');
+  await page.waitForFunction(() => document.querySelectorAll('#gShelf [data-car]').length === 2);
+  assert.match(await page.textContent('#gShelf'), /С диска/, 'машина из папки приехала на полку');
+  await page.fill('#pName', 'Моя');
+  await page.waitForFunction(() => document.querySelector('#gDisk')?.textContent.includes('Копия'));
+  await page.waitForTimeout(800); // запись через 300 мс после правки
+  assert.deepEqual(await diskNames(), ['Моя', 'С диска'], 'в папке — все машины полки, с последней правкой');
+
+  await page.reload();
+  await page.waitForSelector('#gDisk [data-disk="stop"]');
+  assert.match(await page.textContent('#gDisk'), /Копия — в папке/, 'после перезагрузки папка помнится');
+  await page.click('#gDisk [data-disk="stop"]');
+  await page.waitForSelector('#gDisk [data-disk="choose"]');
+  await close();
+  assert.deepEqual(problems, []);
+});

@@ -10,6 +10,7 @@ import { checkBrain } from '../engine/brain.js';
 import { parseCarFile, checkAvatar, NAME_MAX } from '../engine/car-file.js';
 import { state, blankCar, CAR_KEYS, CAR_COLORS, sizesOf, emit, on } from './state.js';
 import { openCarStore, bytes } from './car-store.js';
+import { diskSupported, savedFolder, pickFolder, folderAccess, forgetFolder, diskStore } from './car-disk.js';
 import { load, save, remove, compactJson, usedBytes } from './storage.js';
 
 export const MAX_CARS = 12;
@@ -20,9 +21,15 @@ const HISTORY_KEEP = 300;                    // точек графика роя
 /**
  * Что показывает полка. cars — сводки машин, не вся машина: [{ id, created, profile, shape, generation, trained, bytes: { car, history } }].
  * kind — где лежит гараж ('opfs' | 'local'), safe — браузер обещал не стирать, usage/quota — место в байтах.
+ * disk — копия в папке на диске (app/car-disk.js): state 'off' — нет, 'ask' — папка выбрана, но ждёт разрешения, 'on' — пишем.
  */
-export const garage = { ready: false, cars: [], id: '', kind: '', safe: false, usage: 0, quota: 0, error: '' };
+export const garage = {
+  ready: false, cars: [], id: '', kind: '', safe: false, usage: 0, quota: 0, error: '',
+  disk: { supported: false, state: 'off', name: '', note: '' },
+};
 let store = null;
+let folder = null; // папка на диске, которую выбрали (ручка), даже если писать туда пока нельзя
+let disk = null;   // хранилище в этой папке — только когда писать можно
 
 const newId = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 const pick = (source, keys) => Object.fromEntries(keys.map((key) => [key, structuredClone(source[key])]));
@@ -64,9 +71,121 @@ const written = new Map(); // id → { car, history }: что уже лежит 
 
 async function writeFiles(id, files) {
   const before = written.get(id) ?? {};
-  if (files.car !== before.car) await store.write(id, 'car.json', files.car);
-  if (files.history !== before.history) await store.write(id, 'history.json', files.history);
+  for (const [key, name] of [['car', 'car.json'], ['history', 'history.json']]) {
+    if (files[key] === before[key]) continue;
+    await store.write(id, name, files[key]);
+    await copyToDisk(id, name, files[key]);
+  }
   written.set(id, files);
+}
+
+// ── копия в папке на диске ──
+
+const GONE = 'garageGone'; // машины, удалённые, пока папка ждала разрешения: при встрече удалим и там
+
+/** Записать файл ещё и в папку на диске. Не вышло (папку удалили, отняли доступ) — гараж работает дальше без неё */
+async function copyToDisk(id, name, text) {
+  if (!disk) return;
+  try {
+    await disk.write(id, name, text);
+  } catch (e) {
+    disk = null;
+    Object.assign(garage.disk, { state: 'ask', note: `Не получилось записать в папку: ${e.message}` });
+  }
+}
+
+/**
+ * Встреча с папкой: машины, которых на полке нет (например, после очистки браузера), приезжают из папки,
+ * а все машины полки записываются в папку. Если машина есть и там, и тут — права полка: она рабочая копия.
+ */
+async function syncDisk() {
+  const shelf = new Set(await store.list());
+  const gone = load(GONE, []);
+  let skipped = 0;
+  for (const id of await disk.list()) {
+    if (gone.includes(id)) {
+      await disk.remove(id);
+      continue;
+    }
+    if (shelf.has(id)) continue;
+    const text = await disk.read(id, 'car.json');
+    let car = null;
+    try {
+      car = JSON.parse(text ?? 'null');
+    } catch { /* испорченный файл пропускаем */ }
+    if (car?.format !== CAR_FORMAT) continue;
+    if (isFull()) {
+      skipped++;
+      continue;
+    }
+    const history = (await disk.read(id, 'history.json')) ?? '[]';
+    await store.write(id, 'car.json', text);
+    await store.write(id, 'history.json', history);
+    garage.cars.push(summaryOf(id, car, { car: bytes(text), history: bytes(history) }));
+  }
+  remove(GONE);
+  for (const id of await store.list()) {
+    for (const name of ['car.json', 'history.json']) {
+      const text = await store.read(id, name);
+      if (text !== null) await disk.write(id, name, text);
+    }
+  }
+  garage.cars.sort((a, b) => a.created - b.created);
+  return skipped;
+}
+
+/** Начать писать в папку. ask = true — можно спросить разрешение (только по нажатию кнопки) */
+async function useFolder(handle, ask) {
+  folder = handle;
+  Object.assign(garage.disk, { name: handle.name, note: '' });
+  try {
+    if ((await folderAccess(handle, ask)) !== 'granted') {
+      garage.disk.state = 'ask';
+      return;
+    }
+    disk = diskStore(handle);
+    await flush();
+    const skipped = await syncDisk();
+    garage.disk.state = 'on';
+    if (skipped) garage.disk.note = `В папке есть ещё машины (${skipped}), но на полке нет места — удали лишние и нажми «Перестать копировать», потом снова выбери папку.`;
+  } catch (e) {
+    disk = null;
+    Object.assign(garage.disk, { state: 'ask', note: `Папка не открылась: ${e.message}` });
+  }
+}
+
+/** «Хранить копию в папке на диске»: выбрать папку. Вызывать по нажатию кнопки */
+export async function chooseFolder() {
+  let handle;
+  try {
+    handle = await pickFolder();
+  } catch (e) {
+    if (e.name === 'AbortError') return; // передумал — ничего не меняем
+    throw e;
+  }
+  await useFolder(handle, true);
+  await afterFolder();
+}
+
+/** После перезапуска браузер снова спрашивает разрешение — по нажатию «Разрешить» */
+export async function allowFolder() {
+  if (!folder) return;
+  await useFolder(folder, true);
+  await afterFolder();
+}
+
+/** «Перестать»: больше не пишем в папку. Файлы в ней остаются — это обычная папка */
+export async function stopFolder() {
+  await forgetFolder();
+  folder = disk = null;
+  remove(GONE);
+  Object.assign(garage.disk, { state: 'off', name: '', note: '' });
+  emit('garage');
+}
+
+async function afterFolder() {
+  await measure();
+  emit('garage'); // полка перерисуется: могли приехать машины из папки
 }
 
 /** Записать выбранную машину сейчас (ждать не обязательно: записи идут по очереди) */
@@ -171,6 +290,9 @@ export async function startGarage() {
   garage.kind = store.kind;
   await writePending();
   await loadShelf();
+  garage.disk.supported = diskSupported();
+  const saved = garage.disk.supported ? await savedFolder() : null;
+  if (saved) await useFolder(saved, false); // браузер помнит разрешение — пишем сразу; нет — покажем «Разрешить»
   if (!garage.cars.length) {
     // Первый запуск: всё, что было в localStorage, становится первой машиной гаража
     const { car, versions } = legacyCar();
@@ -259,6 +381,8 @@ export async function deleteCar(id) {
     await openCar(garage.cars[i + 1]?.id ?? garage.cars[i - 1].id);
   }
   await store.remove(id);
+  if (disk) await disk.remove(id).catch(() => {});
+  else if (folder) save(GONE, [...load(GONE, []), id]);
   written.delete(id);
   garage.cars = garage.cars.filter((c) => c.id !== id);
   await measure();

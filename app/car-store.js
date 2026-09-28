@@ -13,7 +13,7 @@ import { load, save, remove as forget } from './storage.js';
 const bytes = (text) => new Blob([text]).size;
 
 /** Хранилище в папке (FileSystemDirectoryHandle): читаем со страницы, пишем через writeFile */
-function folderStore(kind, root, writeFile) {
+export function folderStore(kind, root, writeFile) {
   const cars = () => root.getDirectoryHandle('cars', { create: true });
   const file = async (id, name) => {
     try {

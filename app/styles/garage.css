@@ -48,6 +48,12 @@
 .g-track i { display: block; block-size: 100%; min-inline-size: 4px; background: var(--brain); }
 .g-meter .g-safe { color: var(--good); }
 
+.g-disk { display: grid; gap: 8px; }
+.g-disk p { margin: 0; }
+.g-disk .note { font-size: 13px; line-height: 1.5; }
+.g-disk code { font: 500 12px var(--mono); }
+.g-disk .g-safe { color: var(--good); }
+
 @media (prefers-reduced-motion: reduce) {
   .g-tile { transition: none; }
 }

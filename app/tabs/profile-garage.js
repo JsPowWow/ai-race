@@ -4,7 +4,7 @@
 // Перед тем как пересесть в другую машину, спрашиваем про неприменённый черновик сборки —
 // прямо на месте, где нажали: в плитке или под полкой. Черновик живёт в profile.js, сюда он приходит через guard.
 import { state, sizesOf, on } from '../state.js';
-import { garage, MAX_CARS, switchCar, newCar, copyCar, deleteCar, exportCar, importCar, isFull } from '../garage.js';
+import { garage, MAX_CARS, switchCar, newCar, copyCar, deleteCar, exportCar, importCar, isFull, chooseFolder, allowFolder, stopFolder } from '../garage.js';
 import { shapeResetsBrain } from '../library.js';
 import { saveFile, safeFileName } from '../download.js';
 import { $, esc, avatarTag, delegate, showError } from '../ui.js';
@@ -68,14 +68,33 @@ function meter() {
   const used = garage.cars.reduce((sum, car) => sum + total(car), 0);
   const limit = garage.quota ? ` · браузер даёт сайту до ${kb(garage.quota)}` : '';
   const share = garage.quota ? Math.min(100, Math.max(1, (garage.usage / garage.quota) * 100)) : 0;
+  const copied = garage.disk.state === 'on';
   const where = garage.kind === 'local'
-    ? 'Гараж лежит в памяти браузера (localStorage): места там мало, около 5 МБ. Важные машины сохраняй в файл.'
+    ? `Гараж лежит в памяти браузера (localStorage): места там мало, около 5 МБ.${copied ? '' : ' Важные машины сохраняй в файл.'}`
     : garage.safe
       ? 'Защищено от удаления: браузер не сотрёт гараж сам — только если ты очистишь данные сайта.'
-      : 'Если на диске кончится место, браузер может стереть гараж. Важные машины сохраняй в файл.';
+      : `Если на диске кончится место, браузер может стереть гараж.${copied ? '' : ' Важные машины сохраняй в файл.'}`;
   return `<p>Занято <b>${kb(used)}</b><span class="note">${limit}</span></p>
     ${garage.quota ? `<span class="g-track" aria-hidden="true"><i style="inline-size:${share}%"></i></span>` : ''}
     <p class="note ${garage.safe && garage.kind !== 'local' ? 'g-safe' : ''}">${where}</p>`;
+}
+
+/** Копия в папке на диске: только в Chrome и Edge — там, где браузер умеет давать сайту папку */
+function renderDisk() {
+  const { supported, state: now, name, note } = garage.disk;
+  const box = $('#gDisk');
+  box.hidden = !supported;
+  if (!supported) return;
+  const off = busy ? 'disabled' : '';
+  const folderName = `<b>${esc(name)}</b>`;
+  box.innerHTML = {
+    off: `<p class="note">Можно держать копию гаража в обычной папке на диске: её не сотрёт очистка браузера. Потеряются машины — выбери эту папку снова, и они вернутся из неё на полку.</p>
+      <div class="row"><button class="btn small" data-disk="choose" ${off}>Хранить копию в папке на диске</button></div>`,
+    ask: `<p class="note">Копия гаража — в папке ${folderName}. Браузер спрашивает, можно ли снова в неё писать.</p>
+      <div class="row"><button class="btn small primary" data-disk="allow" ${off}>Разрешить</button><button class="btn small" data-disk="stop" ${off}>Перестать копировать</button></div>`,
+    on: `<p class="note g-safe">Копия — в папке ${folderName} на диске: каждая машина там папкой <code>cars/…</code>, её не сотрёт очистка браузера.</p>
+      <div class="row"><button class="btn small" data-disk="stop" ${off}>Перестать копировать</button></div>`,
+  }[now] + (note ? `<p class="error">${esc(note)}</p>` : '');
 }
 
 function renderActions() {
@@ -111,6 +130,7 @@ export function renderGarage() {
   $('#gShelf').innerHTML = garage.cars.map((car) => tile(car, biggest)).join('') + newTile();
   $('#gShelf').setAttribute('aria-busy', String(busy));
   $('#gMeter').innerHTML = meter();
+  renderDisk();
   renderActions();
   showError('#gError', garage.error);
   // Перерисовали полку — вернуть фокус на ту же плитку (или на первую кнопку вопроса)
@@ -180,6 +200,8 @@ $('#gImport').addEventListener('change', async (e) => {
   const text = await file.text();
   leave('row', () => importCar(text));
 });
+
+delegate('#gDisk', 'click', '[data-disk]', (b) => act({ choose: chooseFolder, allow: allowFolder, stop: stopFolder }[b.dataset.disk]));
 
 /** profile.js сообщает, как узнать про черновик и что с ним сделать */
 export function guardDraft(next) {
