@@ -5,7 +5,7 @@ import { errorLine } from './student-code.js';
 class Fail extends Error {}
 const expect = (cond, msg) => { if (!cond) throw new Fail(msg); };
 const blank = () => ({ gas: 0, brake: 0, left: 0, right: 0 });
-const report = (o) => ({ progress: 1000, trackLength: 3000, progressPct: 33.3, finished: false, crashed: true, hitCar: false, stalled: false, ticks: 500, avgSpeed: 2, topSpeed: 4, wiggle: 20, ...o });
+const report = (o) => ({ progress: 3000, trackLength: 9000, progressPct: 33.3, finished: false, crashed: true, hitCar: false, stalled: false, ticks: 1500, avgSpeed: 2, topSpeed: 4, wiggle: 20, ...o });
 const flat = (b) => b.layers.flatMap((l) => [...l.biases, ...l.weights.flat()]);
 
 const TESTS = {
@@ -104,16 +104,16 @@ const TESTS = {
   fitness: [
     { name: 'Возвращает число', run(m) { const v = m.fitness(report()); expect(Number.isFinite(v), `вернула ${v}`); } },
     { name: 'Дальше — лучше', run(m) {
-      expect(m.fitness(report({ progress: 2000, progressPct: 66.7 })) > m.fitness(report({ progress: 1000 })), 'проехавшая 2000 px не лучше проехавшей 1000 px');
+      expect(m.fitness(report({ progress: 6000, progressPct: 66.7 })) > m.fitness(report({ progress: 3000 })), 'проехавшая 6000 px не лучше проехавшей 3000 px');
     } },
     { name: 'Финиш лучше, чем авария перед финишем', run(m) {
-      const fin = report({ progress: 3000, progressPct: 100, finished: true, crashed: false, ticks: 1500 });
-      const crash = report({ progress: 2990, progressPct: 99.7, ticks: 1400 });
+      const fin = report({ progress: 9000, progressPct: 100, finished: true, crashed: false, ticks: 3000 });
+      const crash = report({ progress: 8990, progressPct: 99.9, ticks: 2990 });
       expect(m.fitness(fin) > m.fitness(crash), 'авария у финиша оценена не хуже финиша');
     } },
     { name: 'Быстрее — лучше', advice: true, run(m) {
-      const fast = report({ progress: 3000, progressPct: 100, finished: true, crashed: false, ticks: 900 });
-      const slow = report({ progress: 3000, progressPct: 100, finished: true, crashed: false, ticks: 2000 });
+      const fast = report({ progress: 9000, progressPct: 100, finished: true, crashed: false, ticks: 2700 });
+      const slow = report({ progress: 9000, progressPct: 100, finished: true, crashed: false, ticks: 4000 });
       expect(m.fitness(fast) > m.fitness(slow), 'быстрая и медленная машины оценены одинаково — на гонке это проигрыш');
     } },
     { name: 'Не хвалит за вилянье', advice: true, run(m) {

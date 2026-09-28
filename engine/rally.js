@@ -69,6 +69,20 @@ export function driveRecorded(track, driver) {
   };
 }
 
+/**
+ * Страховка куратора: на каких этапах не доехал ни один из drivers (обычно боты с «Гонки»).
+ * Такой этап, скорее всего, слишком трудный — лучше взять другую фразу.
+ */
+export function hardStages(tracks, drivers) {
+  const finishes = (track, driver) => {
+    const car = new Car(track, driver);
+    const limit = maxTicksFor(track);
+    while (!car.done) car.step(track, limit, trafficSnapshot(track, car.ticks));
+    return car.status === 'finished';
+  };
+  return tracks.flatMap((track, i) => (drivers.some((d) => finishes(track, d)) ? [] : [i]));
+}
+
 /** Запись, которую нельзя было посчитать (код завис или не собрался) */
 export const failedResult = (status, message, limit = 0) => ({
   status, ticks: 0, finishTick: null, progress: 0, limit, crashedInto: null,

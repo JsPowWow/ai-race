@@ -1,6 +1,6 @@
 // Машина: физика, сенсоры, столкновения, прогресс.
 import { clamp, lerp, segmentT } from './utils.js';
-import { castSegment, projectProgress, pointAt, signAt } from './track.js';
+import { castSegment, projectProgress, pointAt, signAt, zoneAt, freeSide, SLOW_SPEED } from './track.js';
 import { trafficAt } from './traffic.js';
 import { BUTTONS, NOTES } from './brain.js';
 
@@ -11,22 +11,27 @@ export const CAR = {
   maxSpeed: 4,
   reverseMax: 1.5,
   friction: 0.03,
-  turn: 0.05,          // поворот за тик на малой скорости
-  gripLoss: 0.7,       // на максимальной скорости руль слабее на 70%
+  // Руль как у настоящей машины: он задаёт дугу, а не скорость поворота. Стоишь — не поворачиваешь,
+  // едешь медленно — поворачиваешь медленно. Самая крутая дуга — minRadius; на скорости v дуга не круче v²/grip,
+  // иначе колёса сорвутся: на максимальной скорости радиус ≈ 270 px, в поворот надо тормозить
+  minRadius: 60,
+  grip: 0.06,
+  steerRate: 0.12,     // руль не щёлкает: от середины до упора — за 8 тиков
   stallTicks: 180, // столько тиков не продвигается по своей дороге — «заглох»
+  slowDown: 0.3,   // так быстро тормозит, заехав в медленную зону
 };
 
+/** Кривизна дуги при руле до упора на скорости speed: на сколько радиан поворачиваем за пиксель пути */
+export const maxCurve = (speed) => Math.min(1 / CAR.minRadius, CAR.grip / (speed * speed || 1e-9));
+
 /**
- * Угол передних колёс, как у настоящей машины: он такой, чтобы описать ту дугу, по которой машина едет на самом деле.
- * На скорости руль слабее (gripLoss) и дуга шире — колёса повёрнуты меньше; на месте — сколько повернули руль.
- * Только для картинки: на физику не влияет.
+ * Угол передних колёс: такой, чтобы описать ту дугу, по которой машина едет на самом деле.
+ * На скорости дуга шире — колёса повёрнуты меньше. Только для картинки: на физику не влияет.
  */
 export const MAX_WHEEL = (32 * Math.PI) / 180;
 const WHEELBASE = CAR.length * 0.9; // база с запасом: у настоящей (0,6 длины) на скорости колёса повёрнуты на 5°, а это не разглядеть
 export function wheelAngle(steer, speed) {
-  const grip = 1 - (CAR.gripLoss * Math.abs(speed)) / CAR.maxSpeed;
-  const turnPerPx = (CAR.turn * grip * steer) / Math.max(Math.abs(speed), 0.8); // кривизна дуги: на сколько поворачиваем за пиксель пути
-  return clamp(Math.atan(WHEELBASE * turnPerPx), -MAX_WHEEL, MAX_WHEEL) * (speed < 0 ? -1 : 1);
+  return clamp(Math.atan(WHEELBASE * steer * maxCurve(speed)), -MAX_WHEEL, MAX_WHEEL);
 }
 
 export const DEFAULT_SENSORS = { count: 5, spread: 90, length: 160 };
@@ -54,14 +59,17 @@ export class Car {
     this.notes = new Array(NOTES).fill(0); // заметки мозга самому себе: на старте пустые
     this.rayT = new Float32Array(sensors.count).fill(-1);
     this.controls = { gas: 0, brake: 0, left: 0, right: 0 };
+    this.steer = 0; // где сейчас руль: -1 до упора влево, 1 вправо. Догоняет кнопки плавно
     this.lastInputs = null;
     this.lastOutputs = null;
 
     this.status = 'driving'; // driving | crashed | stalled | timeout | finished
     this.ticks = 0;
-    this.road = 0; // 0 — основная дорога, дальше — ветки развилок
+    this.road = 0; // 0 — само кольцо, дальше — вторые пути островов
     this.bestAlong = track.startS; // докуда доехал по своей дороге
-    this.detours = 0; // сколько раз свернул не туда и объехал петлю «Лабиринта»
+    this.zone = null; // в медленной зоне какого острова сейчас (см. zoneAt)
+    this.slow = false; // зона включилась, когда машина в неё въехала: ползём
+    this.slowdowns = 0; // сколько раз свернул не туда — на путь с медленной зоной
     this.segIdx = start.idx;
     this.s = track.startS;
     this.bestS = track.startS;
@@ -82,10 +90,11 @@ export class Car {
   /** traffic — положение машин трафика на этом тике (если не передано — посчитаем сами) */
   step(track, maxTicks = Infinity, traffic) {
     if (this.done) return;
-    if (traffic === undefined) traffic = track.traffic ? trafficAt(track, track.traffic, this.ticks) : null;
+    const tick = this.ticks; // тик мира: по нему едет трафик и переключаются медленные зоны
+    if (traffic === undefined) traffic = track.traffic ? trafficAt(track, track.traffic, tick) : null;
     this.ticks++;
     this.sense(track, traffic);
-    this.sign = signAt(track, this.road, this.s);
+    this.sign = signAt(track, this.road, this.s, tick);
 
     // что «видит» машина на этом тике: сенсоры, скорость, сенсоры тиком раньше, знак, заметки (так же записывает пример «Учитель»)
     const inputs = this.inputs();
@@ -113,17 +122,21 @@ export class Car {
       return;
     }
 
-    const p = projectProgress(track, this.x, this.y, this.segIdx, this.road);
-    if (p.road !== this.road) { // заехал на петлю или вернулся с неё
-      if (p.road === 0 && this.bestAlong > track.roads[this.road].total / 2) this.detours++; // объехал петлю целиком
-      this.bestAlong = p.along;
-      this.lastImprove = this.ticks;
-    }
+    const p = projectProgress(track, this.x, this.y, this.segIdx, this.road, this.s);
+    if (p.road !== this.road) this.bestAlong = p.along; // свернул на второй путь острова или вернулся с него: считаем по новой дороге. Само по себе это не «едет» — иначе можно вечно вилять у развилки
     this.road = p.road;
     this.segIdx = p.idx;
     this.s = p.s;
     if (this.s > this.bestS + 1) this.bestS = this.s;
-    // «Едет» — значит, продвигается по своей дороге. На петле прогресс к финишу падает, но машина-то едет
+    // Медленная зона действует на тех, кто въехал в неё, пока она включена: кто уже внутри, того не трогают
+    const zone = zoneAt(track, this.road, this.s);
+    if (zone && !this.zone) {
+      this.slow = freeSide(track, zone.island, tick) !== zone.side;
+      if (this.slow) this.slowdowns++;
+    }
+    this.zone = zone;
+    if (!zone) this.slow = false;
+    // «Едет» — значит, продвигается по своей дороге
     if (p.along > this.bestAlong + 1) {
       this.bestAlong = p.along;
       this.lastImprove = this.ticks;
@@ -144,15 +157,13 @@ export class Car {
     this.speed += CAR.accel * safe(c.gas);
     this.speed -= CAR.accel * safe(c.brake);
     this.speed = clamp(this.speed, -CAR.reverseMax, CAR.maxSpeed);
+    if (this.slow) this.speed = clamp(this.speed, -SLOW_SPEED, Math.max(SLOW_SPEED, this.speed - CAR.slowDown));
     if (this.speed > 0) this.speed = Math.max(0, this.speed - CAR.friction);
     else if (this.speed < 0) this.speed = Math.min(0, this.speed + CAR.friction);
 
-    const steer = safe(c.right) - safe(c.left);
-    if (this.speed !== 0) {
-      const flip = this.speed > 0 ? 1 : -1;
-      const grip = 1 - (CAR.gripLoss * Math.abs(this.speed)) / CAR.maxSpeed;
-      this.angle += CAR.turn * grip * steer * flip;
-    }
+    const steer = safe(c.right) - safe(c.left); // куда крутят руль кнопки
+    this.steer += clamp(steer - this.steer, -CAR.steerRate, CAR.steerRate);
+    this.angle += this.speed * this.steer * maxCurve(this.speed); // задним ходом дуга та же, но поворот в другую сторону — как у машины
     this.wiggle += Math.abs(steer - this.prevSteer);
     this.prevSteer = steer;
 
@@ -194,6 +205,7 @@ export class Car {
     const c = this.corners();
     for (const o of traffic) {
       if (Math.abs(o.x - this.x) > 60 || Math.abs(o.y - this.y) > 60) continue;
+      if (!o.oncoming && !this.fasterThan(o)) continue; // попутная быстрее нас — объедет сама: сенсоры назад не смотрят, удар сзади не выучишь
       const p = o.poly;
       for (let i = 0; i < 4; i++) {
         const a = c[i], b = c[(i + 1) % 4];
@@ -203,6 +215,11 @@ export class Car {
       }
     }
     return false;
+  }
+
+  /** Едем по ходу попутной машины o быстрее её: тогда столкновение с ней — наша вина, хоть сзади, хоть сбоку */
+  fasterThan(o) {
+    return this.speed * Math.cos(this.angle - o.angle) > o.speed;
   }
 
   corners() {

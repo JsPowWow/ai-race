@@ -1,6 +1,7 @@
 // Холст с трассой: камера, отрисовка сцены, подсказки поверх (HUD, баннер).
 import { Camera, fitCanvas, clear, drawTrack, drawTraffic, drawCar, drawSensors, drawPack } from '../engine/render.js';
 import { trafficAt } from '../engine/traffic.js';
+import { lapOf } from '../engine/track.js';
 import { clamp } from '../engine/utils.js';
 import { $, liveSize } from './ui.js';
 
@@ -27,14 +28,14 @@ function fitViewport(track, camera) {
   if (ratio !== viewportRatio) viewport.style.aspectRatio = viewportRatio = ratio;
 }
 
-/** Трасса и трафик. camera: 'fit' — вся трасса, 'follow' — за машиной follow */
-export function drawScene(track, { camera = 'fit', follow = null, traffic = null } = {}) {
+/** Трасса и трафик на тике tick. camera: 'fit' — вся трасса, 'follow' — за машиной follow */
+export function drawScene(track, { camera = 'fit', follow = null, traffic = null, tick = 0 } = {}) {
   fitViewport(track, camera);
   cam.mode = camera;
   cam.update(canvas, track, follow, dpr);
   clear(ctx, canvas);
   cam.apply(ctx, canvas);
-  drawTrack(ctx, track, cam);
+  drawTrack(ctx, track, cam, tick);
   drawTraffic(ctx, traffic);
 }
 
@@ -67,6 +68,9 @@ export function carAt(event, cars, radiusPx = 28) {
 }
 
 // ── HUD и баннер ──
+
+/** «круг 2/3» для табло: какой круг едет машина, доехавшая до s */
+export const lapText = (track, s) => `круг <b>${lapOf(track, s)}</b>/${track.laps}`;
 
 const hud = $('#hud');
 const HUD_EVERY_MS = 100; // цифры меняются 10 раз в секунду — их успеваешь прочитать, и они не дребезжат

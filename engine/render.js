@@ -1,6 +1,6 @@
 // Рисование трассы и машин на canvas.
 import { CAR, wheelAngle } from './car.js';
-import { pointAt } from './track.js';
+import { pointAt, freeSide, signShows } from './track.js';
 
 /**
  * Цвет из CSS-переменной — готовый для canvas.
@@ -20,7 +20,7 @@ export function readPalette() {
   const v = cssColor;
   palette = {
     board: v('--board'), road: v('--road'), roadEdge: v('--road-edge'), seam: v('--seam'), slot: v('--slot'), rail: v('--rail'),
-    kerb: v('--kerb'), kerb2: v('--kerb-2'), sign: v('--sign'), checkLight: v('--check-light'), checkDark: v('--check-dark'),
+    kerb: v('--kerb'), kerb2: v('--kerb-2'), sign: v('--sign'), signOff: v('--sign-off'), slow: v('--slow'), checkLight: v('--check-light'), checkDark: v('--check-dark'),
     you: v('--you'), ray: v('--ray'), rayHit: v('--ray-hit'),
     traffic: v('--traffic'), trafficOncoming: v('--traffic-oncoming'), trafficEdge: v('--traffic-edge'), crashed: v('--crashed'),
   };
@@ -98,8 +98,11 @@ function roadPath(ctx, { left, right }) {
 
 const SECTION = 150; // длина одной секции игрушечной трассы, px — между швами
 
-/** Игрушечная трасса: серые секции со швами, прорези с медными рельсами, пластиковые бордюры */
-export function drawTrack(ctx, track, cam) {
+/**
+ * Игрушечная трасса: серые секции со швами, прорези с медными рельсами, пластиковые бордюры.
+ * tick — тик заезда: от него зависит, где на островах медленная зона и что горит на знаке.
+ */
+export function drawTrack(ctx, track, cam, tick = 0) {
   const p = getPalette();
   const px = 1 / cam.scale;
   const roads = track.roads;
@@ -128,20 +131,35 @@ export function drawTrack(ctx, track, cam) {
     ctx.setLineDash([16, 16]); ctx.strokeStyle = p.kerb2; ctx.stroke();
     ctx.setLineDash([]);
   }
-  for (const sign of track.signs ?? []) drawSign(ctx, track, sign, p);
-  // старт и финиш
-  line(ctx, pointAt(track, track.startS - CAR.length / 2 - 4), track.width, p.kerb2, 5);
-  checkered(ctx, pointAt(track, track.finishS), track.width, p);
+  track.islands.forEach((island, i) => {
+    drawSlowZone(ctx, track, island, freeSide(track, i, tick), p);
+    drawSign(ctx, track, island.sign, signShows(track, i, tick), Math.max(1, 0.9 * px), p);
+  });
+  checkered(ctx, pointAt(track, 0), track.width, p); // старт и финиш — одна черта: круг за кругом
 }
 
-/** Дорожный знак у обочины: синий круг с белой стрелкой — «езжай направо» или «налево» */
-function drawSign(ctx, track, { x, y, angle, dir }, p) {
-  const off = track.width / 2 + 26, r = 17;
+/** Медленная зона — поперечные полосы на занятом пути острова, как на дорожных работах */
+function drawSlowZone(ctx, track, island, free, p) {
+  const [from, to] = island.zone;
+  const onMain = free !== island.side; // занят путь, по которому идёт само кольцо
+  const branch = track.roads[island.road];
+  const at = (s) => (onMain ? pointAt(track, s) : pointAt(branch, ((s - branch.fromS) / (branch.toS - branch.fromS)) * branch.total));
+  for (let s = from; s <= to; s += 22) line(ctx, at(s), track.width - 14, p.slow, 9);
+}
+
+/**
+ * Дорожный знак у обочины: синий круг с белой стрелкой — «свободно направо» или «налево». dir 0 — знак погас.
+ * size — во сколько раз крупнее: когда видна вся трасса, знак рисуем больше, иначе стрелку не разглядеть
+ */
+function drawSign(ctx, track, { x, y, angle }, dir, size, p) {
+  const r = 17, off = track.width / 2 + 9 + r * size;
   const cx = x - Math.sin(angle) * off, cy = y + Math.cos(angle) * off; // справа по ходу, как у настоящей дороги
   ctx.save();
   ctx.translate(cx, cy);
+  ctx.scale(size, size);
   ctx.beginPath(); ctx.arc(0, 0, r + 2.5, 0, Math.PI * 2); ctx.fillStyle = p.kerb2; ctx.fill();
-  ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fillStyle = p.sign; ctx.fill();
+  ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fillStyle = dir ? p.sign : p.signOff; ctx.fill();
+  if (!dir) { ctx.restore(); return; }
   ctx.rotate(angle); // стрелка — относительно направления езды
   ctx.strokeStyle = p.kerb2; ctx.fillStyle = p.kerb2; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   ctx.beginPath(); ctx.moveTo(-9, 0); ctx.lineTo(2, 0); ctx.lineTo(2, dir * 7); ctx.stroke(); // прямо, потом поворот
@@ -226,9 +244,6 @@ export function drawCar(ctx, car, { color = null, alpha = 1, sensors = false, la
   }
 }
 
-/** Угол колёс на экране догоняет нужный плавно — руль не щёлкает, как выключатель (по машине, без записи в неё) */
-const shownWheel = new WeakMap();
-/** Колёса торчат из-под корпуса; передние повёрнуты на угол, с которым машина правда описывает свою дугу */
 /**
  * Машина роя на заднем плане: только корпус и стекло, без теней, колёс и стоп-сигналов.
  * Размытая тень на холсте дорогая, а машин в рое сотня: с тенями кадр в начале поколения рисуется в разы дольше.
@@ -246,12 +261,9 @@ function drawGhost(ctx, car, color, alpha, p) {
   ctx.restore();
 }
 
+/** Колёса торчат из-под корпуса; передние повёрнуты на угол, с которым машина правда описывает свою дугу */
 function drawWheels(ctx, car, L, W) {
-  const c = car.controls;
-  const steer = c && !car.done ? Math.max(-1, Math.min(1, (c.right ?? 0) - (c.left ?? 0))) : 0;
-  const target = wheelAngle(steer, car.speed ?? 0);
-  const turn = (shownWheel.get(car) ?? target) + (target - (shownWheel.get(car) ?? target)) * 0.3;
-  shownWheel.set(car, turn);
+  const turn = wheelAngle(car.done ? 0 : car.steer ?? 0, car.speed ?? 0);
   ctx.fillStyle = '#16171a';
   for (const [x, a] of [[L * 0.3, turn], [-L * 0.3, 0]]) {
     for (const y of [-W / 2 - 1, W / 2 + 1]) { // чуть наружу из-под корпуса — поворот видно

@@ -3,10 +3,13 @@
 // Расчёт и показ разделены. Сначала все заезды считаются заранее (несколько секунд),
 // потом на стриме показывается запись — плавно, с любой скоростью и без сюрпризов.
 import {
-  STAGES, stageLabel, stageSeed, stageTrack, isSuperfinal, trafficSnapshot,
+  STAGES, stageLabel, stageSeed, stageTrack, isSuperfinal, trafficSnapshot, hardStages,
   standings, superfinalists, finalStandings, nominations,
 } from '../../engine/rally.js';
 import { getTrainingTrack } from '../../engine/track.js';
+import { parseCarFile } from '../../engine/car-file.js';
+import { thinkVariants } from '../../student/think.js';
+import { BOTS } from '../generated/bots.js';
 import { buildEntries, openSealedFiles, readFileList, readDrop } from '../final/entries.js';
 import { generateCourseKeys, importPrivateKey } from '../../engine/seal.js';
 import { COURSE_KEY } from '../generated/course-key.js';
@@ -14,7 +17,7 @@ import { runJobs, computeMode } from '../final/pool.js';
 import { StageReplay, countStatuses, drawStage, drawProgressStrip } from '../final/show.js';
 import { resultText, toMarkdown, toCsv, toJson } from '../final/export.js';
 import { startCountdown, stopCountdown, updateCountdown } from '../countdown.js';
-import { drawScene, setHud, showBanner } from '../stage.js';
+import { drawScene, setHud, lapText, showBanner } from '../stage.js';
 import { saveFile } from '../download.js';
 import { state } from '../state.js';
 import { $, esc, secs, setPressed, delegate, avatarTag } from '../ui.js';
@@ -260,11 +263,13 @@ async function compute() {
     calc = { secret, tracks, results, after, final, awards: nominations(entries, results, final) };
     progress.hidden = true;
     const seconds = ((performance.now() - started) / 1000).toFixed(1);
-    $('#fComputeNote').textContent = `Готово за ${seconds} с: ${entries.length} участников, ${jobs.length + finalists.length} заездов.${mode === 'page' ? ' Браузер не дал создать Web Worker — участники со своим кодом не посчитаны.' : ''}`;
+    const hard = hardStages(tracks, bots()).map(stageLabel);
+    const warning = hard.length ? ` Осторожно, трудно: ${hard.join(', ')} — не доехал ни один бот. Может, взять другую фразу?` : '';
+    $('#fComputeNote').textContent = `Готово за ${seconds} с: ${entries.length} участников, ${jobs.length + finalists.length} заездов.${mode === 'page' ? ' Браузер не дал создать Web Worker — участники со своим кодом не посчитаны.' : ''}${warning}`;
     renderDq();
     renderSetup();
     selectStage(0);
-    showBanner('Финал посчитан. Можно начинать шоу!', 2500);
+    showBanner(hard.length ? `${hard.join(', ')}: не доехал ни один бот. Может, взять другую фразу?` : 'Финал посчитан. Можно начинать шоу!', hard.length ? 5000 : 2500);
   } finally {
     if (computing === run) {
       computing = null;
@@ -273,6 +278,9 @@ async function compute() {
     }
   }
 }
+
+/** Боты с «Гонки» — мерка трудности этапа. Думают исходным student/think.js, как и участники в расчёте */
+const bots = () => BOTS.map(parseCarFile).map((b) => ({ brain: b.brain, sensors: b.sensors, think: thinkVariants[b.thinkId].think }));
 
 function renderDq() {
   const dq = racers().filter((e) => e.dq);
@@ -366,13 +374,14 @@ function draw() {
   const { replay, tick } = show;
   const order = (show.order = replay.order(tick));
   const target = (show.found && order.find((x) => x.row.entry === show.found)) || order.find((x) => x.car.status === 'driving') || order[0];
-  drawScene(replay.track, { camera: show.camera, follow: target?.car, traffic: trafficSnapshot(replay.track, tick) });
+  drawScene(replay.track, { camera: show.camera, follow: target?.car, traffic: trafficSnapshot(replay.track, tick), tick });
   drawStage(order, { found: show.found, showAvatars: show.avatars, hiddenAvatars: show.hiddenAvatars });
   drawProgressStrip(order, { found: show.found });
   const count = countStatuses(order);
   setHud([
     `<b>${stageLabel(show.stage)}</b>`,
     `время <b>${secs(tick)}</b>`,
+    target ? lapText(replay.track, replay.track.startS + target.car.progress * (replay.track.finishS - replay.track.startS)) : '',
     `на трассе <b>${count.driving}</b>`,
     `финиш <b>${count.finished}</b>`,
     `сошли <b>${count.out}</b>`,

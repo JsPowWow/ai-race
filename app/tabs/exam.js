@@ -5,7 +5,7 @@ import { withTraffic } from '../../engine/traffic.js';
 import { state, persist, thinkFn, on, emit, CAR_COLORS } from '../state.js';
 import { seedTrack } from '../tracks.js';
 import { toCarFile } from '../car-file.js';
-import { drawScene, paintCar, trafficOn, setHud, showBanner } from '../stage.js';
+import { drawScene, paintCar, trafficOn, setHud, lapText, showBanner } from '../stage.js';
 import { $, $$, esc, secs, pct, delegate, showError } from '../ui.js';
 import { canDownload, saveFile } from '../download.js';
 import { sealCar, GITHUB_LOGIN } from '../../engine/seal.js';
@@ -27,7 +27,7 @@ export const examTab = {
     const track = replay ? results[replay.index].track : getTrainingTrack('warmup');
     if (!replay) {
       drawScene(track);
-      return setHud(['<b>Экзамен</b>', 'чемпион проедет 6 трасс']);
+      return setHud(['<b>Экзамен</b>', `чемпион проедет ${TRAINING_TRACKS.length + UNKNOWN_SEEDS.length} трасс`]);
     }
     const { car } = replay;
     for (let k = 0; k < REPLAY_SPEED; k++) car.step(track, maxTicksFor(track));
@@ -35,11 +35,12 @@ export const examTab = {
       replay.pauseUntil ||= performance.now() + 1500;
       if (performance.now() > replay.pauseUntil) playReplay(replay.index);
     }
-    drawScene(track, { traffic: trafficOn(track, car.ticks) });
+    drawScene(track, { traffic: trafficOn(track, car.ticks), tick: car.ticks });
     paintCar(car, { color: state.profile.color, sensors: true, number: 1 });
     setHud([
       `<b>${esc(trackTitle(results[replay.index], replay.index))}</b>`,
       `время <b>${secs(car.ticks)}</b>`,
+      lapText(track, car.bestS),
       `пройдено <b>${pct(carReport(car, track).progressPct)}</b>`,
       `повтор ×${REPLAY_SPEED}`,
     ]);
@@ -48,12 +49,10 @@ export const examTab = {
 
 // ── экзамен ──
 
-// «Лабиринт» пока не в экзамене: на гонке развилок нет, экзамен проверяет то, что понадобится на гонке
-const KNOWN = TRAINING_TRACKS.filter((t) => !t.maze);
 
 /** Как на гонке: всегда с попутными и встречными машинами */
 const examTracks = () => [
-  ...KNOWN.map(({ id }) => ({ track: withTraffic(getTrainingTrack(id), 'all'), known: true })),
+  ...TRAINING_TRACKS.map(({ id }) => ({ track: withTraffic(getTrainingTrack(id), 'all'), known: true })),
   ...UNKNOWN_SEEDS.map((seed) => ({ track: withTraffic(seedTrack(seed), 'all'), known: false })),
 ];
 
@@ -77,7 +76,7 @@ function playReplay(index) {
   renderResults();
 }
 
-const trackTitle = (r, i) => (r.known ? r.track.name : `Незнакомая ${i - KNOWN.length + 1}`);
+const trackTitle = (r, i) => (r.known ? r.track.name : `Незнакомая ${i - TRAINING_TRACKS.length + 1}`);
 
 const statusHtml = (r) =>
   r.status === 'finished' ? '<span class="st-ok">доехал</span>'

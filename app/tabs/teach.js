@@ -13,7 +13,7 @@ import { live } from '../student-code.js';
 import { runs, addRun, toggleRun, removeRun, trainingSamples, sampleCount, saveRuns, memoryNote, MAX_SAMPLES } from '../runs.js';
 import { setBrain, changeShape, shapeResetsBrain, renderLibrary } from '../library.js';
 import { steerWith } from '../manual-drive.js';
-import { drawScene, paintCar, trafficOn, setHud, showBanner } from '../stage.js';
+import { drawScene, paintCar, trafficOn, setHud, lapText, showBanner } from '../stage.js';
 import { $, esc, secs, pct, options, setPressed, delegate } from '../ui.js';
 import { createNetworkEditor } from './network-editor.js';
 
@@ -61,11 +61,12 @@ export const teachTab = {
     } else if (performance.now() > restartAt) {
       resetCar();
     }
-    drawScene(track, { camera: 'follow', follow: car, traffic });
+    drawScene(track, { camera: 'follow', follow: car, traffic, tick: car.ticks });
     paintCar(car, { color: mode === 'me' ? state.profile.color : cssColor('--brain'), sensors: true, number: 1 }); // едет мозг — машина синяя, цвета мозга
     setHud([
       mode === 'me' ? (recording ? `<b class="rec">запись</b> ${recording.length}` : 'рулишь <b class="word">ты</b>') : 'рулит <b class="word">мозг</b>',
       `скорость <b>${car.speed.toFixed(1)}</b>`,
+      lapText(track, car.bestS),
       `пройдено <b>${pct(carReport(car, track).progressPct)}</b>`,
       `время <b>${secs(car.ticks)}</b>`,
       // числа сенсоров нужны, когда разбираешься с «Глазами»; на первом заезде это лишний шум

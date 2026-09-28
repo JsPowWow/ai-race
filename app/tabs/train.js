@@ -1,5 +1,5 @@
 // Вкладка «Учится само» (урок 2): рой и эволюция — поколения, отбор, мутация, кроссовер.
-import { TRAINING_TRACKS, getTrainingTrack, forksPassed } from '../../engine/track.js';
+import { TRAINING_TRACKS, getTrainingTrack, forksPassed, withCoins } from '../../engine/track.js';
 import { Car } from '../../engine/car.js';
 import { cloneBrain, checkBrain } from '../../engine/brain.js';
 import { Evolution } from '../../engine/evolution.js';
@@ -11,7 +11,7 @@ import { state, persist, persistSoon, sizesOf, thinkFn, setChampion, on, emit } 
 import { setBrain, remember, renderLibrary } from '../library.js';
 import { live, errorLine, isEdited } from '../student-code.js';
 import { seedTrack } from '../tracks.js';
-import { canvas, drawScene, paintCar, trafficOn, carAt, setHud, showBanner } from '../stage.js';
+import { canvas, drawScene, paintCar, trafficOn, carAt, setHud, lapText, showBanner } from '../stage.js';
 import { $, $$, esc, secs, pct, options, setPressed, delegate, showError } from '../ui.js';
 
 const TURBO_BUDGET_MS = 22;
@@ -21,7 +21,7 @@ let evo = null;       // идущая эволюция (null — ещё не з�
 let running = false;
 let track = null;     // трасса текущего поколения
 let picked = [];      // машины, выбранные щелчком в родители
-let leader = { onLoop: false, detours: 0 }; // лидер прошлого поколения: остался ли на петле «Лабиринта», сколько раз свернул не туда
+let leader = { slowdowns: 0 }; // лидер прошлого поколения: сколько раз заехал в медленную зону на развилке
 
 export const isTraining = () => running;
 
@@ -59,7 +59,7 @@ export const trainTab = {
   frame() {
     if (!evo) return drawIdle();
     const lead = leaderOf(evo.cars);
-    drawScene(track, { camera: state.train.camera, follow: lead, traffic: evo.traffic ?? trafficOn(track, 0) });
+    drawScene(track, { camera: state.train.camera, follow: lead, traffic: evo.traffic ?? trafficOn(track, 0), tick: evo.tick });
     for (const car of evo.cars) {
       if (car !== lead && !picked.includes(car)) paintCar(car, { color: state.profile.color, alpha: car.done ? 0.18 : 0.35, ghost: true });
     }
@@ -71,8 +71,9 @@ export const trainTab = {
       `едут <b>${evo.cars.filter((c) => !c.done).length}</b>/${evo.cars.length}`,
       `доехали <b>${evo.cars.filter((c) => c.status === 'finished').length}</b>`,
       `время <b>${secs(evo.tick)}</b>`,
+      lead ? lapText(track, lead.bestS) : '',
       `<b>${esc(track.name)}</b>`,
-    ]);
+    ].filter(Boolean));
   },
 };
 
@@ -111,7 +112,7 @@ function trackForGeneration(gen) {
   if (trackId === 'seed') base = seedTrack(seed || 'тренировка');
   else if (trackId === 'mix') base = gen % 5 < 3 ? getTrainingTrack(TRAINING_TRACKS[gen % 5].id) : seedTrack(`микс-${gen}`);
   else base = getTrainingTrack(trackId);
-  return withTraffic(base, traffic);
+  return withCoins(withTraffic(base, traffic), gen); // у каждого поколения судьи бросают монетку по-своему
 }
 
 /** Настройки и свежий код студента — с каждого нового поколения */
@@ -142,8 +143,8 @@ function endGeneration() {
   state.history = [...state.history, entry].slice(-300);
   setChampion(cloneBrain(evo.parent), { by: 'train', generation: evo.generation });
   if (track.id === 'snake') emit('did', 'train:snake'); // шаг 1 урока 2 — рой учится на «Змейке»
-  leader = { onLoop: parentCar.road > 0, detours: parentCar.detours };
-  if (isMaze() && forksPassed(track, parentCar.bestS) >= 2) emit('did', 'train:maze'); // шаг 3 — рой прошёл хотя бы две развилки
+  leader = { slowdowns: parentCar.slowdowns };
+  if (isMaze() && forksPassed(track, parentCar.bestS) >= 2) emit('did', 'train:maze'); // шаг 3 — рой проехал развилку хотя бы на двух кругах
   addToHall(entry, report);
   showStudentErrors();
   saveOften();
@@ -270,8 +271,8 @@ function sameTrackHistory() {
   return out;
 }
 
-/** Трасса со знаками и развилками — «Лабиринт» */
-const isMaze = () => track?.signs?.length > 0;
+/** На трассе есть развилка со знаком */
+const isMaze = () => track?.islands?.length > 0;
 
 function swarmAdvice() {
   if (!evo) {
@@ -283,11 +284,11 @@ function swarmAdvice() {
   const h = sameTrackHistory(), last = h.at(-1);
   if (!last) return 'Смотри, какая машина уедет дальше всех: от неё пойдёт следующее поколение. Долго — жми «Турбо».';
   const tail = h.slice(-SAME_GENS);
-  if (isMaze() && last.finished && leader.detours > 0) {
-    return `Лабиринт пройден, но не с первого раза: кругов по петле у лидера — ${leader.detours}. Фитнесу «за расстояние» всё равно — кто доехал, тот и хорош. Хвалить за время научит урок 3.`;
+  if (isMaze() && last.finished && leader.slowdowns > 0) {
+    return `Доехал, но в медленную зону на развилке заехал ${leader.slowdowns} раз. Фитнесу «за расстояние» всё равно — кто доехал, тот и хорош. Хвалить за время научит урок 3.`;
   }
   if (isMaze() && last.finished) {
-    return 'Лабиринт пройден без ошибок: рой запомнил знаки. Посмотри в «Мозге лидера», чем он помнит: горят ли заметки m1…m3 после знака — или машина заранее перестраивается к нужной стороне.';
+    return 'Каждый круг — по свободному пути: рой читает знак. Посмотри в «Мозге лидера», как горит вход «зн» у знака и что делают заметки m1…m3 после него — знак-то остаётся позади раньше развилки.';
   }
   if (tail.length === SAME_GENS && tail.every((e) => e.finished && e.best === last.best)) {
     if (TRAINING_TRACKS.some((t) => t.id === track.id) && track.id !== 'snake') {
@@ -299,7 +300,6 @@ function swarmAdvice() {
   }
   const before = h.at(-STUCK_GENS - 1);
   if (!last.finished && before && h.slice(-STUCK_GENS).every((e) => !e.finished && e.best <= before.best)) {
-    if (isMaze() && leader.onLoop) return `${STUCK_GENS} поколений лидер сворачивает не туда и крутит петлю. Знак остался позади, а свернуть надо у развилки — нужна память. Помоги рою: щёлкни машину, что свернула верно, или подними мутацию до 0,2.`;
     return `${STUCK_GENS} поколений без улучшения: рой застрял на ${pct(last.progressPct)}. Помоги: щёлкни машину, которая едет лучше, — или поставь «Без машин», а потом верни встречных.`;
   }
   if (last.finished) return `Лучший доехал за ${secs(last.ticks)}. Рой ищет мозг, который фитнес оценит ещё выше.`;

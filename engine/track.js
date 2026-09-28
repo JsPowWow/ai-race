@@ -1,30 +1,14 @@
-// Трассы: центральная линия, бордюры, прогресс вдоль трассы, генерация по seed.
-import { mulberry32, hashString, clamp, segmentT } from './utils.js';
-import { drawMaze } from './maze.js';
+// Трассы: кольцо дороги, бордюры, прогресс по кругам, развилки-острова, генерация по seed.
+import { hashString, clamp, segmentT, mulberry32 } from './utils.js';
+import { drawRing, randomRing, SIGN_GAP, ZONE } from './turtle.js';
 
 export const LANES = 3;          // сколько полос
 export const LANE_WIDTH = 56;    // ширина полосы, px (машина — 24 px)
 export const TRACK_WIDTH = LANES * LANE_WIDTH;
+export const LAPS = 3;           // сколько кругов в заезде
 const SPACING = 14;          // шаг между точками центральной линии, px
-const START_S = 60;          // где стоит машина на старте (px от начала)
-const FINISH_MARGIN = 70;    // финишная черта за столько px до конца
+const START_S = -30;         // машина стоит чуть позади стартовой черты (черта — в начале кольца, s = 0)
 const CELL = 64;             // размер ячейки сетки для быстрых проверок
-
-function catmullRom(points, samples = 24) {
-  const p = [points[0], ...points, points[points.length - 1]];
-  const out = [];
-  for (let i = 1; i < p.length - 2; i++) {
-    const p0 = p[i - 1], p1 = p[i], p2 = p[i + 1], p3 = p[i + 2];
-    for (let k = 0; k < samples; k++) {
-      const t = k / samples, t2 = t * t, t3 = t2 * t;
-      const f = (a, b, c, d) =>
-        0.5 * (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (-a + 3 * b - 3 * c + d) * t3);
-      out.push({ x: f(p0.x, p1.x, p2.x, p3.x), y: f(p0.y, p1.y, p2.y, p3.y) });
-    }
-  }
-  out.push({ ...points[points.length - 1] });
-  return out;
-}
 
 function resample(poly, spacing) {
   const out = [{ ...poly[0] }];
@@ -48,6 +32,14 @@ function resample(poly, spacing) {
   return out;
 }
 
+/** Замкнуть кольцо: последняя точка — ровно первая, без коротенького хвостика перед ней */
+function closeUp(points) {
+  const first = points[0];
+  while (points.length > 2 && Math.hypot(points.at(-1).x - first.x, points.at(-1).y - first.y) < SPACING * 0.6) points.pop();
+  points.push({ ...first });
+  return points;
+}
+
 function buildGrid(segs) {
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   for (let i = 0; i < segs.length; i += 4) {
@@ -69,8 +61,11 @@ function buildGrid(segs) {
   return { minX, minY, cols, rows, cells, stamp: new Uint32Array(segs.length / 4), tick: 1 };
 }
 
-/** Одна дорога из центральной линии: длина вдоль неё, края, разметка полос */
-function makeRoad(center, width, lanes) {
+/**
+ * Одна дорога из центральной линии: длина вдоль неё, края, разметка полос.
+ * closed — кольцо: последняя точка совпадает с первой, а соседи первой точки — вторая и предпоследняя.
+ */
+function makeRoad(center, width, lanes, closed = false) {
   const n = center.length;
   const cum = new Float64Array(n);
   for (let i = 1; i < n; i++) {
@@ -80,7 +75,8 @@ function makeRoad(center, width, lanes) {
   const left = [], right = [];
   const dividers = Array.from({ length: lanes - 1 }, () => []); // разметка между полосами
   for (let i = 0; i < n; i++) {
-    const a = center[Math.max(0, i - 1)], b = center[Math.min(n - 1, i + 1)];
+    const a = i > 0 ? center[i - 1] : closed ? center[n - 2] : center[0];
+    const b = i < n - 1 ? center[i + 1] : closed ? center[1] : center[n - 1];
     const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
     const nx = -(b.y - a.y) / len, ny = (b.x - a.x) / len; // нормаль «вправо по ходу»
     left.push({ x: center[i].x - nx * hw, y: center[i].y - ny * hw });
@@ -90,15 +86,21 @@ function makeRoad(center, width, lanes) {
       dividers[k - 1].push({ x: center[i].x + nx * off, y: center[i].y + ny * off });
     }
   }
-  return { center, cum, total: cum[n - 1], left, right, dividers };
+  return { center, cum, total: cum[n - 1], left, right, dividers, closed };
 }
 
-/** Расстояние от точки до центральной линии дороги (квадрат) — на отрезках lo…hi */
+/** Номер отрезка на кольце: после последнего снова идёт первый */
+const wrap = (i, m) => ((i % m) + m) % m;
+
+/** Расстояние от точки до центральной линии дороги (квадрат) — на отрезках lo…hi. На кольце lo и hi могут выходить за края */
 function nearestOn(road, x, y, lo = 0, hi = road.center.length - 2) {
   const { center, cum } = road;
-  lo = Math.max(0, lo); hi = Math.min(center.length - 2, hi);
-  let best = Infinity, idx = lo, s = cum[lo];
-  for (let i = lo; i <= hi; i++) {
+  const m = center.length - 1; // сколько отрезков
+  if (!road.closed) { lo = Math.max(0, lo); hi = Math.min(m - 1, hi); }
+  else if (hi - lo >= m) { lo = 0; hi = m - 1; }
+  let best = Infinity, idx = 0, s = 0;
+  for (let k = lo; k <= hi; k++) {
+    const i = road.closed ? wrap(k, m) : k;
     const a = center[i], b = center[i + 1];
     const dx = b.x - a.x, dy = b.y - a.y;
     const l2 = dx * dx + dy * dy || 1;
@@ -127,13 +129,7 @@ function makeWalls(roads, hw) {
     }
     return lerpPt(a, b, (lo + hi) / 2);
   };
-  const lines = [];
-  for (const r of roads) {
-    const n = r.center.length;
-    lines.push(r.left, r.right);                                           // края
-    if (r.toIdx === undefined) lines.push([r.left[n - 1], r.right[n - 1]]); // стенка в конце — если дорога не возвращается
-    if (r === roads[0]) lines.push([r.left[0], r.right[0]]);              // стенка за стартом
-  }
+  const lines = roads.flatMap((r) => [r.left, r.right]); // все дороги кончаются на других: торцевых стенок нет
   const walls = [];
   for (const pts of lines) {
     const inside = pts.map(onRoad);
@@ -149,20 +145,27 @@ function makeWalls(roads, hw) {
 }
 
 /**
- * Собрать трассу из опорных точек.
- * branches — ветки, которые отходят от основной дороги (их центральная линия начинается на ней).
- *   rejoin: true — ветка-петля: кончается снова на основной дороге, стенки в конце нет.
- * signs — дорожные знаки у основной дороги: { s, dir } — на расстоянии s от начала, dir = -1 налево, 1 направо.
- * smooth: false — точки уже плотные (лабиринт), сглаживать не нужно.
+ * Собрать трассу-кольцо из точек, которые нарисовала черепашка (drawRing).
+ * points — центральная линия кольца, последняя точка совпадает с первой.
+ * branches — вторые пути островов: начинаются и кончаются на кольце. side — куда от развилки уходит само кольцо.
  */
-export function buildTrack({ name, points, width = TRACK_WIDTH, lanes = LANES, id, branches = [], signs = [], smooth = true }) {
-  const main = makeRoad(resample(smooth ? catmullRom(points) : points, SPACING), width, lanes);
+export function buildTrack({ name, id, points, branches = [], laps = LAPS, width = TRACK_WIDTH, lanes = LANES }) {
+  const main = makeRoad(closeUp(resample(points, SPACING)), width, lanes, true);
   const roads = [main];
+  const islands = [];
   for (const b of branches) {
     const road = makeRoad(resample(b.points, SPACING), width, lanes);
-    const at = nearestOn(main, b.points[0].x, b.points[0].y);
-    const end = b.rejoin && nearestOn(main, b.points.at(-1).x, b.points.at(-1).y);
-    roads.push({ ...road, fromIdx: at.idx, fromS: at.s, ...(end && { toIdx: end.idx, toS: end.s }) });
+    const from = nearestOn(main, b.points[0].x, b.points[0].y);
+    const to = nearestOn(main, b.points.at(-1).x, b.points.at(-1).y);
+    roads.push({ ...road, fromIdx: from.idx, fromS: from.s, toIdx: to.idx, toS: to.s });
+    const seed = hashString(`${id ?? name}|${islands.length}`);
+    const signS = from.s - SIGN_GAP;
+    islands.push({
+      road: roads.length - 1, side: b.side, forkS: from.s, mergeS: to.s,
+      zone: [from.s + ZONE.from, from.s + ZONE.to],
+      sign: { s: signS, ...pointAt(main, signS) },
+      seed, phase: seed % SWITCH_EVERY,
+    });
   }
   const walls = makeWalls(roads, width / 2);
   const segList = [];
@@ -177,18 +180,19 @@ export function buildTrack({ name, points, width = TRACK_WIDTH, lanes = LANES, i
     }
   }
   return {
-    id: id ?? name, name, width, lanes, ...main, roads, walls, segs,
-    signs: signs.map((sg) => ({ ...sg, ...pointAt(main, sg.s) })),
+    id: id ?? name, name, width, lanes, ...main, roads, walls, segs, islands,
     grid: buildGrid(segs),
+    lap: main.total, laps,
     startS: START_S,
-    finishS: main.total - FINISH_MARGIN,
+    finishS: laps * main.total, // финиш — та же черта, что и старт, после последнего круга
     bbox: { minX, minY, maxX, maxY },
   };
 }
 
-/** Точка на центральной линии на расстоянии s от начала */
+/** Точка на центральной линии на расстоянии s от начала. На кольце s может быть любым: круг за кругом */
 export function pointAt(track, s) {
   const { center, cum } = track;
+  if (track.closed) s = ((s % track.total) + track.total) % track.total;
   let lo = 0, hi = center.length - 2;
   while (lo < hi) { // бинарный поиск отрезка, где лежит s
     const mid = (lo + hi + 1) >> 1;
@@ -204,50 +208,106 @@ export function pointAt(track, s) {
  * Где машина на трассе: ближайшая точка центральной линии рядом с прошлой (road — номер дороги, hint — отрезок).
  * Ищем только рядом — на пару отрезков вокруг: за тик машина проезжает меньше одного.
  * Тогда на перекрёстке, где бордюров нет, прогресс не «перескочит» на другой участок трассы и не «поползёт» за ним.
- * У развилки смотрим и на соседнюю дорогу — так машина переезжает с основной на ветку и обратно,
- * а в конце петли — снова на основную.
- * s — сколько проехано к финишу. На ветке финиш в другой стороне, поэтому s падает: в тупике — чем глубже,
- * тем меньше, на петле — плавно до того места, где она выходит на дорогу.
+ * У развилки смотрим и на соседнюю дорогу — так машина переезжает с кольца на второй путь острова и обратно.
+ * s — сколько проехано с начала заезда, круг за кругом: из точек на кольце берём ту, что ближе к прошлому s (near).
  * along — сколько проехано по своей дороге: так машина понимает, что едет, а не стоит (см. Car.step).
  */
-export function projectProgress(track, x, y, hint, road = 0) {
-  const roads = track.roads;
+export function projectProgress(track, x, y, hint, road = 0, near = track.startS) {
+  const roads = track.roads, m = track.center.length - 1;
   let best = { ...nearestOn(roads[road], x, y, hint - 2, hint + 3), road };
   const tryRoad = (k, lo, hi) => {
     const p = nearestOn(roads[k], x, y, lo, hi);
     if (p.d2 < best.d2) best = { ...p, road: k };
   };
   if (road === 0) {
-    for (let k = 1; k < roads.length; k++) if (Math.abs(roads[k].fromIdx - hint) <= 16) tryRoad(k, 0, 16);
+    for (let k = 1; k < roads.length; k++) {
+      const gap = Math.abs(roads[k].fromIdx - hint);
+      if (Math.min(gap, m - gap) <= 16) tryRoad(k, 0, 16);
+    }
   } else {
     const r = roads[road];
-    tryRoad(0, r.fromIdx - 6, r.fromIdx + 16);
-    if (r.toIdx !== undefined && hint > r.center.length - 20) tryRoad(0, r.toIdx - 16, r.toIdx + 6);
+    if (hint < 20) tryRoad(0, r.fromIdx - 6, r.fromIdx + 16);
+    if (hint > r.center.length - 20) tryRoad(0, r.toIdx - 16, r.toIdx + 6);
   }
   // Дальше края дороги — значит, машина съехала на другой участок (на перекрёстке): прогресс стоит, где был
   if (best.d2 > (track.width / 2 + 10) ** 2) best = { road, idx: hint, s: roads[road].cum[hint], d2: best.d2 };
-  return { road: best.road, idx: best.idx, s: progressOn(roads[best.road], best.s), along: best.s };
+  const local = progressOn(roads[best.road], best.s);
+  const s = local + track.lap * Math.round((near - local) / track.lap);
+  return { road: best.road, idx: best.idx, s, along: best.road === 0 ? s : best.s };
 }
 
-/** Прогресс к финишу для точки на дороге road в along px от её начала */
+/** Прогресс на круге для точки на дороге road в along px от её начала */
 function progressOn(road, along) {
-  if (road.fromIdx === undefined) return along;                                  // основная дорога
-  if (road.toIdx === undefined) return road.fromS - along;                       // тупик
-  return road.fromS + (road.toS - road.fromS) * (along / road.total);            // петля
+  if (road.fromIdx === undefined) return along; // само кольцо
+  return road.fromS + (road.toS - road.fromS) * (along / road.total); // второй путь острова: идёт рядом с кольцом
 }
 
-export const SIGN_VIEW = 100; // знак видно за столько px до него — пока проезжаешь рядом
+/** Какой сейчас круг: 1…laps */
+export const lapOf = (track, s) => clamp(Math.floor(s / track.lap) + 1, 1, track.laps);
 
-/** Что показывает знак, мимо которого машина едет сейчас: -1 налево, 1 направо, 0 — знака рядом нет */
-export function signAt(track, road, s) {
-  if (road !== 0 || !track.signs) return 0;
-  for (const sg of track.signs) if (s > sg.s - SIGN_VIEW && s <= sg.s) return sg.dir;
+// ── Развилки-острова ──────────────────────────────────────────
+// На одном из двух путей острова — медленная зона. Судьи переключают её по ходу гонки: раз в SWITCH_EVERY тиков
+// «бросают монетку». Монетка — от seed трассы и номера броска, поэтому у всех участников одно и то же в один и тот же тик.
+
+const SWITCH_EVERY = 600;  // 10 с
+const DARK = 180;          // за 3 с до переключения знак гаснет: «сейчас поменяется»
+export const SIGN_VIEW = 100; // знак видно за столько px до него — пока проезжаешь рядом
+export const SLOW_SPEED = 0.8; // быстрее в медленной зоне не поедешь: свернул не туда — минус 3 с
+
+/** Монетка для броска n */
+const coin = (seed, n) => mulberry32((seed + Math.imul(n + 1, 0x9e3779b9)) >>> 0)() < 0.5;
+
+/** Какой путь острова свободен на тике tick: 1 — правый, -1 — левый */
+export function freeSide(track, i, tick) {
+  const isl = track.islands[i];
+  return coin(isl.seed, Math.floor((tick + isl.phase) / SWITCH_EVERY)) ? isl.side : -isl.side;
+}
+
+/**
+ * Та же трасса, но судьи бросают монетку по-другому: серия бросков номер series.
+ * Рой каждое поколение едет с новой серией — иначе заучит «на первом круге налево, на втором направо» и знак ему не нужен.
+ * Серия — просто число, поэтому всё по-прежнему можно пересчитать. Серия 0 — сама трасса.
+ */
+export function withCoins(track, series) {
+  if (!series || !track.islands.length) return track;
+  return { ...track, islands: track.islands.map((isl) => ({ ...isl, seed: hashString(`${isl.seed}|${series}`) })) };
+}
+
+/** Где мы на круге: s от стартовой черты */
+const onLap = (track, s) => ((s % track.lap) + track.lap) % track.lap;
+
+/** Что горит на знаке острова i: куда свободно (-1 налево, 1 направо) или 0 — знак погас, скоро переключат */
+export function signShows(track, i, tick) {
+  const now = freeSide(track, i, tick);
+  return now === freeSide(track, i, tick + DARK) ? now : 0;
+}
+
+/** Что показывает знак, мимо которого машина едет сейчас. 0 — знака рядом нет или он погас */
+export function signAt(track, road, s, tick) {
+  if (road !== 0) return 0;
+  const at = onLap(track, s);
+  for (let i = 0; i < track.islands.length; i++) {
+    const { sign } = track.islands[i];
+    if (at > sign.s - SIGN_VIEW && at <= sign.s) return signShows(track, i, tick);
+  }
   return 0;
 }
 
-/** Сколько развилок позади: прогресс ушёл за развилку дальше, чем пускает ветка, — значит, свернул верно */
+/** В медленной зоне какого острова машина: { island, side } — side, по какому пути она едет. Или null */
+export function zoneAt(track, road, s) {
+  const at = onLap(track, s);
+  for (let i = 0; i < track.islands.length; i++) {
+    const isl = track.islands[i];
+    if (at < isl.zone[0] || at > isl.zone[1]) continue;
+    if (road === 0) return { island: i, side: isl.side };
+    if (road === isl.road) return { island: i, side: -isl.side };
+  }
+  return null;
+}
+
+/** Сколько раз машина проехала развилки: каждый остров на каждом круге — отдельный раз */
 export function forksPassed(track, s) {
-  return track.roads.slice(1).filter((r) => s > r.fromS + 300).length;
+  return track.islands.reduce((sum, isl) => sum + clamp(Math.floor((s - isl.mergeS) / track.lap) + 1, 0, track.laps), 0);
 }
 
 /** Луч или отрезок против бордюров: минимальная доля пути до столкновения, или -1 */
@@ -276,88 +336,54 @@ export function castSegment(track, x1, y1, x2, y2) {
 }
 
 // ── Готовые тренировочные трассы ──────────────────────────────
+// Программы для черепашки (см. drawRing в turtle.js). Прямые 'fit' черепашка подгоняет сама, чтобы кольцо замкнулось.
 
 export const TRAINING_TRACKS = [
   {
     id: 'warmup', name: 'Разминка',
-    points: [
-      { x: 0, y: 600 }, { x: 400, y: 600 }, { x: 800, y: 590 }, { x: 1100, y: 480 }, { x: 1320, y: 310 },
-      { x: 1600, y: 250 }, { x: 1880, y: 330 }, { x: 2080, y: 530 }, { x: 2320, y: 680 }, { x: 2700, y: 700 }, { x: 3000, y: 690 },
+    program: [
+      ['fit', 200], ['arc', 90, 220], ['fit', 100], ['arc', 90, 220],
+      ['line', 400], ['arc', 90, 220], ['line', 100], ['arc', 90, 220], ['line', 200],
     ],
   },
   {
     id: 'snake', name: 'Змейка',
-    points: [
-      { x: 0, y: 420 }, { x: 300, y: 420 }, { x: 600, y: 280 }, { x: 900, y: 170 }, { x: 1180, y: 290 },
-      { x: 1380, y: 540 }, { x: 1640, y: 700 }, { x: 1950, y: 620 }, { x: 2200, y: 380 }, { x: 2500, y: 250 },
-      { x: 2800, y: 380 }, { x: 3000, y: 580 }, { x: 3300, y: 650 },
+    program: [
+      ['fit', 150], ['arc', 70, 220], ['fit', 40], ['arc', -70, 220], ['arc', 180, 200],
+      ['line', 250], ['arc', 80, 220], ['arc', -80, 220], ['arc', 180, 200], ['line', 100],
     ],
   },
   {
     id: 'hairpin', name: 'Шпилька',
-    points: [
-      { x: 0, y: 200 }, { x: 500, y: 200 }, { x: 1000, y: 200 }, { x: 1300, y: 230 }, { x: 1470, y: 360 },
-      { x: 1490, y: 520 }, { x: 1360, y: 640 }, { x: 1100, y: 680 }, { x: 700, y: 680 }, { x: 440, y: 720 },
-      { x: 320, y: 860 }, { x: 360, y: 1010 }, { x: 560, y: 1100 }, { x: 900, y: 1120 }, { x: 1400, y: 1120 }, { x: 1800, y: 1120 },
+    program: [
+      // первая прямая длинная: шпильки не должны подходить к дальней стороне кольца
+      ['fit', 300], ['arc', 90, 200], ['fit', 150], ['arc', 90, 200], ['line', 480],
+      ['arc', 180, 140], ['line', 150], ['arc', -180, 140], ['line', 150], ['arc', 180, 200],
     ],
   },
   {
-    // развилки: направо, налево, налево, направо — «всегда налево» не проедет. Перед каждой — знак,
-    // но у самой развилки его уже не видно: куда повернуть, надо помнить
-    id: 'maze', name: 'Лабиринт',
-    maze: [
-      ['line', 600], ['fork', 1],
-      ['line', 260], ['arc', -60, 320], ['line', 560], ['fork', -1],
-      ['line', 240], ['arc', 60, 320], ['line', 700], ['loop', 1], ['line', 900], ['arc', 90, 230],
-      ['line', 560], ['fork', -1],
-      ['line', 560], ['fork', 1],
-      ['line', 420],
+    // развилка-остров: какой путь свободен, меняется по ходу заезда — смотри на знак
+    id: 'maze', name: 'Развилка', maze: true,
+    program: [
+      ['fit', 200], ['arc', 90, 220], ['fit', 100], ['arc', 90, 220], ['line', 220], ['fork', 1], ['line', 60],
+      ['arc', 90, 220], ['line', 100], ['arc', 90, 220], ['line', 150],
     ],
   },
 ];
 
-/** Случайная трасса по seed (строка или число). Одинаковый seed — одинаковая трасса у всех. */
+/** Случайная трасса по seed (строка или число). Одинаковый seed — одинаковая трасса у всех. На ней развилка-остров. */
 export function generateTrack(seedInput) {
   const seed = typeof seedInput === 'number' ? seedInput >>> 0 : hashString(seedInput);
-  const minGap = TRACK_WIDTH * 2.2;
-  for (let attempt = 0; attempt < 300; attempt++) {
-    const rng = mulberry32(seed + attempt * 7919);
-    const stepLen = 70;
-    const steps = 52 + Math.floor(rng() * 14);
-    const pts = [{ x: 0, y: 0 }, { x: stepLen, y: 0 }];
-    let heading = 0, turn = 0, straight = 0, ok = true;
-    for (let i = 2; i < steps && ok; i++) {
-      if (straight > 0) { straight--; turn *= 0.5; }
-      else {
-        turn = turn * 0.8 + (rng() - 0.5) * 0.34;
-        if (rng() < 0.08) straight = 2 + Math.floor(rng() * 4);
-      }
-      turn = clamp(turn, -0.38, 0.38);
-      heading = clamp(heading + turn, -2.0, 2.0);
-      if (Math.abs(heading) >= 2.0) turn = 0;
-      const last = pts[pts.length - 1];
-      const p = { x: last.x + Math.cos(heading) * stepLen, y: last.y + Math.sin(heading) * stepLen };
-      for (let j = 0; j < pts.length - 7; j++) {
-        if (Math.hypot(p.x - pts[j].x, p.y - pts[j].y) < minGap) { ok = false; break; }
-      }
-      pts.push(p);
-    }
-    if (!ok) continue;
-    // поворачиваем так, чтобы трасса шла слева направо: удобнее смотреть на широком экране
-    const end = pts[pts.length - 1];
-    const a = -Math.atan2(end.y, end.x);
-    const cos = Math.cos(a), sin = Math.sin(a);
-    const rotated = pts.map((p) => ({ x: p.x * cos - p.y * sin, y: p.x * sin + p.y * cos }));
-    return buildTrack({ name: `Трасса «${seedInput}»`, points: rotated, id: `seed:${seedInput}` });
-  }
-  throw new Error('Не удалось сгенерировать трассу');
+  return buildTrack({ name: `Трасса «${seedInput}»`, id: `seed:${seedInput}`, ...randomRing(seed, TRACK_WIDTH) });
 }
 
 const cache = new Map();
 export function getTrainingTrack(id) {
   if (!cache.has(id)) {
     const def = TRAINING_TRACKS.find((t) => t.id === id);
-    cache.set(id, def.maze ? buildTrack({ ...def, ...drawMaze(def.maze), smooth: false }) : buildTrack({ ...def, points: def.points }));
+    const drawn = drawRing(def.program);
+    if (!drawn) throw new Error(`Трасса «${def.name}» не замыкается: поправь её программу`);
+    cache.set(id, buildTrack({ ...def, ...drawn }));
   }
   return cache.get(id);
 }

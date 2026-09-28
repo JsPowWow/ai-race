@@ -8,7 +8,7 @@ import { seedTrack } from '../tracks.js';
 import { toCarFile, fromCarFile, approveCode } from '../car-file.js';
 import { BOTS } from '../generated/bots.js';
 import { startCountdown, stopCountdown, updateCountdown } from '../countdown.js';
-import { drawScene, paintCar, paintSensors, trafficOn, setHud, showBanner } from '../stage.js';
+import { drawScene, paintCar, paintSensors, trafficOn, setHud, lapText, showBanner } from '../stage.js';
 import { $, esc, secs, pct, options, setPressed, delegate, showError, avatarTag } from '../ui.js';
 
 const SOURCE_LABEL = { bot: 'бот', mine: 'мой', file: 'файл', cross: 'гибрид' };
@@ -30,7 +30,7 @@ export const raceTab = {
       if (frameNo % 6 === 0) renderBoard();
     }
     const { track } = race;
-    drawScene(track, { traffic: trafficOn(track, race.tick) });
+    drawScene(track, { traffic: trafficOn(track, race.tick), tick: race.tick });
     const [leader] = standings();
     for (const { entrant, car } of race.cars) {
       const isLeader = leader?.car === car;
@@ -40,6 +40,7 @@ export const raceTab = {
     setHud([
       `<b>${esc(track.name)}</b>`,
       `время <b>${secs(race.tick)}</b>`,
+      ...(leader ? [`лидер: ${lapText(track, leader.car.bestS)}`] : []),
       `участников <b>${race.cars.length}</b>`,
       race.running ? `×${race.speed}` : race.finished ? 'финиш' : 'ждём старта',
     ]);
