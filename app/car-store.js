@@ -1,4 +1,4 @@
-// Где лежат машины гаража. Каждая машина — папка cars/<id>/ с двумя файлами: car.json и history.json.
+// Где лежат машины гаража. Каждая машина — папка cars/<id>/ с файлами car.json, history.json и runs.json.
 //
 // Два места, у обоих одни и те же вызовы — остальной код не знает, какое сейчас:
 //  • 'opfs'  — личная папка сайта в браузере (navigator.storage.getDirectory): места много, другие сайты её не видят.
@@ -82,7 +82,7 @@ function localStore() {
       if (!ids().includes(id)) save('cars', [...ids(), id]);
     },
     async remove(id) {
-      for (const name of ['car.json', 'history.json']) forget(key(id, name));
+      for (const name of ['car.json', 'history.json', 'runs.json']) forget(key(id, name));
       save('cars', ids().filter((x) => x !== id));
     },
   };

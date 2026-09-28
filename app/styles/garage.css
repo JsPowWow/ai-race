@@ -22,6 +22,7 @@
 .g-bar { display: flex; gap: 1px; inline-size: var(--w); block-size: 6px; border-radius: 3px; overflow: hidden; }
 .g-bar i, .g-legend i { background: var(--brain); }
 .g-bar i.h, .g-legend i.h { background: color-mix(in srgb, var(--brain) 35%, var(--surface-2)); }
+.g-bar i.r, .g-legend i.r { background: var(--you); } /* заезды — твои, поэтому жёлтые */
 .g-new {
   place-content: center; justify-items: center; min-block-size: 96px; border-style: dashed; box-shadow: none;
   background: transparent; color: var(--brain-text); font-weight: 500;
@@ -30,7 +31,7 @@
 .g-ask { grid-column: 1 / -1; }
 .g-ask p, .g-confirm p { margin: 0; color: var(--ink); }
 
-.g-legend { display: flex; gap: 14px; margin: 0; font-size: 12px; color: var(--muted); }
+.g-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0; font-size: 12px; color: var(--muted); }
 .g-legend span { display: inline-flex; align-items: center; gap: 6px; }
 .g-legend i { inline-size: 10px; block-size: 6px; border-radius: 2px; }
 .g-actions .btn { flex: none; }

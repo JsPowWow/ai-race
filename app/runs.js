@@ -1,17 +1,27 @@
 // «Мои заезды»: записанные ручные заезды для обучения с учителем.
 // Заезд — это примеры «что видела сеть → что нажал человек», упакованные в строки (см. engine/imitation.js).
+// Заезды — у каждой машины гаража свои (записаны под её сенсоры): лежат в её папке, в runs.json.
+// Здесь — заезды выбранной машины; пересели в другую — гараж подменит их через setRuns().
 import { packSample, unpackSample, worthLearning } from '../engine/imitation.js';
-import { load, save, remove, usedBytes } from './storage.js';
+import { emit } from './state.js';
+import { load, remove } from './storage.js';
 
 export const MAX_SAMPLES = 8000;  // всего во всех заездах — чтобы хватило места в браузере
 export const MIN_RUN = 30;        // заезды короче (полсекунды) не сохраняем
 export const DROP_BEFORE_CRASH = 45; // перед аварией последние 0,75 с не учим
 
 /** [{ id, at, trackName, traffic, status, progressPct, ticks, inputs, packed: string[], on }] */
-export let runs = loadRuns();
+export let runs = [];
 
-function loadRuns() {
+/** Заезды другой машины (зовёт гараж, когда пересаживаемся) */
+export function setRuns(list) {
+  runs = list;
+}
+
+/** До гаража заезды лежали в localStorage: забираем их первой машине гаража и освобождаем место */
+export function legacyRuns() {
   const list = load('runs', null);
+  remove('runs');
   if (list) return list;
   // раньше примеры лежали одной кучей на вкладке «Учитель» — переносим их одним заездом
   const packed = load('teachPacked', []);
@@ -22,13 +32,12 @@ function loadRuns() {
   const migrated = kept.length >= MIN_RUN
     ? [{ id: 'old', at: new Date().toISOString(), trackName: 'Старые записи', traffic: 'none', status: 'stopped', progressPct: 0, ticks: kept.length, inputs: unpackSample(kept[0]).x.length, packed: kept, on: true }]
     : [];
-  save('runs', migrated);
   return migrated;
 }
 
-/** false — не хватило места в браузере */
-export function saveRuns() {
-  return save('runs', runs);
+/** Заезды поменялись — гараж запишет их в папку машины */
+function saveRuns() {
+  emit('save');
 }
 
 export const sampleCount = (list = runs) => list.reduce((n, r) => n + r.packed.length, 0);
@@ -75,7 +84,3 @@ export function trainingSamples(inputs) {
   const usable = runs.filter((r) => r.on && r.inputs === inputs);
   return { runs: usable, samples: usable.flatMap((r) => r.packed.map(unpackSample)) };
 }
-
-export const memoryNote = (saved) => (saved
-  ? `В памяти браузера: ${(usedBytes() / 1024).toFixed(0)} КБ из примерно 5000.`
-  : 'Не хватило места в памяти браузера: новые заезды живут до перезагрузки. Удали лишние заезды.');

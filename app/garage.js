@@ -2,7 +2,7 @@
 //
 // Машина — это всё, что копится вокруг одного мозга: облик, сборка, мозг, его «История», прогресс роя.
 // Поля выбранной машины лежат прямо в state (app/state.js), остальные машины — только в хранилище
-// (app/car-store.js): каждая — папка cars/<id>/ с car.json и history.json.
+// (app/car-store.js): каждая — папка cars/<id>/ с car.json, history.json и runs.json («Мои заезды»).
 //
 // Пересесть в другую машину = записать нынешнюю, прочитать другую и разослать события:
 // 'reset', 'config', 'champion', 'library', 'car' — вкладки перерисуются, как после смены мозга.
@@ -10,6 +10,7 @@ import { checkBrain } from '../engine/brain.js';
 import { parseCarFile, checkAvatar, NAME_MAX } from '../engine/car-file.js';
 import { state, blankCar, CAR_KEYS, CAR_COLORS, sizesOf, emit, on } from './state.js';
 import { openCarStore, bytes } from './car-store.js';
+import { runs, setRuns, legacyRuns } from './runs.js';
 import { diskSupported, savedFolder, pickFolder, folderAccess, forgetFolder, diskStore } from './car-disk.js';
 import { load, save, remove, compactJson, usedBytes } from './storage.js';
 
@@ -19,7 +20,7 @@ const EXPORT_FORMAT = 'ai-race/garage@1';   // «Сохранить в файл�
 const HISTORY_KEEP = 300;                    // точек графика роя храним не больше
 
 /**
- * Что показывает полка. cars — сводки машин, не вся машина: [{ id, created, profile, shape, generation, trained, bytes: { car, history } }].
+ * Что показывает полка. cars — сводки машин, не вся машина: [{ id, created, profile, shape, generation, trained, bytes: { car, history, runs } }].
  * kind — где лежит гараж ('opfs' | 'local'), safe — браузер обещал не стирать, usage/quota — место в байтах.
  * disk — копия в папке на диске (app/car-disk.js): state 'off' — нет, 'ask' — папка выбрана, но ждёт разрешения, 'on' — пишем.
  */
@@ -35,11 +36,19 @@ const newId = () => `${Date.now().toString(36)}${Math.random().toString(36).slic
 const pick = (source, keys) => Object.fromEntries(keys.map((key) => [key, structuredClone(source[key])]));
 const CAR_FIELDS = CAR_KEYS.filter((key) => key !== 'versions');
 
-/** Два файла машины: car.json и history.json */
+/** Файлы машины: ключ → имя файла в её папке */
+const FILES = { car: 'car.json', history: 'history.json', runs: 'runs.json' };
+
+/** Машина (поля state + runs) → тексты её файлов */
 const filesOf = (car, created) => ({
   car: compactJson({ format: CAR_FORMAT, created, ...pick(car, CAR_FIELDS), history: car.history.slice(-HISTORY_KEEP) }),
   history: compactJson(car.versions),
+  runs: compactJson(car.runs ?? []),
 });
+const sizesOfFiles = (files) => Object.fromEntries(Object.keys(FILES).map((key) => [key, bytes(files[key] ?? '')]));
+
+/** Выбранная машина целиком: её поля лежат в state, а заезды — в app/runs.js */
+const current = () => ({ ...state, runs });
 
 const summaryOf = (id, car, sizes) => ({
   id, created: car.created ?? 0, profile: car.profile, shape: sizesOf(car.config).join('-'),
@@ -47,9 +56,10 @@ const summaryOf = (id, car, sizes) => ({
 });
 
 /** Прочитанная машина → поля для state. Бросает Error, если это не машина */
-function toCar(car, versions) {
+function toCar(car, versions, runList) {
   if (!car?.config?.sensors || !Array.isArray(car.config.hidden)) throw new Error('это не машина гаража');
-  const next = { ...blankCar(), ...pick({ ...blankCar(), ...car }, CAR_FIELDS), versions: Array.isArray(versions) ? versions : [] };
+  const next = { ...blankCar(), ...pick({ ...blankCar(), ...car }, CAR_FIELDS), versions: Array.isArray(versions) ? versions : [],
+    runs: Array.isArray(runList) ? runList.filter((r) => Array.isArray(r?.packed)) : [] };
   next.profile = { ...blankCar().profile, ...car.profile, name: String(car.profile?.name ?? '').slice(0, NAME_MAX) };
   delete next.profile.login; // логин — общий для всех машин
   try {
@@ -67,11 +77,11 @@ function toCar(car, versions) {
 // ── запись выбранной машины ──
 
 let dirty = false, timer = 0, writing = Promise.resolve();
-const written = new Map(); // id → { car, history }: что уже лежит в файлах — одинаковое не переписываем
+const written = new Map(); // id → { car, history, runs }: что уже лежит в файлах — одинаковое не переписываем
 
 async function writeFiles(id, files) {
   const before = written.get(id) ?? {};
-  for (const [key, name] of [['car', 'car.json'], ['history', 'history.json']]) {
+  for (const [key, name] of Object.entries(FILES)) {
     if (files[key] === before[key]) continue;
     await store.write(id, name, files[key]);
     await copyToDisk(id, name, files[key]);
@@ -118,14 +128,14 @@ async function syncDisk() {
       skipped++;
       continue;
     }
-    const history = (await disk.read(id, 'history.json')) ?? '[]';
-    await store.write(id, 'car.json', text);
-    await store.write(id, 'history.json', history);
-    garage.cars.push(summaryOf(id, car, { car: bytes(text), history: bytes(history) }));
+    const files = { car: text };
+    for (const key of ['history', 'runs']) files[key] = (await disk.read(id, FILES[key])) ?? '[]';
+    for (const [key, name] of Object.entries(FILES)) await store.write(id, name, files[key]);
+    garage.cars.push(summaryOf(id, car, sizesOfFiles(files)));
   }
   remove(GONE);
   for (const id of await store.list()) {
-    for (const name of ['car.json', 'history.json']) {
+    for (const name of Object.values(FILES)) {
       const text = await store.read(id, name);
       if (text !== null) await disk.write(id, name, text);
     }
@@ -195,11 +205,11 @@ export function flush() {
   dirty = false;
   const id = garage.id;
   const summary = garage.cars.find((c) => c.id === id);
-  const files = filesOf(state, summary?.created ?? Date.now());
+  const files = filesOf(current(), summary?.created ?? Date.now());
   writing = writing.then(() => writeFiles(id, files)).then(() => {
     if (load(PENDING, null)?.files?.car === files.car) remove(PENDING); // успели — страховка не нужна
     garage.error = '';
-    if (summary) Object.assign(summary, summaryOf(id, JSON.parse(files.car), { car: bytes(files.car), history: bytes(files.history) }));
+    if (summary) Object.assign(summary, summaryOf(id, JSON.parse(files.car), sizesOfFiles(files)));
     return measure();
   }).catch((e) => {
     garage.error = `Не получилось сохранить машину: ${e.message}`;
@@ -220,7 +230,7 @@ const PENDING = 'carPending';
 function rescue() {
   if (!dirty || !store || !garage.id) return;
   const summary = garage.cars.find((c) => c.id === garage.id);
-  save(PENDING, { id: garage.id, files: filesOf(state, summary?.created ?? Date.now()) });
+  save(PENDING, { id: garage.id, files: filesOf(current(), summary?.created ?? Date.now()) });
   flush();
 }
 document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && rescue());
@@ -239,12 +249,14 @@ async function writePending() {
 async function readCar(id) {
   const car = JSON.parse((await store.read(id, 'car.json')) ?? 'null');
   const versions = JSON.parse((await store.read(id, 'history.json')) ?? '[]');
-  return { car, versions };
+  const runList = JSON.parse((await store.read(id, 'runs.json')) ?? '[]');
+  return { car, versions, runs: runList };
 }
 
 /** Посадить в машину: её поля — в state, вкладкам — события */
-function seat(id, car) {
+function seat(id, { runs: runList, ...car }) {
   Object.assign(state, car);
+  setRuns(runList);
   garage.id = id;
   save('car', id);
   emit('reset');
@@ -279,7 +291,7 @@ function legacyVersions() {
 function legacyCar() {
   const saved = CAR_FIELDS.filter((key) => key !== 'profile').map((key) => [key, load(key, null)]).filter(([, value]) => value !== null);
   const car = { ...blankCar(load('profile', {})), ...Object.fromEntries(saved) };
-  return { car, versions: load('versions', null) ?? legacyVersions() };
+  return { car, versions: load('versions', null) ?? legacyVersions(), runs: legacyRuns() };
 }
 
 // ── старт ──
@@ -295,8 +307,8 @@ export async function startGarage() {
   if (saved) await useFolder(saved, false); // браузер помнит разрешение — пишем сразу; нет — покажем «Разрешить»
   if (!garage.cars.length) {
     // Первый запуск: всё, что было в localStorage, становится первой машиной гаража
-    const { car, versions } = legacyCar();
-    const id = await addCar(toCar(car, versions));
+    const { car, versions, runs: runList } = legacyCar();
+    const id = await addCar(toCar(car, versions, runList));
     for (const key of LEGACY) remove(key); // машина уже в гараже — освобождаем место в localStorage
     save('car', id);
   }
@@ -316,15 +328,15 @@ async function loadShelf() {
       const text = await store.read(id, 'car.json');
       const car = JSON.parse(text ?? 'null');
       if (car?.format !== CAR_FORMAT) continue;
-      cars.push(summaryOf(id, car, { car: bytes(text), history: await store.size(id, 'history.json') }));
+      cars.push(summaryOf(id, car, { car: bytes(text), history: await store.size(id, FILES.history), runs: await store.size(id, FILES.runs) }));
     } catch { /* испорченную папку пропускаем */ }
   }
   garage.cars = cars.sort((a, b) => a.created - b.created);
 }
 
 async function openCar(id) {
-  const { car, versions } = await readCar(id);
-  const next = toCar(car, versions);
+  const { car, versions, runs: runList } = await readCar(id);
+  const next = toCar(car, versions, runList);
   written.set(id, filesOf(next, car.created));
   seat(id, next);
 }
@@ -335,7 +347,7 @@ async function addCar(car) {
   const created = Date.now();
   const files = filesOf(car, created);
   await writeFiles(id, files);
-  garage.cars.push(summaryOf(id, { ...car, created }, { car: bytes(files.car), history: bytes(files.history) }));
+  garage.cars.push(summaryOf(id, { ...car, created }, sizesOfFiles(files)));
   return id;
 }
 
@@ -365,7 +377,7 @@ export async function newCar() {
 export async function copyCar() {
   if (isFull()) return;
   await flush();
-  const copy = pick(state, CAR_KEYS);
+  const copy = /** @type {any} */ ({ ...pick(state, CAR_KEYS), runs: structuredClone(runs) });
   copy.profile.name = `${state.profile.name || 'Машина'} — копия`.slice(0, NAME_MAX);
   copy.profile.color = freeColor();
   const id = await addCar(copy);
@@ -393,7 +405,7 @@ export async function deleteCar(id) {
 export async function exportCar() {
   await flush();
   const name = state.profile.name.trim() || 'машина';
-  return { name, text: compactJson({ format: EXPORT_FORMAT, car: { ...pick(state, CAR_FIELDS) }, versions: state.versions }) };
+  return { name, text: compactJson({ format: EXPORT_FORMAT, car: { ...pick(state, CAR_FIELDS) }, versions: state.versions, runs }) };
 }
 
 /**
@@ -410,7 +422,7 @@ export async function importCar(text) {
   }
   let car;
   if (file?.format === EXPORT_FORMAT) {
-    car = toCar(file.car, file.versions);
+    car = toCar(file.car, file.versions, file.runs);
   } else {
     const race = parseCarFile(file); // бросит понятную ошибку, если это не машина
     car = toCar({

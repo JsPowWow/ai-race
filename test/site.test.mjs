@@ -111,14 +111,14 @@ test('переключатель темы: авто → светлая → тё�
   assert.deepEqual(problems, []);
 });
 
-/** Машины гаража прямо из папки сайта (OPFS): [{ name, generation, versions }] */
+/** Машины гаража прямо из папки сайта (OPFS): [{ name, generation, versions, runs }] */
 const garageFiles = (page) => page.evaluate(async () => {
   const cars = await (await navigator.storage.getDirectory()).getDirectoryHandle('cars');
   const list = [];
   for await (const [, dir] of cars.entries()) {
     const read = async (name) => JSON.parse(await (await (await dir.getFileHandle(name)).getFile()).text());
     const car = await read('car.json');
-    list.push({ name: car.profile.name, generation: car.generation, versions: (await read('history.json')).length });
+    list.push({ name: car.profile.name, generation: car.generation, versions: (await read('history.json')).length, runs: (await read('runs.json')).length });
   }
   return list;
 });
@@ -129,12 +129,14 @@ test('гараж: машина из старого localStorage переезжа
   await page.evaluate(() => {
     localStorage.setItem('ai-race:profile', JSON.stringify({ name: 'Молния', color: '#3ddc84', login: 'octocat' }));
     localStorage.setItem('ai-race:generation', '7');
+    // заезд, записанный до гаража (для другой формы сети — чтобы вкладка его не распаковывала)
+    localStorage.setItem('ai-race:runs', JSON.stringify([{ id: 'r1', at: '2026-09-01T10:00:00Z', trackName: 'Разминка', traffic: 'none', status: 'finished', progressPct: 100, ticks: 900, inputs: 99, packed: ['x'], on: true }]));
   });
   await page.goto(`${base}#profile`);
   await page.waitForFunction(() => document.body.dataset.tab === 'profile');
   assert.equal(await page.inputValue('#pName'), 'Молния');
-  assert.deepEqual(await garageFiles(page), [{ name: 'Молния', generation: 7, versions: 0 }]);
-  const leftovers = await page.evaluate(() => ['profile', 'generation'].filter((key) => localStorage.getItem(`ai-race:${key}`) !== null));
+  assert.deepEqual(await garageFiles(page), [{ name: 'Молния', generation: 7, versions: 0, runs: 1 }], 'и «Мои заезды» — в папке машины');
+  const leftovers = await page.evaluate(() => ['profile', 'generation', 'runs'].filter((key) => localStorage.getItem(`ai-race:${key}`) !== null));
   assert.deepEqual(leftovers, [], 'старые ключи убраны из localStorage — место свободно');
   assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('ai-race:login'))), 'octocat', 'логин остался общим');
 
@@ -144,6 +146,22 @@ test('гараж: машина из старого localStorage переезжа
   await page.waitForFunction(() => document.body.dataset.tab === 'profile');
   assert.equal(await page.inputValue('#pName'), 'Молния-2');
   assert.deepEqual((await garageFiles(page)).map((c) => c.name), ['Молния-2'], 'и в файле машины — тоже');
+
+  // заезды — у каждой машины свои: у новой их нет, вернулись в старую — снова на месте
+  const runsOnTeach = async () => {
+    await page.click('[data-tab="teach"]');
+    await page.waitForFunction(() => document.body.dataset.tab === 'teach');
+    return page.$$eval('#runsList li:not(.empty)', (list) => list.length);
+  };
+  assert.equal(await runsOnTeach(), 1);
+  await page.click('[data-tab="profile"]');
+  await page.click('#gShelf [data-new]');
+  await page.waitForFunction(() => document.querySelectorAll('#gShelf [data-car]').length === 2);
+  assert.equal(await runsOnTeach(), 0, 'у новой машины заездов нет');
+  await page.click('[data-tab="profile"]');
+  await page.click('#gShelf [data-car]:not([aria-pressed="true"])');
+  await page.waitForFunction(() => document.querySelector('#pName').value === 'Молния-2');
+  assert.equal(await runsOnTeach(), 1, 'вернулись в старую — заезд на месте');
   await close();
   assert.deepEqual(problems, []);
 });
@@ -177,7 +195,7 @@ test('гараж: новая машина, пересесть обратно, ч
   await page.waitForFunction(() => document.querySelectorAll('#gShelf [data-car]').length === 1);
   assert.deepEqual(await tiles(), ['Машина 2 *'], 'удалили выбранную — пересели в соседнюю');
   assert.equal(await page.isDisabled('#gDelete'), true, 'последнюю машину удалить нельзя');
-  assert.deepEqual((await garageFiles(page)).map((c) => c.name), ['Машина 2']);
+  assert.deepEqual(await garageFiles(page), [{ name: 'Машина 2', generation: 0, versions: 0, runs: 0 }], 'у новой машины заездов нет');
   const { scroll, width } = await page.evaluate(() => ({ scroll: document.documentElement.scrollWidth, width: innerWidth }));
   assert.ok(scroll <= width, 'без горизонтальной прокрутки');
   await close();

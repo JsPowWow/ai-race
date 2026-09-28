@@ -27,7 +27,7 @@ function kb(n) {
   while (n >= 1024 && i < units.length - 1) [n, i] = [n / 1024, i + 1];
   return `${i ? n.toFixed(1).replace('.', ',') : n} ${units[i]}`;
 }
-const total = (car) => car.bytes.car + car.bytes.history;
+const total = (car) => car.bytes.car + car.bytes.history + (car.bytes.runs ?? 0);
 
 /** Сводка машины для плитки. У выбранной облик и мозг — прямо из state: так имя меняется на полке сразу, пока печатаешь */
 function view(car) {
@@ -47,6 +47,11 @@ function draftQuestion() {
     </div>`;
 }
 
+/** Полоска размера: мозг и сборка | «История» | мои заезды — пустые части не рисуем */
+const segments = ({ bytes: b }) => [['', b.car], ['h', b.history], ['r', b.runs ?? 0]]
+  .filter(([, n]) => n > 2) // «[]» — пустой файл
+  .map(([kind, n]) => `<i class="${kind}" style="flex:${n}"></i>`).join('');
+
 function tile(car, biggest) {
   const c = view(car);
   if (ask?.at === car.id) return `<div class="g-tile g-ask pending" role="group" aria-label="Пересесть в «${esc(c.profile.name || 'Без имени')}»">${draftQuestion()}</div>`;
@@ -54,7 +59,7 @@ function tile(car, biggest) {
   return `<button class="g-tile" data-car="${esc(car.id)}" aria-pressed="${car.id === garage.id}" ${busy ? 'disabled' : ''}>
     <span class="g-name">${avatarTag(c.profile)}<b>${esc(c.profile.name || 'Без имени')}</b></span>
     <span class="g-meta"><span class="g-shape">${esc(c.shape)}</span> ${progress(c)}</span>
-    <span class="g-bar" style="--w:${Math.max(4, (size / biggest) * 100)}%" aria-hidden="true"><i style="flex:${car.bytes.car}"></i><i class="h" style="flex:${car.bytes.history}"></i></span>
+    <span class="g-bar" style="--w:${Math.max(4, (size / biggest) * 100)}%" aria-hidden="true">${segments(car)}</span>
     <span class="g-size">${kb(size)}</span>
   </button>`;
 }
@@ -115,7 +120,7 @@ function renderActions() {
   $('#gDelete').disabled ||= garage.cars.length <= 1;
   $('#gDelete').title = garage.cars.length <= 1 ? 'Последнюю машину удалить нельзя' : '';
   $('#gFiles').innerHTML = current
-    ? Object.entries({ 'car.json': current.bytes.car, 'history.json': current.bytes.history })
+    ? Object.entries({ 'car.json': current.bytes.car, 'history.json': current.bytes.history, 'runs.json': current.bytes.runs ?? 0 })
       .map(([name, size]) => `<li><code>cars/${esc(current.id)}/${name}</code><span>${kb(size)}</span></li>`).join('')
     : '';
 }

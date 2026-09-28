@@ -10,7 +10,7 @@ import { cssColor } from '../../engine/render.js';
 import { state, persist, sizesOf, thinkFn, brainTitle, on, emit } from '../state.js';
 import { load, save } from '../storage.js';
 import { live } from '../student-code.js';
-import { runs, addRun, toggleRun, removeRun, trainingSamples, sampleCount, saveRuns, memoryNote, MAX_SAMPLES } from '../runs.js';
+import { runs, addRun, toggleRun, removeRun, trainingSamples, sampleCount, MAX_SAMPLES } from '../runs.js';
 import { setBrain, renderLibrary } from '../library.js';
 import { steerWith } from '../manual-drive.js';
 import { drawScene, paintCar, trafficOn, setHud, lapText, showBanner } from '../stage.js';
@@ -169,7 +169,7 @@ function renderRuns() {
   $('#teachStatus').textContent = training ? ''
     : samples.length < MIN_SAMPLES ? `Нужно хотя бы ${MIN_SAMPLES} примеров в отмеченных заездах (сейчас ${samples.length}) — это пара заездов по «Разминке».`
     : `${used.length} ${used.length === 1 ? 'заезд' : 'заездов'}, ${samples.length} примеров. ${state.champion ? 'Мозг продолжит учиться с того, что уже умеет.' : 'Мозга ещё нет — начнём с нуля.'}`;
-  $('#exMemory').textContent = memoryNote(saveRuns());
+  $('#exMemory').textContent = `Это заезды машины «${state.profile.name || 'Без имени'}»: у каждой машины гаража свои. Выбрать другую — в «Профиле».`;
 }
 
 delegate('#runsList', 'change', '[data-run]', (box) => {
@@ -259,6 +259,7 @@ on('champion', ({ by }) => {
   if (mode === 'brain') resetCar();
   editor.render();
 });
+on('car', () => state.tab === 'teach' && renderRuns()); // пересели в другую машину — у неё свои заезды
 on('reset', () => {
   editor.reset();
   if (mode === 'brain') setMode('me');
