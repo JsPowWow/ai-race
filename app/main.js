@@ -147,3 +147,5 @@ openTab(tabId(location.hash.slice(1)) ?? tabId(load('lastTab', 'intro')) ?? 'int
 if (frozen) showBanner('Прошлый раз код завис — твои правки отключены, вернули исходные файлы', 6000);
 else if (failedEdits.length) showBanner(`Сохранённые правки не применились: ${failedEdits[0]}`, 4000);
 requestAnimationFrame(frame);
+// ПРОТОТИП: панель подстройки руля — в этой ветке видна всегда
+import('./tune.js').then((m) => m.mountTune());

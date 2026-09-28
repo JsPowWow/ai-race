@@ -12,6 +12,7 @@ export const CAR = {
   maxSpeed: 4,
   reverseMax: 1.5,
   friction: 0.03,
+  coast: 0,       // торможение двигателем: сколько ещё сбавляем за тик, когда газ отпущен (подбирается на панели прототипа wip/tune)
   // Руль как у настоящей машины: он задаёт дугу, а не скорость поворота. Стоишь — не поворачиваешь,
   // едешь медленно — поворачиваешь медленно. Самая крутая дуга — minRadius; на скорости v дуга не круче v²/grip,
   // иначе колёса сорвутся: на максимальной скорости радиус ≈ 320 px, в поворот надо тормозить
@@ -186,7 +187,7 @@ export class Car {
     this.speed -= CAR.brake * safe(c.brake);
     this.speed = clamp(this.speed, -CAR.reverseMax, CAR.maxSpeed);
     if (this.slow) this.speed = clamp(this.speed, -SLOW_SPEED, Math.max(SLOW_SPEED, this.speed - CAR.slowDown));
-    if (this.speed > 0) this.speed = Math.max(0, this.speed - CAR.friction);
+    if (this.speed > 0) this.speed = Math.max(0, this.speed - CAR.friction - CAR.coast * (1 - safe(c.gas)));
     else if (this.speed < 0) this.speed = Math.min(0, this.speed + CAR.friction);
 
     const steer = safe(c.right) - safe(c.left); // куда крутят руль кнопки
