@@ -4,6 +4,12 @@
 .brain-board .zoom { display: flex; gap: 4px; }
 .brain-board .zoom .btn { min-inline-size: 36px; min-block-size: 36px; padding-inline: 8px; font: 600 15px/1 var(--mono); }
 .brain-board .zoom [data-z="reset"] { font-size: 12px; }
+/* на широком экране зум — внутри табло, в правом нижнем углу: табло целиком влезает в экран вместе со стендом */
+@media (min-width: 901px) {
+  .brain-board { position: relative; }
+  .brain-board-bar { position: absolute; z-index: 2; inset-block-end: 10px; inset-inline-end: 10px; }
+  .brain-board-bar > span { display: none; }
+}
 
 /* экран утоплен в корпус: внутренняя тень поверх холста */
 .brain-board-screen {

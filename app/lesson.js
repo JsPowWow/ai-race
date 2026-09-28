@@ -1,11 +1,13 @@
 // Урок над вкладкой — как страница инструкции к набору: крупно один текущий шаг, остальные — кружками.
-// «Готово» отмечает шаг и открывает следующий. Цель, теория и влияние на гонку — под «Зачем этот урок».
-// Отметки запоминаются в браузере.
-import { LESSONS } from './lessons.js';
+// Цель — сразу под названием. «Готово» отмечает шаг и открывает следующий. Теория и влияние на гонку — под «Что изучаем».
+// Отметки запоминаются в браузере по номерам шагов; сменились шаги (LESSONS_VERSION) — старые отметки забываем.
+import { LESSONS, LESSONS_VERSION } from './lessons.js';
 import { load, save } from './storage.js';
 import { $, delegate } from './ui.js';
 
-const done = load('lessonDone', {}); // { teach: [0, 2], … } — номера выполненных шагов
+/** @type {Record<string, any>} { v: 2, teach: [0, 2], … } — версия шагов и номера выполненных */
+const saved = load('lessonDone', {});
+const done = saved.v === LESSONS_VERSION ? saved : { v: LESSONS_VERSION };
 const picked = {}; // какой шаг открыт на вкладке; если не выбирали — первый невыполненный
 const moreOpen = {}; // раскрыт ли «Зачем этот урок»
 let currentTab = null;
@@ -41,7 +43,10 @@ export function renderLesson(tab) {
   el.innerHTML = `
     <div class="lesson-card">
       <div class="lesson-head">
-        <h1 id="lessonTitle">${lesson.title}</h1>
+        <div class="lesson-title">
+          <h1 id="lessonTitle">${lesson.title}</h1>
+          <p class="lesson-goal"><b>Цель:</b> ${lesson.goal}</p>
+        </div>
         <ol class="lesson-dots" aria-label="Шаги урока">
           ${lesson.tasks.map((_, i) => `
             <li><button type="button" data-step="${i}" class="${checked.has(i) ? 'done' : ''}"
@@ -54,9 +59,8 @@ export function renderLesson(tab) {
         <button type="button" class="btn step-done" data-done="${step}" aria-pressed="${isDone}">${isDone ? 'Сделано' : 'Готово'}</button>
       </div>
       <details class="lesson-more"${moreOpen[tab] ? ' open' : ''}>
-        <summary>Зачем этот урок и что изучаем</summary>
+        <summary>Что изучаем и зачем</summary>
         <div class="lesson-more-body">
-          <p class="lesson-goal"><b>Цель.</b> ${lesson.goal}</p>
           <section>
             <h3>Что изучаем</h3>
             <p><span class="tag js">JS</span>${lesson.learn.js}</p>

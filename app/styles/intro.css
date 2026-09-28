@@ -54,7 +54,7 @@
 @media (max-width: 900px) { .brain-top { grid-template-columns: minmax(0, 1fr); gap: 12px; } }
 .brain-stand { margin: 0; display: flex; flex-direction: column; gap: 6px; }
 .brain-stand canvas {
-  display: block; inline-size: 100%; block-size: 220px; background: var(--board); touch-action: pan-y;
+  display: block; inline-size: 100%; block-size: 176px; background: var(--board); touch-action: pan-y;
   border: 1px solid var(--line); border-radius: var(--r-l); cursor: pointer;
 }
 .brain-stand figcaption { font-size: 13px; color: var(--muted); }
@@ -79,7 +79,6 @@
   inline-size: 30px; block-size: 30px; border-radius: var(--r-s); display: grid; place-items: center;
   background: var(--you); color: var(--on-you); font: 800 16px/1 var(--font);
 }
-.intro-path .n.extra { inline-size: auto; padding-inline: 8px; background: var(--surface); border: 1px solid var(--line); color: var(--muted); font-size: 12px; font-weight: 600; }
 .intro-path b { font: 700 16px/1.2 var(--font); }
 .intro-path span:last-child { font-size: 13px; line-height: 1.5; color: var(--muted); }
 .intro-cta { justify-content: center; padding-block: 8px; }

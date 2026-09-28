@@ -15,7 +15,7 @@ export function layout(sizes, sensorCount, notes, W, H) {
   const n = sensorCount, last = sizes.length - 1;
   const narrow = W < 640; // телефон: всё компактнее
   const top = 36, bottom = 34; // сверху — подписи рамок, снизу — петля заметок
-  const start = narrow ? 70 : 118, end = narrow ? 92 : 170;
+  const start = narrow ? 84 : 118, end = narrow ? 92 : 170;
   const gapUnits = 1.1; // промежуток между группами, в строках
   // строки входов: n пар «сейчас/мгновение назад» и v, потом заметки
   const inRows = n + 1 + notes;
@@ -36,7 +36,9 @@ export function layout(sizes, sensorCount, notes, W, H) {
   };
 
   const inY = column([n + 1, notes]);
-  const x0 = colX(0), ghost = r + 8 + r * 0.45; // маленький кружок «мгновение назад» — слева от большого
+  const rGhost = r * 0.45;
+  const x0 = colX(0), ghost = r + 8 + rGhost; // маленький кружок «мгновение назад» — слева от большого
+  const inLeft = x0 - ghost - rGhost - 17; // левый край рамок входов: над маленьким кружком влезает подпись «было»
   const inputs = [
     ...Array.from({ length: n }, (_, i) => [x0, inY[i]]), // s1…sn
     [x0, inY[n]], // v
@@ -47,15 +49,18 @@ export function layout(sizes, sensorCount, notes, W, H) {
     const g = Math.min(52, (H - top - bottom - 40) / size);
     return Array.from({ length: size }, (_, i) => [colX(k + 1), (top + H - bottom) / 2 + 10 + (i - (size - 1) / 2) * g]);
   });
+  // Кнопки — вровень со строками сенсоров (от s1 до v), заметки на выходе — в тех же строках, что m1…m3 на входе:
+  // что мозг записал справа, то в той же строке и прочитает слева
   const buttons = sizes[last] - notes;
-  const outY = column([buttons, notes], Math.min(narrow ? 64 : 80, (H - top - bottom - 40) / (buttons + notes * 0.6 + gapUnits)));
-  const outputs = outY.map((y) => [colX(last), y]);
-  // заметки на выходе — маленькие плашки, их ставим плотнее под кнопками
-  const firstNote = outputs[buttons][1];
-  for (let i = 0; i < notes; i++) outputs[buttons + i][1] = firstNote + i * Math.max(28, step);
+  const span = inY[n] - inY[0], gap = Math.min(96, span / Math.max(1, buttons - 1));
+  const firstButton = inY[0] + (span - gap * (buttons - 1)) / 2;
+  const outputs = [
+    ...Array.from({ length: buttons }, (_, i) => [colX(last), firstButton + i * gap]),
+    ...Array.from({ length: notes }, (_, i) => [colX(last), inY[n + 1 + i]]),
+  ];
 
   const button = { w: narrow ? 78 : 132, h: narrow ? 38 : 36 };
-  return { sizes, n, notes, buttons, pos: [inputs, ...hidden, outputs], r, rGhost: r * 0.45, narrow, W, H, button, top, bottom };
+  return { sizes, n, notes, buttons, pos: [inputs, ...hidden, outputs], r, rGhost, ghost, inLeft, narrow, W, H, button, top, bottom };
 }
 
 /** Центр кнопки пульта для выхода: кнопка стоит справа от точки, где сходятся связи */

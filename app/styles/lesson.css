@@ -1,12 +1,15 @@
 /* Урок над трассой — строка инструкции: номер шага на жёлтой детали, одна фраза, «Готово».
-   Остальные шаги — кружки справа; цель и теория — под «Зачем этот урок». */
+   Остальные шаги — кружки справа; цель — под названием, теория — под «Что изучаем». */
 .lesson { max-inline-size: 1480px; margin-inline: auto; padding-inline: 16px; padding-block: 16px 0; }
 .lesson-card {
   display: flex; flex-direction: column; gap: 14px; padding: 16px 20px;
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-l); box-shadow: var(--shadow-part);
 }
-.lesson-head { display: flex; align-items: center; gap: 12px 20px; flex-wrap: wrap; }
+.lesson-head { display: flex; align-items: flex-start; gap: 12px 20px; flex-wrap: wrap; }
+.lesson-title { display: flex; flex-direction: column; gap: 4px; flex: 1 1 32ch; min-inline-size: 0; }
 .lesson-head h1 { font: 700 20px/1.2 var(--font); letter-spacing: -0.01em; }
+.lesson-goal { max-inline-size: 80ch; font-size: 15px; line-height: 1.45; color: var(--ink-2); text-wrap: pretty; }
+.lesson-goal b { color: var(--ink); font-weight: 600; }
 
 .lesson-dots { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; margin-inline-start: auto; padding: 0; list-style: none; }
 .lesson-dots button {
@@ -43,7 +46,6 @@
   display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px 28px; margin-block-start: 14px;
   padding-block-start: 14px; border-block-start: 1px solid var(--line);
 }
-.lesson-goal { grid-column: 1 / -1; font-size: 16px; max-inline-size: 80ch; color: var(--ink); }
 .lesson-more-body section { display: flex; flex-direction: column; gap: 8px; max-inline-size: 60ch; }
 .lesson-more-body h3 { font: 600 14px/1.3 var(--font); color: var(--ink); }
 .lesson-more-body p { font-size: 14px; line-height: 1.6; color: var(--ink-2); }

@@ -11,7 +11,7 @@ const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
 /**
  * @param {{ canvas: HTMLCanvasElement, card: HTMLElement, zoomBar?: HTMLElement | null, brain: object,
- *   labels: { inputs: string[], outputs: string[], frames: Record<string, string[][]>, loop?: string }, act?: typeof SMOOTH,
+ *   labels: { inputs: string[], outputs: string[], frames: Record<string, string[][]>, loop?: string[], past?: string[] }, act?: typeof SMOOTH,
  *   sensorCount: number, notes: number, onSensor?: (i: number, down: boolean) => void }} opts
  *   frames — подписи рамок: { input, notesIn, hidden, buttons, notesOut } → [[обычная, пояснение], [для узкого экрана]]
  *   onSensor — человек зажал (down) или отпустил кружок сенсора i
@@ -79,6 +79,7 @@ export function createBrainBoard({ canvas, card, zoomBar = null, brain, labels, 
     view.y = Math.min(0, Math.max(size.height - size.height * s, view.y));
     canvas.style.touchAction = s > 1 ? 'none' : 'pan-y'; // приближено — палец двигает схему, а не страницу
     zoomBar?.querySelector('[data-z=reset]')?.toggleAttribute('hidden', s === 1);
+    zoomBar?.querySelector('[data-z=out]')?.toggleAttribute('disabled', s === 1); // дальше отдалять некуда
     lastFormula = 0;
   }
   const touches = new Map();

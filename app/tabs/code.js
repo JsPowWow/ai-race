@@ -1,4 +1,4 @@
-// Вкладка «Код» (мастерская): редактор файлов student/ и проверки к ним.
+// Вкладка «Код» (урок 3, «Мастерская»): редактор файлов student/ и проверки к ним.
 import { FILES, live, evalAvailable, getSource, applySource, resetSource, isEdited, errorLine, beginCodeStartup, endCodeStartup } from '../student-code.js';
 import { runTests } from '../tests.js';
 import { emit } from '../state.js';

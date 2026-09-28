@@ -1,4 +1,4 @@
-// Вкладка «Гонка» (урок 4): участники, секретная трасса, отсчёт, таблица и номинации.
+// Вкладка «Гонка» (урок 5): участники, секретная трасса, отсчёт, таблица и номинации.
 import { Car, carReport, maxTicksFor } from '../../engine/car.js';
 import { cloneBrain } from '../../engine/brain.js';
 import { TRAFFIC_LEVELS, withTraffic } from '../../engine/traffic.js';

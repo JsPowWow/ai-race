@@ -1,4 +1,4 @@
-// Вкладка «Экзамен» (урок 3): проверка на незнакомых трассах и файл для гонки.
+// Вкладка «Экзамен» (урок 4): проверка на незнакомых трассах и файл для гонки.
 import { TRAINING_TRACKS, getTrainingTrack } from '../../engine/track.js';
 import { Car, carReport, maxTicksFor } from '../../engine/car.js';
 import { withTraffic } from '../../engine/traffic.js';

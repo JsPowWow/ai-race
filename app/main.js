@@ -132,12 +132,6 @@ function migrateOldData() {
       persist();
     }
   }
-  const done = load('lessonDone', null);
-  if (done?.garage) {
-    delete done.garage;
-    delete done.teach;
-    save('lessonDone', done);
-  }
 }
 
 const { failed: failedEdits, frozen } = restoreEdits(); // если код студента здесь зависнет,

@@ -80,7 +80,7 @@
   --bb-ring: light-dark(#dccfc0, #3a322c);
   --bb-ink-dark: light-dark(#2a1a10, #1f0e04);       /* цифры на светлой заливке… */
   --bb-ink-light: light-dark(#fffaf4, #efe6db);      /* …и на тёмной: выбираем по яркости заливки */
-  --bb-muted: light-dark(#8a7564, #9a8f86);
+  --bb-muted: light-dark(#7a6454, #9a8f86);
   --bb-frame: light-dark(rgb(196 110 40 / 0.35), rgb(255 168 24 / 0.28));
   --bb-title: light-dark(#8a3f0c, #ffcf8a);
   --bb-sub: light-dark(#c0501a, #e0703a);

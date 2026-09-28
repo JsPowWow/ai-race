@@ -19,7 +19,7 @@ import { sigmoid } from '../engine/utils.js';
 
 // Прямой проход: слой за слоем считаем для каждого нейрона сумму «вход × вес»
 // и отдаём её функции activate(sum, bias, isOutput) — она решает, что нейрон «скажет» дальше.
-// isOutput = true для последнего слоя (газ, тормоз, влево, вправо).
+// isOutput = true для последнего слоя (газ, тормоз, влево, вправо и заметки m1…m3).
 export function feedForward(inputs, brain, activate) {
   let values = inputs;
   const trace = [inputs];
