@@ -47,17 +47,20 @@ export const teachTab = {
   frame(frameNo) {
     if (training) trainStep();
     let traffic = trafficOn(track, car.ticks);
-    if (!car.done) {
+    // рулишь сам — машина ждёт на старте, пока не нажмёшь что-нибудь: иначе заглохнет, пока тянешься к клавишам
+    const c = car.controls;
+    const waiting = mode === 'me' && car.ticks === 0 && !(c.gas || c.brake || c.left || c.right);
+    if (car.done) {
+      if (!restartAt) {
+        restartAt = performance.now() + RESTART_DELAY;
+        finishRun();
+      } else if (performance.now() > restartAt) resetCar();
+    } else if (!waiting) {
       if (mode === 'brain') live.think.feedForward.lastTrace = null;
       car.step(track, Infinity, traffic);
       trace = mode === 'brain' ? live.think.feedForward.lastTrace : null;
       if (mode === 'me') record();
       traffic = trafficOn(track, car.ticks);
-    } else if (!restartAt) {
-      restartAt = performance.now() + RESTART_DELAY;
-      finishRun();
-    } else if (performance.now() > restartAt) {
-      resetCar();
     }
     drawScene(track, { camera: 'follow', follow: car, traffic, tick: car.ticks });
     paintCar(car, { color: mode === 'me' ? state.profile.color : cssColor('--brain'), sensors: true, number: 1 }); // едет мозг — машина синяя, цвета мозга
