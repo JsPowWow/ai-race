@@ -22,6 +22,19 @@ const smooth = thinkVariants.smooth.think;
 
 /** Мозг с памятью или без: сколько входов и как их собрать */
 const plain = { name: 'без памяти', inputs: SENSORS.count + 1, driver: () => smooth };
+/** Память только о прошлых сенсорах: «стена была дальше, теперь ближе». Списать нажатие не с чего */
+const sensorsOnly = {
+  name: 'помнит сенсоры',
+  inputs: SENSORS.count + 1 + SENSORS.count,
+  driver: () => {
+    let prevSensors = new Array(SENSORS.count).fill(0);
+    return (inputs, brain) => {
+      const out = smooth([...inputs, ...prevSensors], brain);
+      prevSensors = inputs.slice(0, SENSORS.count);
+      return out;
+    };
+  },
+};
 /** Память только о своих нажатиях: «я только что жал газ и влево» */
 const buttons = {
   name: 'помнит нажатия',
@@ -124,7 +137,11 @@ function collectExamples(kind) {
     const max = maxTicksFor(track);
     while (!car.done) {
       car.step(track, max);
-      const x = kind === memory ? [...car.lastInputs, ...prevSensors, ...prevOut] : kind === buttons ? [...car.lastInputs, ...prevOut] : car.lastInputs;
+      const x = {
+        [memory.name]: () => [...car.lastInputs, ...prevSensors, ...prevOut],
+        [buttons.name]: () => [...car.lastInputs, ...prevOut],
+        [sensorsOnly.name]: () => [...car.lastInputs, ...prevSensors],
+      }[kind.name]?.() ?? car.lastInputs;
       const y = car.lastOutputs.map((v) => (v > 0.5 ? 1 : 0));
       if (worthLearning({ x, y })) samples.push({ x, y });
       prevSensors = car.lastInputs.slice(0, SENSORS.count); prevOut = y;
@@ -150,15 +167,18 @@ function sameAsBefore(samples) {
   return same / samples.length;
 }
 
+// node tools/memory-experiment.mjs сенсоры — прогнать только варианты, в названии которых есть это слово
+const only = process.argv[2];
+const KINDS = [plain, sensorsOnly, buttons, memory].filter((k) => !only || k === plain || k.name.includes(only));
 const pctText = (r) => `${r.pct.toFixed(0)}% пути в среднем, финиш ${r.finished} из ${EXAM.length}`;
 
 console.log('А. Рой: 40 поколений × 50 машин, три трассы на поколение. Проверка — 7 незнакомых трасс.');
 for (const seed of [1, 2]) {
-  for (const kind of [plain, buttons, memory]) console.log(`  опыт ${seed}, ${kind.name}: ${pctText(examScore(swarm(kind, seed), kind))}`);
+  for (const kind of KINDS) console.log(`  опыт ${seed}, ${kind.name}: ${pctText(examScore(swarm(kind, seed), kind))}`);
 }
 
 console.log('\nБ. Обучение на примерах (учитель с «клавиатурой»), 40 эпох.');
-for (const kind of [plain, buttons, memory]) {
+for (const kind of KINDS) {
   const { brain, agree, samples } = imitate(kind, 7);
   console.log(`  ${kind.name}: примеров ${samples}, совпадение с учителем ${(agree * 100).toFixed(0)}%, на незнакомых: ${pctText(examScore(brain, kind))}`);
 }
