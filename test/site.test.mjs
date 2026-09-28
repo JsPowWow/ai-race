@@ -110,3 +110,40 @@ test('переключатель темы: авто → светлая → тё�
   await close();
   assert.deepEqual(problems, []);
 });
+
+/** Машины гаража прямо из папки сайта (OPFS): [{ name, generation, versions }] */
+const garageFiles = (page) => page.evaluate(async () => {
+  const cars = await (await navigator.storage.getDirectory()).getDirectoryHandle('cars');
+  const list = [];
+  for await (const [, dir] of cars.entries()) {
+    const read = async (name) => JSON.parse(await (await (await dir.getFileHandle(name)).getFile()).text());
+    const car = await read('car.json');
+    list.push({ name: car.profile.name, generation: car.generation, versions: (await read('history.json')).length });
+  }
+  return list;
+});
+
+test('гараж: машина из старого localStorage переезжает в папку сайта и помнится после перезагрузки', async () => {
+  const { page, problems, close } = await openPage(SCREENS[0]);
+  await page.goto(`${base}app/icon.svg`); // тот же сайт, но без приложения: кладём «старые» данные, как до гаража
+  await page.evaluate(() => {
+    localStorage.setItem('ai-race:profile', JSON.stringify({ name: 'Молния', color: '#3ddc84', login: 'octocat' }));
+    localStorage.setItem('ai-race:generation', '7');
+  });
+  await page.goto(`${base}#profile`);
+  await page.waitForFunction(() => document.body.dataset.tab === 'profile');
+  assert.equal(await page.inputValue('#pName'), 'Молния');
+  assert.deepEqual(await garageFiles(page), [{ name: 'Молния', generation: 7, versions: 0 }]);
+  const leftovers = await page.evaluate(() => ['profile', 'generation'].filter((key) => localStorage.getItem(`ai-race:${key}`) !== null));
+  assert.deepEqual(leftovers, [], 'старые ключи убраны из localStorage — место свободно');
+  assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('ai-race:login'))), 'octocat', 'логин остался общим');
+
+  await page.fill('#pName', 'Молния-2');
+  // перезагружаем сразу, не дожидаясь записи: гараж не должен терять последнюю правку
+  await page.reload();
+  await page.waitForFunction(() => document.body.dataset.tab === 'profile');
+  assert.equal(await page.inputValue('#pName'), 'Молния-2');
+  assert.deepEqual((await garageFiles(page)).map((c) => c.name), ['Молния-2'], 'и в файле машины — тоже');
+  await close();
+  assert.deepEqual(problems, []);
+});

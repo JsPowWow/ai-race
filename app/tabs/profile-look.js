@@ -1,14 +1,14 @@
 // «Профиль», облик машины: имя, цвет и аватар. Их видно на всех трассах, в таблице гонки и на стриме финала.
-import { state, persist, CAR_COLORS } from '../state.js';
+import { state, persist, CAR_COLORS, on } from '../state.js';
 import { checkAvatar, avatarUrl } from '../../engine/car-file.js';
 import { $, $$, delegate, showError } from '../ui.js';
 
 const swatches = CAR_COLORS.map((c) =>
   `<button role="radio" aria-checked="false" data-color="${c}" style="background:${c}" aria-label="Цвет ${c}"></button>`).join('');
 $('#pColors').innerHTML = `${swatches}<label class="custom-color" title="Свой цвет"><input type="color" id="pColorCustom" aria-label="Свой цвет"></label>`;
-$('#pName').value = state.profile.name;
 
 export function renderLook(error = '') {
+  if (document.activeElement !== $('#pName')) $('#pName').value = state.profile.name;
   const custom = !CAR_COLORS.includes(state.profile.color);
   for (const b of $$('#pColors button')) b.setAttribute('aria-checked', String(b.dataset.color === state.profile.color));
   $('#pColorCustom').value = state.profile.color;
@@ -53,3 +53,5 @@ $('#pAvatarClear').addEventListener('click', () => {
   persist();
   renderLook();
 });
+
+on('car', () => renderLook()); // пересели в другую машину гаража — у неё свой облик

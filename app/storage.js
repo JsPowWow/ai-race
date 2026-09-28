@@ -9,6 +9,9 @@ const DIGITS = 1e5;
 
 const compact = (_, value) => (typeof value === 'number' && !Number.isInteger(value) ? Math.round(value * DIGITS) / DIGITS : value);
 
+/** JSON покороче: дробные числа — 5 знаков после запятой (для весов мозга хватает с запасом) */
+export const compactJson = (value) => JSON.stringify(value, compact);
+
 const fullListeners = [];
 let warnedFull = false;
 

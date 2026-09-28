@@ -35,10 +35,12 @@ function writeDataModules() {
   w('app/generated/bots.js', `// Сгенерировано из tools/bots.json (tools/train-bots.mjs): боты-соперники для гонки.\nexport const BOTS = ${r('tools/bots.json')};\n`);
 }
 
-// Web Worker финала собираем в строку: так он работает и на GitHub Pages, и в однофайловой сборке
+// Web Worker финала и запись гаража собираем в строки: так он работает и на GitHub Pages, и в однофайловой сборке
 async function writeWorker() {
   const worker = await esbuild.build({ entryPoints: ['app/final/worker.js'], bundle: true, format: 'iife', minify: true, write: false, target: 'es2020', legalComments: 'none' });
   w('app/generated/race-worker.js', `// Сгенерировано tools/build.mjs из app/final/worker.js: код Web Worker для расчёта финала.\nexport const WORKER_SOURCE = ${JSON.stringify(worker.outputFiles[0].text)};\n`);
+  const writer = await esbuild.build({ entryPoints: ['app/car-writer.js'], bundle: true, format: 'iife', minify: true, write: false, target: 'es2020', legalComments: 'none' });
+  w('app/generated/car-writer.js', `// Сгенерировано tools/build.mjs из app/car-writer.js: Web Worker, который пишет файлы гаража.\nexport const WRITER_SOURCE = ${JSON.stringify(writer.outputFiles[0].text)};\n`);
 }
 
 const common = { bundle: true, minify: true, target: 'es2022', legalComments: 'none', logLevel: 'warning' };

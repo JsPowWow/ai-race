@@ -7,6 +7,7 @@ import { renderLesson } from './lesson.js';
 import { beginFrame, showBanner, hideBanner } from './stage.js';
 import { steerWith } from './manual-drive.js';
 import { onStorageFull, load, save, remove } from './storage.js';
+import { startGarage } from './garage.js';
 import { checkBrain } from '../engine/brain.js';
 import { $, $$, esc, secs, pct, delegate } from './ui.js';
 import { trainTab, updateTraining, isTraining, redrawLeaderBrain } from './tabs/train.js';
@@ -141,9 +142,15 @@ const { failed: failedEdits, frozen } = restoreEdits(); // если код ст�
 runAllTests();                                          // при следующей загрузке правки отключатся
 endCodeStartup();
 readPalette();
-renderChampion();
-migrateOldData();
-openTab(tabId(location.hash.slice(1)) ?? tabId(load('lastTab', 'intro')) ?? 'intro'); // впервые — титульная, потом — где остановился
+// Сначала садимся в свою машину гаража (хранилище браузера отвечает не сразу), потом открываем вкладку
+startGarage().catch((e) => {
+  console.error(e);
+  showBanner(`Гараж не открылся: ${e.message}`, 5000);
+}).finally(() => {
+  migrateOldData();
+  renderChampion();
+  openTab(tabId(location.hash.slice(1)) ?? tabId(load('lastTab', 'intro')) ?? 'intro'); // впервые — титульная, потом — где остановился
+});
 if (frozen) showBanner('Прошлый раз код завис — твои правки отключены, вернули исходные файлы', 6000);
 else if (failedEdits.length) showBanner(`Сохранённые правки не применились: ${failedEdits[0]}`, 4000);
 requestAnimationFrame(frame);

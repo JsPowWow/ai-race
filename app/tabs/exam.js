@@ -146,12 +146,12 @@ $('#pDownload').addEventListener('click', async () => {
 const loginChecks = new Map(); // логин → { status: 'found' | 'missing' | 'unknown', user }
 let loginTimer = 0;
 
-$('#pLogin').value = state.profile.login ?? '';
-const currentLogin = () => (state.profile.login ?? '').trim();
+$('#pLogin').value = state.login ?? '';
+const currentLogin = () => (state.login ?? '').trim();
 const loginLooksValid = () => GITHUB_LOGIN.test(currentLogin());
 
 $('#pLogin').addEventListener('input', (e) => {
-  state.profile.login = e.target.value.trim();
+  state.login = e.target.value.trim();
   persist();
   clearTimeout(loginTimer);
   loginTimer = setTimeout(checkLogin, LOGIN_CHECK_DELAY_MS);
@@ -173,7 +173,7 @@ async function checkLogin() {
   loginChecks.set(login.toLowerCase(), result);
   // GitHub знает, как логин пишется правильно (регистр букв) — подставим
   if (result.status === 'found' && result.user.login !== login && result.user.login.toLowerCase() === login.toLowerCase()) {
-    state.profile.login = $('#pLogin').value = result.user.login;
+    state.login = $('#pLogin').value = result.user.login;
     persist();
   }
   renderLoginCheck();

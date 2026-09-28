@@ -227,4 +227,9 @@ on('config', () => {
   resetCar();
 });
 on('champion', () => state.tab === 'profile' && resetCar());
+on('car', () => {
+  draft = null; // черновик был у прежней машины (гараж спросил, что с ним делать)
+  $('#bMsg').hidden = true;
+  if (state.tab === 'profile') renderShape();
+});
 on('code', (file) => file === 'think' && state.tab === 'profile' && renderShape());
