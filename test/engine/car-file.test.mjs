@@ -9,7 +9,12 @@ const good = () => structuredClone(bot('Торетто'));
 test('файл бота читается', () => {
   const car = parseCarFile(good());
   assert.equal(car.name, 'Торетто');
-  assert.equal(car.sizes.at(-1), 4, 'четыре выхода: газ, тормоз, влево, вправо');
+  assert.equal(car.sizes.at(-1), 7, 'семь выходов: газ, тормоз, влево, вправо и три заметки');
+  assert.equal(car.sizes[0], 2 * car.sensors.count + 1 + 3, 'входы: сенсоры, скорость, сенсоры мгновение назад, заметки');
+});
+
+test('файл старого формата (мозг без памяти) — понятная ошибка', () => {
+  assert.throws(() => parseCarFile({ ...good(), format: 'ai-race/car@1' }), /старого формата/);
 });
 
 test('не файл машины — понятная ошибка', () => {
