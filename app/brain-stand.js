@@ -53,7 +53,7 @@ export function createStand(canvas, file) {
     clear(ctx, canvas);
     cam.apply(ctx, canvas);
     drawTrack(ctx, track, cam);
-    drawCar(ctx, car, { color: file.color, sensors: true, cam, number: 1, wheels: true });
+    drawCar(ctx, car, { color: file.color, sensors: true, cam, number: 1 });
     // зажатые сенсоры: у конца — красная «стена», в которую он упёрся
     ctx.strokeStyle = cssColor('--kerb'); ctx.lineWidth = 5; ctx.lineCap = 'round';
     for (const i of pressed) {

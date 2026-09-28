@@ -15,6 +15,19 @@ export const CAR = {
   stallTicks: 180, // столько тиков без продвижения — «заглох»
 };
 
+/**
+ * Угол передних колёс, как у настоящей машины: он такой, чтобы описать ту дугу, по которой машина едет на самом деле.
+ * На скорости руль слабее (gripLoss) и дуга шире — колёса повёрнуты меньше; на месте — сколько повернули руль.
+ * Только для картинки: на физику не влияет.
+ */
+export const MAX_WHEEL = (32 * Math.PI) / 180;
+const WHEELBASE = CAR.length * 0.9; // база с запасом: у настоящей (0,6 длины) на скорости колёса повёрнуты на 5°, а это не разглядеть
+export function wheelAngle(steer, speed) {
+  const grip = 1 - (CAR.gripLoss * Math.abs(speed)) / CAR.maxSpeed;
+  const turnPerPx = (CAR.turn * grip * steer) / Math.max(Math.abs(speed), 0.8); // кривизна дуги: на сколько поворачиваем за пиксель пути
+  return clamp(Math.atan(WHEELBASE * turnPerPx), -MAX_WHEEL, MAX_WHEEL) * (speed < 0 ? -1 : 1);
+}
+
 export const DEFAULT_SENSORS = { count: 5, spread: 90, length: 160 };
 
 const safe = (v) => (Number.isFinite(v) ? clamp(v, 0, 1) : 0);

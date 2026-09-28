@@ -1,5 +1,5 @@
 // Рисование трассы и машин на canvas.
-import { CAR } from './car.js';
+import { CAR, wheelAngle } from './car.js';
 import { pointAt } from './track.js';
 
 /**
@@ -153,11 +153,8 @@ function checkered(ctx, pt, width, p) {
 }
 
 /** Слот-кар: литой корпус, тёмное стекло, белый круг под номер на капоте. Разбитая — серая. */
-/**
- * wheels — показать, что делает водитель: передние колёса повёрнуты рулём, стоп-сигналы горят при тормозе
- * (на стенде машина стоит, и иначе реакцию мозга не увидеть)
- */
-export function drawCar(ctx, car, { color = null, alpha = 1, sensors = false, label = null, highlight = false, cam = null, number = null, wheels = false } = {}) {
+/** Машинка сверху: колёса повёрнуты рулём, при тормозе горят стоп-сигналы — видно, что делает водитель */
+export function drawCar(ctx, car, { color = null, alpha = 1, sensors = false, label = null, highlight = false, cam = null, number = null } = {}) {
   const p = getPalette();
   if (sensors && !car.done) drawSensors(ctx, car);
   ctx.save();
@@ -171,7 +168,7 @@ export function drawCar(ctx, car, { color = null, alpha = 1, sensors = false, la
     ctx.strokeStyle = p.you;
     roundRect(ctx, -L / 2 - 5, -W / 2 - 5, L + 10, W + 10, 8); ctx.stroke();
   }
-  if (wheels) drawWheels(ctx, car.controls, L, W);
+  drawWheels(ctx, car, L, W);
   // тень под машинкой — она стоит на трассе
   ctx.shadowColor = 'rgb(0 0 0 / 0.35)'; ctx.shadowBlur = 6; ctx.shadowOffsetY = 3;
   ctx.fillStyle = body;
@@ -182,9 +179,10 @@ export function drawCar(ctx, car, { color = null, alpha = 1, sensors = false, la
   roundRect(ctx, L * 0.04, -W / 2 + 3, L * 0.22, W - 6, 3); ctx.fill(); // лобовое стекло
   ctx.fillStyle = p.kerb2;
   ctx.beginPath(); ctx.arc(-L * 0.2, 0, W * 0.3, 0, Math.PI * 2); ctx.fill(); // круг под номер
-  if (wheels && car.controls.brake > 0.05) { // стоп-сигналы: чем сильнее тормоз, тем ярче
-    ctx.fillStyle = `rgb(255 40 40 / ${Math.min(1, 0.25 + car.controls.brake)})`;
-    ctx.shadowColor = 'rgb(255 40 40 / 0.8)'; ctx.shadowBlur = 8 * car.controls.brake;
+  const brake = car.controls?.brake ?? 0;
+  if (brake > 0.05 && !car.done) { // стоп-сигналы: чем сильнее тормоз, тем ярче
+    ctx.fillStyle = `rgb(255 40 40 / ${Math.min(1, 0.25 + brake)})`;
+    ctx.shadowColor = 'rgb(255 40 40 / 0.8)'; ctx.shadowBlur = 8 * brake;
     roundRect(ctx, -L / 2 - 1, -W / 2 + 2, 4, 6, 1.5); ctx.fill();
     roundRect(ctx, -L / 2 - 1, W / 2 - 8, 4, 6, 1.5); ctx.fill();
     ctx.shadowColor = 'transparent';
@@ -210,13 +208,19 @@ export function drawCar(ctx, car, { color = null, alpha = 1, sensors = false, la
   }
 }
 
-/** Колёса торчат из-под корпуса; передние повёрнуты на разницу «вправо − влево» */
-function drawWheels(ctx, controls, L, W) {
-  const steer = Math.max(-1, Math.min(1, (controls.right ?? 0) - (controls.left ?? 0)));
+/** Угол колёс на экране догоняет нужный плавно — руль не щёлкает, как выключатель (по машине, без записи в неё) */
+const shownWheel = new WeakMap();
+/** Колёса торчат из-под корпуса; передние повёрнуты на угол, с которым машина правда описывает свою дугу */
+function drawWheels(ctx, car, L, W) {
+  const c = car.controls;
+  const steer = c && !car.done ? Math.max(-1, Math.min(1, (c.right ?? 0) - (c.left ?? 0))) : 0;
+  const target = wheelAngle(steer, car.speed ?? 0);
+  const turn = (shownWheel.get(car) ?? target) + (target - (shownWheel.get(car) ?? target)) * 0.3;
+  shownWheel.set(car, turn);
   ctx.fillStyle = '#16171a';
-  for (const [x, turn] of [[L * 0.3, steer * 0.45], [-L * 0.3, 0]]) {
-    for (const y of [-W / 2, W / 2]) {
-      ctx.save(); ctx.translate(x, y); ctx.rotate(turn);
+  for (const [x, a] of [[L * 0.3, turn], [-L * 0.3, 0]]) {
+    for (const y of [-W / 2 - 1, W / 2 + 1]) { // чуть наружу из-под корпуса — поворот видно
+      ctx.save(); ctx.translate(x, y); ctx.rotate(a);
       roundRect(ctx, -6, -3, 12, 6, 2); ctx.fill();
       ctx.restore();
     }
