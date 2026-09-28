@@ -1,6 +1,8 @@
 {
-  // Проверка типов без TypeScript: код остаётся на JS, типы — в JSDoc-комментариях.
-  // npm run typecheck (входит в npm run lint)
+  // Проверка типов. Код переезжает с JS на TypeScript по файлу (#15), поэтому проверок две:
+  //   tsconfig.json        — JS с типами в JSDoc (мягко, как раньше) и .ts/.tsx — для редактора;
+  //   tsconfig.strict.json — .ts/.tsx строго (strict), это и есть проверка для нового кода.
+  // npm run typecheck запускает обе (входит в npm run lint).
   "compilerOptions": {
     "allowJs": true,
     "checkJs": true,
@@ -9,9 +11,16 @@
     "module": "esnext",
     "moduleResolution": "bundler",
     "lib": ["es2023", "dom", "dom.iterable", "webworker.importscripts"],
+    // Только свои типы: без этого tsc подхватывает @types из папок выше проекта (например, ~/node_modules/@types/node)
+    "types": [],
+    // Импорт с расширением .ts (import './car.ts'): так файлы запускаются в Node без сборки
+    "allowImportingTsExtensions": true,
+    // JSX собирается в вызовы @reely/dommy — настоящие DOM-элементы, без виртуального DOM (#20)
+    "jsx": "react-jsx",
+    "jsxImportSource": "@reely/dommy",
     "strict": false,
     "skipLibCheck": true
   },
-  "include": ["engine/**/*.js", "app/**/*.js", "app/globals.d.ts"],
+  "include": ["engine/**/*", "app/**/*", "app/globals.d.ts"],
   "exclude": ["app/generated"]
 }

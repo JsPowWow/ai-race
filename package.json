@@ -6,22 +6,25 @@
     "start": "npx serve .",
     "dev": "node tools/build.mjs --watch",
     "build": "node tools/build.mjs",
-    "lint": "eslint . && tsc -p .",
+    "lint": "eslint . && npm run typecheck",
     "bots": "node tools/train-bots.mjs",
     "compare": "node tools/compare-parents.mjs",
     "demo": "node tools/make-demo-entries.mjs 300 demo-entries --seal",
     "seal": "node tools/seal.mjs",
     "test": "node --test \"test/**/*.test.mjs\"",
     "test:engine": "node --test \"test/engine/*.test.mjs\"",
-    "typecheck": "tsc -p ."
+    "typecheck": "tsc -p . && tsc -p tsconfig.strict.json",
+    "dev:vite": "vite"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
     "acorn": "8.15",
-    "esbuild": "^0.24.0",
+    "esbuild": "^0.28.2",
     "eslint": "^9.39.5",
     "globals": "^15.15.0",
     "playwright": "1.56.1",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "typescript-eslint": "^8.71.0",
+    "vite": "^8.3.1"
   }
 }
