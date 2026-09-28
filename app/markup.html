@@ -305,7 +305,7 @@
 
     <!-- ПРОФИЛЬ -->
     <div data-panel="profile" hidden>
-      <section class="block look">
+      <section class="block">
         <h2>Облик</h2>
         <div class="field"><label for="pName">Имя машины</label><input type="text" id="pName" maxlength="24" placeholder="Например, Торетто"></div>
         <div class="colors" id="pColors" role="radiogroup" aria-label="Цвет машины"></div>
@@ -349,8 +349,8 @@
         <h2>Цены</h2>
         <ul class="prices" id="bPrices"></ul>
       </section>
-      <div class="draft" id="draftBar" role="status" hidden>
-        <p id="draftText"></p>
+      <div class="pending draft" id="draftBar" hidden>
+        <p id="draftText" role="status"></p>
         <div class="row">
           <button class="btn small primary" id="draftApply">Применить</button>
           <button class="btn small" id="draftCancel">Отменить</button>

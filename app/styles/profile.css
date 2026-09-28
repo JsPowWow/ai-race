@@ -5,7 +5,7 @@
 .budget-bar span { display: block; block-size: 100%; inline-size: 0; background: var(--brain); transition: inline-size 0.2s; }
 .prices { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 14px; color: var(--ink-2); }
 .prices b { display: inline-block; min-inline-size: 2ch; font-variant-numeric: tabular-nums; color: var(--brain-text); }
-.colors { display: flex; gap: 8px; flex-wrap: wrap; }
+.colors { display: flex; gap: 6px; flex-wrap: wrap; }
 .colors button { width: 30px; height: 30px; border: 2px solid var(--surface); cursor: pointer; box-shadow: 0 0 0 1px var(--line); border-radius: var(--r-s); }
 .colors button[aria-checked="true"] { box-shadow: 0 0 0 2px var(--ink); }
 .colors .custom-color {
@@ -15,11 +15,7 @@
 }
 .colors .custom-color.on { box-shadow: 0 0 0 2px var(--ink); }
 .colors .custom-color input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
-/* Черновик сборки: всё меняешь, смотришь на трассе и на табло, потом разом «Применить» или «Отменить» */
-.draft {
-  position: sticky; inset-block-end: 8px; z-index: 2;
-  display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; font-size: 13px; color: var(--ink);
-  border: 1px solid var(--brain); border-radius: var(--r-m); background: var(--surface); box-shadow: var(--shadow-lift);
-}
+/* Черновик сборки: всё меняешь, смотришь на трассе и на табло, потом разом «Применить» или «Отменить».
+   Пунктир «ждёт решения» (.pending), но непрозрачный и прилипает к низу экрана — чтобы кнопки были под рукой. */
+.draft { position: sticky; inset-block-end: 8px; z-index: 2; background: color-mix(in srgb, var(--warn) 6%, var(--surface)); box-shadow: var(--shadow-lift); color: var(--ink); }
 .draft p { margin: 0; }
-.draft.danger { border-color: var(--bad); }

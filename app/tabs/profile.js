@@ -77,10 +77,11 @@ function renderDraftBar() {
   bar.hidden = !draft;
   if (!draft) return;
   const resets = shapeResetsBrain(draft);
-  bar.classList.toggle('danger', resets);
-  $('#draftText').textContent = resets
-    ? `Сеть станет ${sizesOf(draft).join('-')}. Нынешний мозг под неё не подходит — учиться придётся с нуля (он останется в «Истории»).`
-    : 'Форма сети та же: мозг уже едет с новой сборкой — смотри на трассе. Применить?';
+  $('#draftText').textContent = !state.champion
+    ? 'Мозг ещё не обучен — терять нечего. Применишь — учиться он будет уже с этой сборкой.'
+    : resets
+      ? `Сеть станет ${sizesOf(draft).join('-')}. Нынешний мозг под неё не подходит — учиться придётся с нуля (он останется в «Истории»).`
+      : 'Форма сети та же: мозг уже едет с новой сборкой — смотри на трассе. Применить?';
   $('#draftApply').classList.toggle('danger', resets);
   $('#draftApply').classList.toggle('primary', !resets);
 }

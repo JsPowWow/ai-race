@@ -14,8 +14,8 @@
 <link rel="icon" href="app/icon.svg" type="image/svg+xml">
 <link rel="preload" href="app/fonts/rubik-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="modulepreload" href="app/generated/chunks/chunk-HDIMWGW6.js">
-<link rel="stylesheet" href="app/generated/app.css?v=9c7ceb1534">
-<script type="module" src="app/generated/app.js?v=552afbaba0"></script>
+<link rel="stylesheet" href="app/generated/app.css?v=27c064fee7">
+<script type="module" src="app/generated/app.js?v=f01900582d"></script>
 </head>
 <body>
 <a class="skip-link" href="#content">К содержимому</a>
@@ -325,7 +325,7 @@
 
     <!-- ПРОФИЛЬ -->
     <div data-panel="profile" hidden>
-      <section class="block look">
+      <section class="block">
         <h2>Облик</h2>
         <div class="field"><label for="pName">Имя машины</label><input type="text" id="pName" maxlength="24" placeholder="Например, Торетто"></div>
         <div class="colors" id="pColors" role="radiogroup" aria-label="Цвет машины"></div>
@@ -369,8 +369,8 @@
         <h2>Цены</h2>
         <ul class="prices" id="bPrices"></ul>
       </section>
-      <div class="draft" id="draftBar" role="status" hidden>
-        <p id="draftText"></p>
+      <div class="pending draft" id="draftBar" hidden>
+        <p id="draftText" role="status"></p>
         <div class="row">
           <button class="btn small primary" id="draftApply">Применить</button>
           <button class="btn small" id="draftCancel">Отменить</button>
