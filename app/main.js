@@ -24,7 +24,7 @@ import { BrainLibrary } from './library-view.tsx';
 const TABS = { intro: introTab, profile: profileTab, teach: teachTab, train: trainTab, code: codeTab, exam: examTab, race: raceTab };
 /** Финал нужен только кураторам: его код (Worker, печать, экспорт) грузим, когда вкладку открыли */
 let finalModule = null;
-const loadFinal = async () => (finalModule ??= await import('./tabs/final.js'));
+const loadFinal = async () => (finalModule ??= await import('./tabs/final.tsx'));
 /** Вкладка, которая сейчас рисует кадры */
 let current = null;
 /** Старые адреса вкладок: «Гараж» и «Учитель» стали одной вкладкой «Я учу» */

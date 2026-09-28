@@ -243,3 +243,84 @@ test('гараж: копия в папке на диске — машины пр
   await close();
   assert.deepEqual(problems, []);
 });
+
+// ── финал ──
+
+const BOTS = JSON.parse(await readFile(join(ROOT, 'tools/bots.json'), 'utf8'));
+/** Свой вариант мозга, который пытается испортить for…of всем, кто поедет после него в этом же Worker */
+const SABOTEUR = `export const thinkVariants = { mine: { think(inputs, brain) {
+  try { Object.getPrototypeOf([][Symbol.iterator]()).next = () => ({ done: true }); } catch { /* заморожено */ }
+  return [1, 0, 0, 0];
+} } };`;
+
+test('финал: чужой код в Worker не портит заезды следующих участников', async () => {
+  const { page, problems, close } = await openPage(SCREENS[0]);
+  await page.goto(`${base}#final`);
+  await page.waitForFunction(() => document.body.dataset.tab === 'final');
+  const results = await page.evaluate(async ({ bot, saboteur }) => {
+    const { WORKER_SOURCE } = await import('./app/generated/race-worker.js');
+    const url = URL.createObjectURL(new Blob([WORKER_SOURCE], { type: 'text/javascript' }));
+    const entry = (id, code = null) => ({ id, brain: bot.brain, sensors: bot.sensors, thinkId: bot.think, code });
+    /** Прогнать задачи одну за другой в одном Worker */
+    const run = (jobs) => new Promise((done, fail) => {
+      const worker = new Worker(url);
+      const out = [];
+      // испорченный Worker может и зависнуть — тогда это тоже провал, а не вечное ожидание
+      setTimeout(() => fail(new Error('Worker не ответил за 5 с')), 5000);
+      worker.onerror = (e) => fail(new Error(e.message));
+      worker.onmessage = ({ data }) => {
+        out.push({ status: data.result.status, ticks: data.result.ticks, progress: data.result.progress });
+        if (out.length === jobs.length) {
+          worker.terminate();
+          done(out);
+        } else worker.postMessage(jobs[out.length]);
+      };
+      worker.postMessage(jobs[0]);
+    });
+    const seed = 'проверка · этап 1';
+    const clean = await run([{ jobId: 0, seed, entry: entry('bot') }]);
+    const after = await run([{ jobId: 0, seed, entry: entry('vandal', saboteur) }, { jobId: 1, seed, entry: entry('bot') }]);
+    return { clean: clean[0], after: after[1] };
+  }, { bot: BOTS[0], saboteur: SABOTEUR });
+  assert.deepEqual(results.after, results.clean, 'бот едет так же, как в чистом Worker');
+  await close();
+  assert.deepEqual(problems, []);
+});
+
+test('финал: работы → расчёт → этап идёт, таблица и поиск', async () => {
+  const { page, problems, close } = await openPage(SCREENS[1]);
+  await page.goto(`${base}#final`);
+  await page.waitForFunction(() => document.body.dataset.tab === 'final');
+  assert.equal(await page.isDisabled('#fCompute'), true, 'без работ считать нечего');
+  const names = ['anna', 'boris', 'vera', 'gleb'];
+  await page.setInputFiles('#fFiles', names.map((name, i) => ({
+    name: `${name}.json`, mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(BOTS[i % BOTS.length])),
+  })));
+  await page.waitForFunction(() => document.querySelector('#fCount').textContent === '4');
+  assert.equal(await page.textContent('#fBoardTitle'), 'Участники');
+  assert.equal(await page.$$eval('#fBoard li', (list) => list.length), 4);
+  assert.match(await page.textContent('#fNotes'), /Одинаковый мозг: групп 1/, 'anna и gleb — один и тот же бот');
+
+  await page.fill('#fSecret', 'проверка');
+  await page.click('#fCompute');
+  await page.waitForFunction(() => document.querySelector('#fComputeNote').textContent.startsWith('Готово'), null, { timeout: 60000 });
+  assert.equal(await page.textContent('#fBoardTitle'), 'Этап 1 · на старте');
+  assert.equal(await page.isDisabled('#fStages button:nth-child(2)'), false, 'этапы можно выбирать');
+
+  await page.fill('#fSearch', 'vera');
+  assert.equal(await page.textContent('#fBoard .found .kind'), '@vera', 'найденный подсвечен');
+
+  await page.click('#fPlay');
+  assert.equal(await page.textContent('#fPlay'), '3… 2… 1…');
+  await page.waitForFunction(() => document.querySelector('#fBoardTitle').textContent === 'Этап 1 · live', null, { timeout: 10000 });
+  await page.click('#fPlay');
+  assert.equal(await page.textContent('#fPlay'), 'Дальше', 'пауза посреди этапа');
+
+  await page.click('#fStages button:nth-child(2)');
+  assert.equal(await page.textContent('#fBoardTitle'), 'Общий зачёт после 1 этапа');
+  assert.equal(await page.$$eval('#fBoard .pos', (list) => list.length), 4);
+  const { scroll, width } = await page.evaluate(() => ({ scroll: document.documentElement.scrollWidth, width: innerWidth }));
+  assert.ok(scroll <= width, 'без горизонтальной прокрутки');
+  await close();
+  assert.deepEqual(problems, []);
+});

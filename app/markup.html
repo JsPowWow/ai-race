@@ -246,20 +246,7 @@
       <span class="note">Время считается в тиках: 60 тиков = 1 секунда, от мощности ноутбука не зависит</span>
     </div>
 
-    <div class="toolbar" data-for="final" hidden>
-      <div class="seg" id="fStages" role="group" aria-label="Этап"></div>
-      <button class="btn primary" id="fPlay" disabled>Старт этапа</button>
-      <div class="seg" role="group" aria-label="Скорость показа">
-        <button data-fspeed="1" aria-pressed="true">×1</button>
-        <button data-fspeed="2" aria-pressed="false">×2</button>
-        <button data-fspeed="4" aria-pressed="false">×4</button>
-      </div>
-      <div class="seg" role="group" aria-label="Камера">
-        <button data-fcam="follow" aria-pressed="true">За лидером</button>
-        <button data-fcam="fit" aria-pressed="false">Вся трасса</button>
-      </div>
-      <button class="btn" id="fBroadcast" aria-pressed="false">Трансляция</button>
-    </div>
+    <div class="toolbar" data-for="final" hidden></div>
   </section>
 
   <aside class="panel">
@@ -459,62 +446,6 @@
       </section>
     </div>
     <!-- ФИНАЛ -->
-    <div data-panel="final" hidden>
-      <section class="block setup">
-        <h2>1 · Работы</h2>
-        <div class="row">
-          <label class="btn small file">Открыть папку<input type="file" id="fFolder" webkitdirectory multiple></label>
-          <label class="btn small file">Файлы .json<input type="file" id="fFiles" accept=".json,application/json" multiple></label>
-          <label class="btn small file">🔑 Секретный ключ<input type="file" id="fKey" accept=".json,application/json"></label>
-        </div>
-        <p class="note" id="fKeyNote" role="status"></p>
-        <p class="hint">Папка с работами: после <code>tools/collect-entries.mjs</code> или <code>gh classroom clone</code> — «ник/car.sealed.json». Можно перетащить её прямо на трассу. Запечатанные работы откроются, когда выберете секретный ключ курса.</p>
-        <dl class="stats">
-          <div><dt>Участников</dt><dd id="fCount">0</dd></div>
-          <div><dt>Свой код</dt><dd id="fCode">0</dd></div>
-          <div><dt>Одинаковых</dt><dd id="fTwins">0</dd></div>
-        </dl>
-        <div id="fNotes"></div>
-        <label class="check"><input type="checkbox" id="fAvatars" checked> Показывать аватары</label>
-        <details class="notes">
-          <summary>Ключи курса</summary>
-          <p class="hint">Студенты запечатывают файл для сдачи открытым ключом курса из <code>course-key.json</code> в репозитории. Открыть его можно только секретным ключом — он хранится у кураторов, в репозиторий его не кладут. Секретный ключ используется только здесь, в браузере, и никуда не отправляется.</p>
-          <p class="hint">Новые ключи нужны, только если секретный потерялся или утёк. После этого замените <code>course-key.json</code>, пересоберите сайт (<code>npm run build</code>), а студенты пересдают работы.</p>
-          <button class="btn small" id="fNewKeys">Создать новые ключи курса</button>
-          <p class="note" id="fNewKeysNote" role="status"></p>
-        </details>
-        <details id="fGalleryBox" hidden>
-          <summary>Аватары — проверить перед стримом</summary>
-          <p class="hint">Щёлкни картинку, чтобы скрыть её на трансляции.</p>
-          <div class="gallery" id="fGallery"></div>
-        </details>
-      </section>
-      <section class="block setup">
-        <h2>2 · Секретная фраза</h2>
-        <div class="field wide"><label for="fSecret">Фраза</label><input type="text" id="fSecret" maxlength="60" placeholder="Придумайте и никому не говорите" autocomplete="off"></div>
-        <p class="hint">Из неё получаются трассы трёх этапов и суперфинала. Объявите фразу после гонки — любой сможет перепроверить свой результат.</p>
-        <button class="btn primary" id="fCompute" disabled>Посчитать финал</button>
-        <progress id="fProgress" max="1" value="0" hidden></progress>
-        <p class="note" id="fComputeNote" role="status"></p>
-        <div id="fDq"></div>
-      </section>
-      <section class="block board-block">
-        <h2 id="fBoardTitle">Таблица</h2>
-        <div class="field wide"><label for="fSearch">Найти</label><input type="search" id="fSearch" list="fNames" placeholder="ник или имя машины" autocomplete="off"></div>
-        <datalist id="fNames"></datalist>
-        <p class="note" id="fCounts"></p>
-        <ol class="board fboard" id="fBoard"></ol>
-      </section>
-      <section class="block setup" id="fResults" hidden>
-        <h2>Итоги</h2>
-        <div class="awards" id="fAwards"></div>
-        <div class="row">
-          <button class="btn small" id="fSaveMd">RESULTS.md</button>
-          <button class="btn small" id="fSaveCsv">Таблица .csv</button>
-          <button class="btn small" id="fSaveJson">results.json</button>
-        </div>
-        <p class="note" id="fSaveNote" role="status"></p>
-      </section>
-    </div>
+    <div data-panel="final" id="finalPanel" hidden></div>
   </aside>
 </main>
