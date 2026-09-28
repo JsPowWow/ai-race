@@ -7,14 +7,14 @@ import { rayCount } from '../engine/car.js';
 import { FORMAT } from '../engine/car-file.js';
 import { withTraffic } from '../engine/traffic.js';
 import { thinkVariants } from '../student/think.js';
-import { FITNESS } from '../engine/recipes.js';
+import { fitnessOf } from '../engine/recipes.js';
 import { drive, evolveOnTracks, resultText } from './sim.mjs';
 
 const training = (id, traffic = 'all') => withTraffic(getTrainingTrack(id), traffic);
 const random = (seed, traffic = 'all') => withTraffic(generateTrack(seed), traffic);
 
-const byDistance = FITNESS.far.fitness;
-const bySpeed = FITNESS.fast.fitness;
+const byDistance = fitnessOf([]);
+const bySpeed = fitnessOf(['finish']);
 
 const RECIPES = [
   {

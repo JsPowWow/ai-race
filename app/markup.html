@@ -334,8 +334,11 @@
     <div data-panel="train" hidden>
       <section class="block recipe">
         <h2>Рецепт роя</h2>
-        <div class="field wide"><label for="tFitness">За что хвалим</label><select id="tFitness"></select></div>
-        <p class="hint" id="tFitnessHint"></p>
+        <fieldset class="parts">
+          <legend>За что хвалим</legend>
+          <p class="hint">Основа — сколько проехал. Галочки добавляют поправки.</p>
+          <div id="tParts"></div>
+        </fieldset>
         <div class="field wide"><label for="tMutation">Как меняем детей</label><select id="tMutation"></select></div>
         <p class="hint" id="tMutationHint"></p>
         <div class="field wide"><label for="tThink">Как думает мозг</label><select id="tThink"></select></div>

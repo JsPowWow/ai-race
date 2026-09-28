@@ -1,31 +1,45 @@
-// Рецепты роя: за что хвалить машину (фитнес) и как делать детей (мутация, кроссовер).
+// Рецепты роя: за что хвалить машину (фитнес по частям) и как делать детей (мутация, кроссовер).
 // Выбираются на вкладке «Учится само». Каждый вариант проверен опытом: tools/swarm-check.mjs.
 // Случайность здесь — только при рождении детей, не на пути заезда: заезд по-прежнему детерминирован.
 import { randomGauss } from './utils.js';
 
-/** @typedef {{ progress: number, finished: boolean, crashed: boolean, ticks: number }} Report отчёт о заезде (carReport) */
+/** @typedef {{ progress: number, finished: boolean, crashed: boolean, ticks: number, wiggle: number }} Report отчёт о заезде (carReport) */
 
-/** Бонус доехавшим: на три круга дают меньше 20 тыс. тиков, так что бонус всегда больше нуля и больше любого «почти» */
-const finishBonus = (car) => (car.finished ? 20000 - car.ticks : 0);
-
-/** @type {Record<string, { title: string, hint: string, fitness: (car: Report) => number }>} */
-export const FITNESS = {
-  fast: {
-    title: 'Дальше и быстрее',
-    hint: 'Кто уехал дальше, тот лучше. Доехавшим — бонус: чем быстрее, тем больше. Рой учится и доезжать, и спешить.',
-    fitness: (car) => car.progress + finishBonus(car),
-  },
+/**
+ * Фитнес по частям: основа — всегда расстояние, каждая галочка добавляет одну мысль.
+ * Порядок важен: сначала «половина разбившимся», потом бонус и штраф.
+ * @type {Record<string, { title: string, hint: string, apply: (score: number, car: Report) => number }>}
+ */
+export const FITNESS_PARTS = {
   careful: {
-    title: 'Без аварий',
-    hint: 'То же, но разбившимся — половина очков. Рой осторожнее: реже бьётся о встречных, зато чуть медленнее.',
-    fitness: (car) => (car.crashed ? car.progress / 2 : car.progress) + finishBonus(car),
+    title: 'Половина очков разбившимся',
+    hint: 'Рой учится не биться: реже врезается во встречных. В опыте с этой галочкой рой застревает реже всего.',
+    apply: (score, car) => (car.crashed ? score / 2 : score),
   },
-  far: {
-    title: 'Только дальше',
-    hint: 'Хвалим только за расстояние. Доехать научится, а спешить — нет: для него все доехавшие равны.',
-    fitness: (car) => car.progress,
+  finish: {
+    title: 'Бонус за финиш и время',
+    hint: 'Доехавшим — бонус, и чем быстрее, тем больше. Без него рою всё равно, как долго ехать: все доехавшие равны.',
+    // на три круга дают меньше 20 тыс. тиков, так что бонус всегда больше нуля и больше любого «почти»
+    apply: (score, car) => (car.finished ? score + 20000 - car.ticks : score),
+  },
+  smooth: {
+    title: 'Штраф за виляние',
+    hint: 'Кто дёргает руль, теряет очки. Рулит плавнее, но едет медленнее.',
+    apply: (score, car) => score - car.wiggle * 5,
   },
 };
+
+export const DEFAULT_PARTS = ['careful', 'finish'];
+
+/**
+ * Фитнес из выбранных частей: расстояние, а к нему — поправки в порядке FITNESS_PARTS.
+ * @param {string[]} parts
+ * @returns {(car: Report) => number}
+ */
+export function fitnessOf(parts) {
+  const chosen = Object.entries(FITNESS_PARTS).filter(([id]) => parts.includes(id)).map(([, part]) => part.apply);
+  return (car) => chosen.reduce((score, apply) => apply(score, car), car.progress);
+}
 
 /** @typedef {{ layers: { weights: number[][], biases: number[] }[] }} Brain */
 
@@ -76,4 +90,4 @@ export function crossover(mom, dad) {
   };
 }
 
-export const DEFAULT_RECIPE = { fitness: 'fast', mutation: 'spot' };
+export const DEFAULT_RECIPE = { parts: DEFAULT_PARTS, mutation: 'spot' };

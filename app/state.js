@@ -2,6 +2,7 @@
 import { DEFAULT_SENSORS, rayCount } from '../engine/car.js';
 import { layerSizes, checkBrain } from '../engine/brain.js';
 import { CAR_COLORS } from '../engine/car-file.js';
+import { DEFAULT_PARTS } from '../engine/recipes.js';
 import { load, save, remove } from './storage.js';
 import { live } from './student-code.js';
 
@@ -22,7 +23,7 @@ export const state = {
   /** История мозга: прежние версии сохраняются сами — [{ id, at, brain, config, generation, handEdited, brainNote, pinned }] */
   versions: load('versions', null) ?? migrateLibrary(),
   /** Настройки вкладок */
-  train: { trackId: 'warmup', seed: 'тренировка', traffic: 'all', parents: 2, fitness: 'fast', mutation: 'spot', population: 100, rate: 0.1, speed: '1', camera: 'fit', ...load('train', {}) },
+  train: { trackId: 'warmup', seed: 'тренировка', traffic: 'all', parents: 2, parts: DEFAULT_PARTS, ownFitness: false, mutation: 'spot', population: 100, rate: 0.1, speed: '1', camera: 'fit', ...load('train', {}) },
   /** «Я учу»: трасса и машины (раньше это был «Гараж») */
   drive: { trackId: 'warmup', traffic: 'none', ...(load('drive', null) ?? load('garage', {})) },
   race: { seed: 'урок-1', traffic: 'all', ...load('race', {}) },

@@ -33,8 +33,8 @@ test('кто лучше по фитнесу, тот и родитель', () => 
 // в опыте (tools/swarm-check.mjs) — 15 финишей из 15 на «Змейке», «Шпильке» и «Развилке» со встречными.
 test('рой по умолчанию учится: на «Змейке» со встречными лучший доезжает за 30 поколений', async () => {
   const { thinkVariants, DEFAULT_THINK } = await import('../../student/think.js');
-  const { FITNESS, MUTATIONS, DEFAULT_RECIPE, crossover } = await import('../../engine/recipes.js');
-  const { fitness } = FITNESS[DEFAULT_RECIPE.fitness], { mutate } = MUTATIONS[DEFAULT_RECIPE.mutation];
+  const { fitnessOf, MUTATIONS, DEFAULT_RECIPE, crossover } = await import('../../engine/recipes.js');
+  const fitness = fitnessOf(DEFAULT_RECIPE.parts), { mutate } = MUTATIONS[DEFAULT_RECIPE.mutation];
   const { withTraffic } = await import('../../engine/traffic.js');
   const { withCoins } = await import('../../engine/track.js');
   const { DEFAULT_SENSORS } = await import('../../engine/car.js');

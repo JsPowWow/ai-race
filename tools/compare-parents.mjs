@@ -5,9 +5,9 @@ import { withTraffic } from '../engine/traffic.js';
 import { layerSizes } from '../engine/brain.js';
 import { Evolution } from '../engine/evolution.js';
 import { thinkVariants } from '../student/think.js';
-import { FITNESS, MUTATIONS, crossover } from '../engine/recipes.js';
+import { fitnessOf, MUTATIONS, crossover, DEFAULT_PARTS } from '../engine/recipes.js';
 
-const { fitness } = FITNESS.fast, { mutate } = MUTATIONS.spot;
+const fitness = fitnessOf(DEFAULT_PARTS), { mutate } = MUTATIONS.spot;
 
 const [trackId = 'hairpin', runs = 20, generations = 30] = process.argv.slice(2);
 const track = withTraffic(getTrainingTrack(trackId), 'all');

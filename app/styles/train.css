@@ -58,3 +58,12 @@
 /* выбор трассы и машин — в строке кнопок, по ширине текста, а не на всю строку */
 .toolbar[data-for="train"] select { inline-size: auto; max-inline-size: 18rem; }
 .toolbar[data-for="train"] input[type="text"] { inline-size: 10rem; }
+
+/* «За что хвалим»: галочки-поправки к основе «сколько проехал» */
+.parts { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; border: 0; min-inline-size: 0; }
+.parts legend { padding: 0; color: var(--muted); font-size: 13px; }
+#tParts { display: flex; flex-direction: column; gap: 8px; }
+#tParts .check { align-items: flex-start; font-size: 14px; }
+#tParts .check input { flex: none; margin-block-start: 2px; }
+#tParts .check small { display: block; font-size: 13px; line-height: 1.35; color: var(--muted); }
+#tParts .check:has(input:disabled) { opacity: .55; cursor: default; }

@@ -3,7 +3,7 @@ import { TRAINING_TRACKS, getTrainingTrack, forksPassed, withCoins } from '../..
 import { Car } from '../../engine/car.js';
 import { cloneBrain, checkBrain } from '../../engine/brain.js';
 import { Evolution } from '../../engine/evolution.js';
-import { FITNESS, MUTATIONS, crossover } from '../../engine/recipes.js';
+import { FITNESS_PARTS, MUTATIONS, crossover, fitnessOf } from '../../engine/recipes.js';
 import { TRAFFIC_LEVELS, withTraffic } from '../../engine/traffic.js';
 import { drawChart } from '../../engine/netviz.js';
 import { createBrainBoard } from '../brain-board/board.js';
@@ -118,9 +118,8 @@ function trackForGeneration(gen) {
   return withCoins(withTraffic(base, traffic), gen); // у каждого поколения судьи бросают монетку по-своему
 }
 
-/** Варианты фитнеса: готовые и «Мой вариант» — функция fitness из student/fitness.js */
-const fitnessVariants = () => ({ ...FITNESS, mine: { title: 'Мой вариант', hint: 'Своя функция fitness из файла student/fitness.js (вкладка «Код»).', fitness: live.fitness.fitness } });
-const fitnessOf = (id) => (fitnessVariants()[id] ?? FITNESS.fast).fitness;
+/** Фитнес: из галочек — или «Мой вариант», функция fitness из student/fitness.js */
+const chosenFitness = () => (state.train.ownFitness ? live.fitness.fitness : fitnessOf(state.train.parts));
 const mutationOf = (id) => (MUTATIONS[id] ?? MUTATIONS.spot).mutate;
 
 /** Рецепт и настройки — с каждого нового поколения */
@@ -129,7 +128,7 @@ const settings = () => ({
   sensors: { ...state.config.sensors },
   think: thinkFn(),
   mutate: mutationOf(state.train.mutation),
-  fitness: fitnessOf(state.train.fitness),
+  fitness: chosenFitness(),
   crossover,
   parents: state.train.parents,
   population: state.train.population,
@@ -223,7 +222,10 @@ $('#tTraffic').addEventListener('change', (e) => setTrain('traffic', e.target.va
 $('#tSeed').addEventListener('change', (e) => setTrain('seed', e.target.value.trim() || 'тренировка', { retrack: true }));
 $('#tPop').addEventListener('input', (e) => setTrain('population', +e.target.value));
 $('#tRate').addEventListener('input', (e) => setTrain('rate', +e.target.value));
-$('#tFitness').addEventListener('change', (e) => setTrain('fitness', e.target.value));
+$('#tParts').addEventListener('change', (e) => {
+  if (e.target.id === 'tOwnFitness') return setTrain('ownFitness', e.target.checked);
+  setTrain('parts', $$('#tParts [data-part]:checked').map((b) => b.dataset.part));
+});
 $('#tMutation').addEventListener('change', (e) => setTrain('mutation', e.target.value));
 $('#tThink').addEventListener('change', (e) => {
   state.config.think = e.target.value; // форма сети та же — мозг остаётся, меняется только то, как он считает
@@ -251,16 +253,27 @@ function syncControls() {
   setPressed('[data-speed]', (b) => b.dataset.speed === t.speed);
   setPressed('[data-cam]', (b) => b.dataset.cam === t.camera);
   setPressed('[data-parents]', (b) => +b.dataset.parents === t.parents);
-  const fitness = fitnessVariants();
-  $('#tFitness').innerHTML = options(Object.entries(fitness).map(([id, v]) => ({ id, title: v.title })));
-  $('#tFitness').value = fitness[t.fitness] ? t.fitness : 'fast';
-  $('#tFitnessHint').textContent = fitness[$('#tFitness').value].hint;
+  renderParts();
   $('#tMutation').value = MUTATIONS[t.mutation] ? t.mutation : 'spot';
   $('#tMutationHint').textContent = MUTATIONS[$('#tMutation').value].hint;
   const thinks = live.think.thinkVariants ?? {};
   $('#tThink').innerHTML = options(Object.entries(thinks).map(([id, v]) => ({ id, title: v.title || id })));
   $('#tThink').value = state.config.think;
   $('#tThinkHint').textContent = thinks[state.config.think]?.hint ?? '';
+}
+
+/** Галочки фитнеса: у каждой — что она добавляет. «Мой вариант» заменяет их все. */
+const box = (attrs, title, hint) => `<label class="check"><input type="checkbox" ${attrs}><span><b>${title}</b><small>${hint}</small></span></label>`;
+$('#tParts').innerHTML = Object.entries(FITNESS_PARTS).map(([id, part]) => box(`data-part="${id}"`, part.title, part.hint)).join('')
+  + box('id="tOwnFitness"', 'Мой вариант', 'Своя функция fitness из student/fitness.js (вкладка «Код») вместо галочек.');
+
+function renderParts() {
+  const t = state.train;
+  for (const b of $$('#tParts [data-part]')) {
+    b.checked = t.parts.includes(b.dataset.part);
+    b.disabled = t.ownFitness;
+  }
+  $('#tOwnFitness').checked = t.ownFitness;
 }
 
 // ── выбор родителей щелчком по трассе ──
@@ -300,6 +313,9 @@ function sameTrackHistory() {
 /** На трассе есть развилка со знаком */
 const isMaze = () => track?.islands?.length > 0;
 
+/** Рой не хвалят за скорость: доехавшие для него равны */
+const noTimeBonus = () => !state.train.ownFitness && !state.train.parts.includes('finish');
+
 function swarmAdvice() {
   if (!evo) {
     return state.champion
@@ -311,8 +327,8 @@ function swarmAdvice() {
   if (!last) return 'Смотри, какая машина уедет дальше всех: от неё пойдёт следующее поколение. Долго — жми «Турбо».';
   const tail = h.slice(-SAME_GENS);
   if (isMaze() && last.finished && leader.slowdowns > 0) {
-    return state.train.fitness === 'far'
-      ? `Доехал, но в медленную зону на развилке заехал ${leader.slowdowns} раз. Фитнесу «Только дальше» всё равно — кто доехал, тот и хорош. Выбери «Дальше и быстрее».`
+    return noTimeBonus()
+      ? `Доехал, но в медленную зону на развилке заехал ${leader.slowdowns} раз. Без бонуса за время рою всё равно — кто доехал, тот и хорош. Поставь галочку «${FITNESS_PARTS.finish.title}».`
       : `Доехал, но в медленную зону на развилке заехал ${leader.slowdowns} раз. Время дороже — рой ещё научится читать знак.`;
   }
   if (isMaze() && last.finished) {
@@ -322,13 +338,13 @@ function swarmAdvice() {
     if (TRAINING_TRACKS.some((t) => t.id === track.id) && track.id !== 'snake') {
       return 'Здесь рой уже доехал. Цель урока — «Змейка» с машинами: выбери её в «Трасса».';
     }
-    return state.train.fitness === 'far'
-      ? 'Рой доехал — и больше не ускоряется. «Только дальше» хвалит за расстояние, а все, кто доехал, для него равны. Выбери «Дальше и быстрее».'
+    return noTimeBonus()
+      ? `Рой доехал — и больше не ускоряется: без бонуса за время все доехавшие для него равны. Поставь галочку «${FITNESS_PARTS.finish.title}».`
       : `${SAME_GENS} поколений подряд никто не обогнал лучшего. Попробуй «Смелую» мутацию или другую трассу.`;
   }
   const before = h.at(-STUCK_GENS - 1);
   if (!last.finished && before && h.slice(-STUCK_GENS).every((e) => !e.finished && e.best <= before.best)) {
-    return `${STUCK_GENS} поколений без улучшения: рой застрял на ${pct(last.progressPct)} — лучший бьётся в одном и том же месте. Помоги: в «Рецепте роя» выбери «Без аварий» или «Смелую» мутацию, или поставь «Без машин», а потом верни встречных.`;
+    return `${STUCK_GENS} поколений без улучшения: рой застрял на ${pct(last.progressPct)} — лучший бьётся в одном и том же месте. Помоги: в «Рецепте роя» поставь галочку «${FITNESS_PARTS.careful.title}» или выбери «Смелую» мутацию, или поставь «Без машин», а потом верни встречных.`;
   }
   if (last.finished) return `Лучший доехал за ${secs(last.ticks)}. Рой ищет мозг, который фитнес оценит ещё выше.`;
   return `Лучший в прошлом поколении проехал ${pct(last.progressPct)}. Пусть линия на графике ползёт вверх.`;
