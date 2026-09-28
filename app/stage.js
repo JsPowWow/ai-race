@@ -28,7 +28,11 @@ function fitViewport(track, camera) {
   if (ratio !== viewportRatio) viewport.style.aspectRatio = viewportRatio = ratio;
 }
 
-/** Трасса и трафик на тике tick. camera: 'fit' — вся трасса, 'follow' — за машиной follow */
+/**
+ * Трасса и трафик на тике tick. camera: 'fit' — вся трасса, 'follow' — за машиной follow
+ * @param {import('../engine/track.ts').Track} track
+ * @param {{ camera?: string, follow?: import('../engine/render.ts').CarView | null, traffic?: import('../engine/traffic.ts').TrafficSpot[] | null, tick?: number }} [view]
+ */
 export function drawScene(track, { camera = 'fit', follow = null, traffic = null, tick = 0 } = {}) {
   fitViewport(track, camera);
   cam.mode = camera;

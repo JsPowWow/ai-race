@@ -17,7 +17,7 @@ import { raceTab } from './tabs/race.js';
 import { introTab, redrawIntro } from './tabs/intro.js';
 import { initTheme } from './theme.js';
 import { teachTab, redrawLoss, renderNetwork } from './tabs/teach.js';
-import { profileTab, redrawProfileBrain } from './tabs/profile.js';
+import { profileTab, redrawProfileBrain } from './tabs/profile.tsx';
 
 const TABS = { intro: introTab, profile: profileTab, teach: teachTab, train: trainTab, code: codeTab, exam: examTab, race: raceTab };
 /** Финал нужен только кураторам: его код (Worker, печать, экспорт) грузим, когда вкладку открыли */

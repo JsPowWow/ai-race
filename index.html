@@ -13,9 +13,9 @@
 <script>try{const t=JSON.parse(localStorage.getItem('ai-race:theme'));if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch{}</script>
 <link rel="icon" href="app/icon.svg" type="image/svg+xml">
 <link rel="preload" href="app/fonts/rubik-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="modulepreload" href="app/generated/chunks/chunk-AGKNJI7R.js">
+<link rel="modulepreload" href="app/generated/chunks/chunk-WJM7GZO5.js">
 <link rel="stylesheet" href="app/generated/app.css?v=20737ae88a">
-<script type="module" src="app/generated/app.js?v=4a9300736b"></script>
+<script type="module" src="app/generated/app.js?v=99ed4d1437"></script>
 </head>
 <body>
 <a class="skip-link" href="#content">К содержимому</a>
@@ -328,80 +328,8 @@
       </details>
     </div>
 
-    <!-- ПРОФИЛЬ -->
-    <div data-panel="profile" hidden>
-      <section class="block garage" aria-labelledby="gTitle">
-        <h2 id="gTitle">Гараж</h2>
-        <p class="hint">У каждой машины свой облик, сборка, мозг, «История» и заезды. Учишь, проверяешь и сдаёшь ту, что выбрана, — она жёлтая.</p>
-        <div class="g-shelf" id="gShelf" role="group" aria-label="Машины гаража"></div>
-        <p class="g-legend" aria-hidden="true"><span><i></i>мозг и сборка</span><span><i class="h"></i>«История»</span><span><i class="r"></i>мои заезды</span></p>
-        <div class="row g-actions" id="gActions">
-          <button class="btn small" id="gCopy">Скопировать</button>
-          <button class="btn small" id="gExport">Сохранить в файл</button>
-          <label class="btn small file">Открыть из файла<input type="file" id="gImport" accept=".json,application/json"></label>
-          <button class="btn small danger" id="gDelete">Удалить</button>
-        </div>
-        <div class="pending g-confirm" id="gConfirm" role="group" aria-label="Подтверди" hidden></div>
-        <p class="error" id="gError" role="alert" hidden></p>
-        <details class="g-files-box">
-          <summary>Файлы машины</summary>
-          <ul class="g-files" id="gFiles"></ul>
-        </details>
-        <div class="g-meter" id="gMeter"></div>
-        <div class="g-disk" id="gDisk" hidden></div>
-      </section>
-      <section class="block">
-        <h2>Облик</h2>
-        <div class="field"><label for="pName">Имя машины</label><input type="text" id="pName" maxlength="24" placeholder="Например, Торетто"></div>
-        <div class="colors" id="pColors" role="radiogroup" aria-label="Цвет машины"></div>
-        <div class="avatar-row">
-          <img id="pAvatarImg" class="avatar big" alt="Аватар машины" hidden>
-          <label class="btn small file">Аватар .svg<input type="file" id="pAvatarFile" accept=".svg,image/svg+xml"></label>
-          <button class="btn small" id="pAvatarClear" hidden>Убрать</button>
-        </div>
-        <p class="hint">Аватар — необязательная SVG-картинка до 8 КБ: её покажут в таблице гонки и на стриме. Без скриптов и ссылок на другие сайты.</p>
-        <div class="error" id="pAvatarError" hidden></div>
-      </section>
-      <section class="block build">
-        <h2>Сборка</h2>
-        <p class="budget"><b id="bSpent">50</b> из <span id="bBudget">100</span> очков <span class="note" id="bLeft"></span></p>
-        <div class="budget-bar" aria-hidden="true"><span id="bBar"></span></div>
-        <p class="hint">Очки у всех одни. Больше глаз — дальше видно, больше нейронов — умнее, но рою дольше учиться. Всё сразу не купить: выбирай под трассу.</p>
-        <p class="error" id="bMsg" role="status" hidden></p>
-      </section>
-      <section class="block">
-        <h2>Глаза вперёд</h2>
-        <div class="field"><label for="sCount">Сенсоров</label><input type="range" id="sCount" min="3" max="15" step="1"><output id="sCountOut"></output></div>
-        <div class="field"><label for="sSpread">Угол обзора</label><input type="range" id="sSpread" min="30" max="180" step="10"><output id="sSpreadOut"></output></div>
-        <div class="field"><label for="sLength">Дальность</label><input type="range" id="sLength" min="80" max="260" step="10"><output id="sLengthOut"></output></div>
-        <p class="hint">Широкий веер видит бока, узкий — дальше по центру. Угол бесплатный.</p>
-      </section>
-      <section class="block">
-        <h2>Глаза назад</h2>
-        <div class="field"><label for="sBack">Сенсоров</label><input type="range" id="sBack" min="0" max="4" step="1"><output id="sBackOut"></output></div>
-        <div class="field"><label for="sBackLength">Дальность</label><input type="range" id="sBackLength" min="40" max="200" step="10"><output id="sBackLengthOut"></output></div>
-        <div class="field"><label for="sBackSpread">Угол обзора</label><input type="range" id="sBackSpread" min="10" max="180" step="10"><output id="sBackSpreadOut"></output></div>
-        <p class="hint">Видят тех, кто догоняет, — на кольце обгоняют и тебя. Узкий веер смотрит прямо назад, широкий — ещё и на соседние полосы. Угол бесплатный.</p>
-      </section>
-      <section class="block">
-        <h2>Мозг</h2>
-        <div class="layers" id="layersEditor"></div>
-        <button class="btn small" id="addLayer">+ Скрытый слой</button>
-        <div class="field wide"><label for="thinkSelect">Как думает</label><select id="thinkSelect" aria-label="Вариант мозга"></select></div>
-        <p class="hint" id="thinkHint"></p>
-      </section>
-      <section class="block">
-        <h2>Цены</h2>
-        <ul class="prices" id="bPrices"></ul>
-      </section>
-      <div class="pending draft" id="draftBar" hidden>
-        <p id="draftText" role="status"></p>
-        <div class="row">
-          <button class="btn small primary" id="draftApply">Применить</button>
-          <button class="btn small" id="draftCancel">Отменить</button>
-        </div>
-      </div>
-    </div>
+    <!-- ПРОФИЛЬ: панель рисует app/tabs/profile.tsx -->
+    <div data-panel="profile" id="profilePanel" hidden></div>
 
     <!-- УЧИТСЯ САМО -->
     <div data-panel="train" hidden>
