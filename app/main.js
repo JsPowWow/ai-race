@@ -18,6 +18,8 @@ import { introTab, redrawIntro } from './tabs/intro.js';
 import { initTheme } from './theme.js';
 import { teachTab, redrawLoss, renderNetwork } from './tabs/teach.js';
 import { profileTab, redrawProfileBrain } from './tabs/profile.tsx';
+import { mount } from '@reely/dommy';
+import { BrainLibrary } from './library-view.tsx';
 
 const TABS = { intro: introTab, profile: profileTab, teach: teachTab, train: trainTab, code: codeTab, exam: examTab, race: raceTab };
 /** Финал нужен только кураторам: его код (Worker, печать, экспорт) грузим, когда вкладку открыли */
@@ -70,6 +72,9 @@ delegate('#introPage', 'click', '[data-start], [data-go]', (b) => {
   openTab(b.dataset.go ?? 'teach');
   window.scrollTo(0, 0);
 });
+
+// Блок «Мозг» с «Историей» — на «Я учу» и «Учится само»
+for (const root of $$('[data-library]')) mount(root, BrainLibrary);
 
 onStorageFull(() => showBanner('Память браузера переполнена: новое не сохранится. Удали лишние заезды на вкладке «Я учу».', 6000));
 

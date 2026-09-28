@@ -9,7 +9,7 @@ import { drawChart } from '../../engine/netviz.ts';
 import { createBrainBoard } from '../brain-board/board.js';
 import { SMOOTH, ANY_ACT } from '../brain-board/formula.js';
 import { state, persist, persistSoon, sizesOf, thinkFn, setChampion, on, emit } from '../state.js';
-import { setBrain, remember, renderLibrary } from '../library.js';
+import { setBrain, remember } from '../library.js';
 import { live, errorLine } from '../student-code.js';
 import { seedTrack } from '../tracks.js';
 import { canvas, drawScene, paintCar, trafficOn, carAt, setHud, lapText, showBanner } from '../stage.js';
@@ -55,7 +55,6 @@ if (matchMedia('(max-width: 700px)').matches) $('.leader-brain').open = false;
 export const trainTab = {
   enter() {
     renderPanel();
-    renderLibrary();
   },
   frame() {
     if (!evo) return drawIdle();

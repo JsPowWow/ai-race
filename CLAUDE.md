@@ -31,7 +31,7 @@
 - `npm test`: движок — `node:test` в `test/engine/` (детерминизм, правила финала, файл машины, печать, обучение на примерах); сайт — `test/site.test.mjs` (все вкладки на 1440 и 390: без ошибок в консоли и горизонтальной прокрутки). Новое поведение `engine/` — с тестом.
 - Playwright закреплён на версии под Chromium облачного контейнера (`/opt/pw-browsers`); локально один раз `npx playwright install chromium`. Облачная сессия ставит зависимости сама (`.claude/hooks/session-start.sh`).
 - Типы: `engine/` — TypeScript, строго (`tsconfig.strict.json`); `app/` переезжает на TSX и `@reely/dommy` по вкладке (#20) — уже «Профиль», остальное пока JS с JSDoc; `student/` намеренно без аннотаций (это код студентов).
-- **Переезд на TypeScript (#15) идёт по файлу.** Новый код — `.ts`/`.tsx`, строго (`tsconfig.strict.json`): импорт с расширением (`import { Car } from './car.ts'` — так Node запускает тесты без сборки, нужен Node ≥ 22.18), типы — `import type`, без `enum`/`namespace`/параметров-свойств (`erasableSyntaxOnly`). JSX — `@reely/dommy` (#20), до выхода пакета `.tsx` не писать. `student/` остаётся на JS.
+- **Переезд на TypeScript (#15) идёт по файлу.** Новый код — `.ts`/`.tsx`, строго (`tsconfig.strict.json`): импорт с расширением (`import { Car } from './car.ts'` — так Node запускает тесты без сборки, нужен Node ≥ 22.18), типы — `import type`, без `enum`/`namespace`/параметров-свойств (`erasableSyntaxOnly`). JSX — `@reely/dommy` (#20), образец — `app/tabs/profile*.tsx`. `student/` остаётся на JS.
 - Зависимости — только из `registry.npmjs.org` (`.npmrc` в корне): иначе `package-lock.json` получит адреса чужого registry, и облачная сессия не поставит пакеты.
 
 ## Agent skills

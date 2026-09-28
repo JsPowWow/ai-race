@@ -11,7 +11,7 @@ import { state, persist, sizesOf, thinkFn, brainTitle, on, emit } from '../state
 import { load, save } from '../storage.js';
 import { live } from '../student-code.js';
 import { runs, addRun, toggleRun, removeRun, trainingSamples, sampleCount, MAX_SAMPLES } from '../runs.js';
-import { setBrain, renderLibrary } from '../library.js';
+import { setBrain } from '../library.js';
 import { steerWith } from '../manual-drive.js';
 import { drawScene, paintCar, trafficOn, setHud, lapText, showBanner } from '../stage.js';
 import { $, esc, secs, pct, options, setPressed, delegate } from '../ui.js';
@@ -41,7 +41,6 @@ export const teachTab = {
     resetCar();
     renderRuns();
     renderTraining();
-    renderLibrary();
     editor.render();
   },
   frame(frameNo) {

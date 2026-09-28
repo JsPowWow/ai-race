@@ -1,4 +1,4 @@
-// Мозг и его история.
+// Мозг и его история. Блок «Мозг» с «Историей» на странице — app/library-view.tsx.
 //
 // Текущий мозг (state.champion + state.config) — один на весь сайт: его учат на «Я учу» и «Учится само»,
 // он сдаёт экзамен и едет на гонку. Мозг всегда хранится вместе со своей формой: сенсоры, слои, вариант.
@@ -8,14 +8,11 @@
 // сам попадает в «Историю» — к любой версии можно вернуться. звёздочка закрепляет версию навсегда,
 // незакреплённых хранится HISTORY_MAX последних.
 import { cloneBrain, checkBrain } from '../engine/brain.ts';
-import { state, persist, sizesOf, sameSizes, setChampion, resetProgress, emit, on, thinkVariant, brainTitle } from './state.js';
+import { state, persist, sizesOf, sameSizes, setChampion, resetProgress, emit, brainTitle } from './state.js';
 import { showBanner } from './stage.js';
-import { $$, esc, delegate } from './ui.js';
 
-const HISTORY_MAX = 10;
-/** Значок «закрепить»: звезда; у закреплённой версии закрашена (стили — app/styles/teach.css) */
-const PIN_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></svg>';
-let historyOpen = false; // раскрыта ли «История» — помним между перерисовками
+/** Незакреплённых версий в «Истории» храним столько последних */
+export const HISTORY_MAX = 10;
 
 const sameBrain = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
@@ -85,69 +82,15 @@ export function restoreVersion(id) {
   showBanner(`Вернули: ${v.brainNote || 'мозг'}`);
 }
 
-function togglePin(id) {
+export function togglePin(id) {
   const v = state.versions.find((x) => x.id === id);
   if (v) v.pinned = !v.pinned;
   persist();
   emit('library');
 }
 
-function removeVersion(id) {
+export function removeVersion(id) {
   state.versions = state.versions.filter((x) => x.id !== id);
   persist();
   emit('library');
 }
-
-// ── блок «Мозг»: одинаковый на «Я учу» и «Учится само» ──
-
-const shapeOf = (config) => `${sizesOf(config).join('-')} · ${thinkVariant(config.think)?.title ?? config.think}`;
-const when = (iso) => new Date(iso).toLocaleString('ru', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-
-export function renderLibrary() {
-  const current = state.champion
-    ? `<b>${esc(brainTitle())}</b><span class="meta">${esc(shapeOf(state.config))}</span>`
-    : `<span class="meta">Мозга пока нет — начнём с нуля (${esc(shapeOf(state.config))}).</span>`;
-  const items = state.versions.map((v) => `
-    <li class="${v.pinned ? 'pinned' : ''}">
-      <button class="pin" data-pin="${v.id}" aria-pressed="${v.pinned}" title="${v.pinned ? 'Открепить' : 'Закрепить навсегда'}" aria-label="${v.pinned ? 'Открепить' : 'Закрепить навсегда'}">${PIN_ICON}</button>
-      <span class="lib-name"><b>${esc(v.brainNote || 'мозг')}</b><span class="meta">${esc(shapeOf(v.config))} · ${esc(when(v.at))}</span></span>
-      <button class="btn small" data-restore="${v.id}">Вернуть</button>
-      <button class="lib-del" data-del-version="${v.id}" aria-label="Удалить версию">×</button>
-    </li>`).join('');
-  for (const root of $$('[data-library]')) {
-    const confirming = root.dataset.confirm === 'reset';
-    root.innerHTML = `
-      <h2>Мозг</h2>
-      <p class="lib-current">${current}</p>
-      ${confirming
-        ? `<div class="pending"><p>Мозг начнётся с нуля: веса станут случайными. Нынешний останется в «Истории».</p>
-            <div class="row"><button class="btn small danger" data-reset-yes>Сбросить</button><button class="btn small" data-reset-no>Отмена</button></div></div>`
-        : `<div class="row"><button class="btn small" data-reset ${state.champion ? '' : 'disabled'}>Сбросить мозг</button></div>`}
-      <details class="history" ${state.versions.length ? '' : 'hidden'} ${historyOpen ? 'open' : ''}>
-        <summary>История · ${state.versions.length}</summary>
-        <p class="hint">Перед каждым обучением, стартом роя, ручной правкой и сбросом мозг сохраняется сам. Звёздочка — закрепить версию навсегда, остальные хранятся ${HISTORY_MAX} последних.</p>
-        <ol class="lib-list">${items}</ol>
-      </details>`;
-  }
-}
-
-delegate('body', 'click', '[data-reset]', (b) => {
-  b.closest('[data-library]').dataset.confirm = 'reset';
-  renderLibrary();
-});
-delegate('body', 'click', '[data-reset-no]', (b) => {
-  delete b.closest('[data-library]').dataset.confirm;
-  renderLibrary();
-});
-delegate('body', 'click', '[data-reset-yes]', (b) => {
-  delete b.closest('[data-library]').dataset.confirm;
-  resetBrain();
-});
-delegate('body', 'click', '.history > summary', () => (historyOpen = !historyOpen));
-delegate('body', 'click', '[data-restore]', (b) => restoreVersion(b.dataset.restore));
-delegate('body', 'click', '[data-pin]', (b) => togglePin(b.dataset.pin));
-delegate('body', 'click', '[data-del-version]', (b) => removeVersion(b.dataset.delVersion));
-
-on('library', renderLibrary);
-on('champion', renderLibrary);
-on('config', renderLibrary);
