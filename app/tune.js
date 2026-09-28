@@ -18,6 +18,7 @@ const KNOBS = [
   ['minRadius', 'Самый крутой радиус', 20, 120, 5],
   ['steerRate', 'Руль к упору (чем меньше, тем дольше держать)', 0.02, 1, 0.01],
   ['centerRate', 'Возврат руля к середине', 0.02, 1, 0.01],
+  ['pivot', 'Точка поворота: 0 — центр, 1 — задняя ось', 0, 1, 0.1],
 ];
 
 /** Физика, какой она была до подстройки */
@@ -28,7 +29,8 @@ const PRESETS = {
   'Бодрее': { ...ORIGINAL, grip: 0.1, coast: 0.03 },
   'Аркада': { ...ORIGINAL, grip: 0.2, coast: 0.04, minRadius: 40, steerRate: 0.2, centerRate: 0.2 },
   'Твой': { accel: 0.075, brake: 0.1, friction: 0.03, coast: 0.055, maxSpeed: 5, grip: 0.1, minRadius: 50, steerRate: 0.18, centerRate: 0.18 },
-  'Твой, руль дольше': { accel: 0.075, brake: 0.1, friction: 0.03, coast: 0.055, maxSpeed: 5, grip: 0.14, minRadius: 50, steerRate: 0.05, centerRate: 0.25 },
+  'Твой, руль дольше': { accel: 0.075, brake: 0.1, friction: 0.03, coast: 0.055, maxSpeed: 5, grip: 0.14, minRadius: 50, steerRate: 0.05, centerRate: 0.25, pivot: 0 },
+  'Задняя ось': { accel: 0.075, brake: 0.1, friction: 0.03, coast: 0.055, maxSpeed: 5, grip: 0.14, minRadius: 50, steerRate: 0.05, centerRate: 0.25, pivot: 1 },
 };
 
 const degPerSec = (radPerTick) => Math.round((radPerTick * 60 * 180) / Math.PI);

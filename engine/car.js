@@ -19,6 +19,7 @@ export const CAR = {
   minRadius: 60,
   grip: 0.05,
   steerRate: 0.12,     // руль не щёлкает: от середины до упора — за 8 тиков
+  pivot: 0,            // вокруг чего поворачивает корпус: 0 — центр машины, 1 — задняя ось (как у настоящей: нос ведёт, хвост идёт следом)
   centerRate: 0.12,    // отпустил стрелку — руль возвращается к середине (можно быстрее, чем поворачивается)
   stallTicks: 180, // столько тиков не продвигается по своей дороге — «заглох»
   slowDown: 0.3,   // так быстро тормозит, заехав в медленную зону
@@ -196,12 +197,15 @@ export class Car {
     const outward = Math.abs(steer) > Math.abs(this.steer) && steer * this.steer >= 0;
     const rate = outward ? CAR.steerRate : CAR.centerRate;
     this.steer += clamp(steer - this.steer, -rate, rate);
+    const before = this.angle;
     this.angle += this.speed * this.steer * maxCurve(this.speed); // задним ходом дуга та же, но поворот в другую сторону — как у машины
     this.wiggle += Math.abs(steer - this.prevSteer);
     this.prevSteer = steer;
 
-    this.x += Math.cos(this.angle) * this.speed;
-    this.y += Math.sin(this.angle) * this.speed;
+    // по дуге идёт точка поворота (при pivot = 1 — задняя ось), а центр машины поворачивается вокруг неё
+    const arm = (CAR.pivot * WHEELBASE) / 2;
+    this.x += Math.cos(this.angle) * this.speed + arm * (Math.cos(this.angle) - Math.cos(before));
+    this.y += Math.sin(this.angle) * this.speed + arm * (Math.sin(this.angle) - Math.sin(before));
     this.distance += Math.abs(this.speed);
     this.topSpeed = Math.max(this.topSpeed, this.speed);
   }
