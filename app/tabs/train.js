@@ -8,12 +8,12 @@ import { TRAFFIC_LEVELS, withTraffic } from '../../engine/traffic.ts';
 import { drawChart } from '../../engine/netviz.ts';
 import { createBrainBoard } from '../brain-board/board.js';
 import { SMOOTH, ANY_ACT } from '../brain-board/formula.js';
-import { state, persist, persistSoon, sizesOf, thinkFn, setChampion, on, emit } from '../state.js';
-import { setBrain, remember } from '../library.js';
-import { live, errorLine } from '../student-code.js';
-import { seedTrack } from '../tracks.js';
-import { canvas, drawScene, paintCar, trafficOn, carAt, setHud, lapText, showBanner } from '../stage.js';
-import { $, $$, esc, secs, pct, options, setPressed, delegate, showError } from '../ui.js';
+import { state, persist, persistSoon, sizesOf, thinkFn, setChampion, on, emit } from '../state.ts';
+import { setBrain, remember } from '../library.ts';
+import { live, errorLine } from '../student-code.ts';
+import { seedTrack } from '../tracks.ts';
+import { canvas, drawScene, paintCar, trafficOn, carAt, setHud, lapText, showBanner } from '../stage.ts';
+import { $, $$, esc, secs, pct, options, setPressed, delegate, showError } from '../ui.ts';
 
 const TURBO_BUDGET_MS = 22;
 const HALL_SIZE = 8;

@@ -2,12 +2,12 @@
 import { TRAINING_TRACKS, getTrainingTrack } from '../../engine/track.ts';
 import { Car, carReport, maxTicksFor } from '../../engine/car.ts';
 import { withTraffic } from '../../engine/traffic.ts';
-import { state, persist, thinkFn, on, emit } from '../state.js';
-import { seedTrack } from '../tracks.js';
-import { toCarFile } from '../car-file.js';
-import { drawScene, paintCar, trafficOn, setHud, lapText, showBanner } from '../stage.js';
-import { $, esc, secs, pct, delegate } from '../ui.js';
-import { canDownload, saveFile } from '../download.js';
+import { state, persist, thinkFn, on, emit } from '../state.ts';
+import { seedTrack } from '../tracks.ts';
+import { toCarFile } from '../car-file.ts';
+import { drawScene, paintCar, trafficOn, setHud, lapText, showBanner } from '../stage.ts';
+import { $, esc, secs, pct, delegate } from '../ui.ts';
+import { canDownload, saveFile } from '../download.ts';
 import { sealCar, GITHUB_LOGIN } from '../../engine/seal.ts';
 import { COURSE_KEY } from '../generated/course-key.js';
 

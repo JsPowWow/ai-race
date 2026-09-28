@@ -4,7 +4,7 @@ import { REC_EVERY, REC_FIELDS } from '../../engine/rally.ts';
 import { avatarUrl } from '../../engine/car-file.ts';
 import { UI_FONT } from '../../engine/render.ts';
 import { maxCurve } from '../../engine/car.ts';
-import { paintCar, paintPack, paintScreen, toScreen } from '../stage.js';
+import { paintCar, paintPack, paintScreen, toScreen } from '../stage.ts';
 
 const OUT_VISIBLE_TICKS = 90;      // сколько ещё видно машину после схода
 const FINISH_VISIBLE_TICKS = 40;   // и после финиша

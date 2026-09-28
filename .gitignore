@@ -12,3 +12,6 @@ entries/
 .impeccable/config.local.json
 .impeccable/cache/
 .impeccable/review/
+
+# Копии репозитория для параллельных агентов Claude Code
+.claude/worktrees/

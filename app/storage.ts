@@ -7,18 +7,19 @@
 const PREFIX = 'ai-race:';
 const DIGITS = 1e5;
 
-const compact = (_, value) => (typeof value === 'number' && !Number.isInteger(value) ? Math.round(value * DIGITS) / DIGITS : value);
+const compact = (_key: string, value: unknown) => (typeof value === 'number' && !Number.isInteger(value) ? Math.round(value * DIGITS) / DIGITS : value);
 
 /** JSON покороче: дробные числа — 5 знаков после запятой (для весов мозга хватает с запасом) */
-export const compactJson = (value) => JSON.stringify(value, compact);
+export const compactJson = (value: unknown): string => JSON.stringify(value, compact);
 
-const fullListeners = [];
+const fullListeners: ((key: string) => void)[] = [];
 let warnedFull = false;
 
 /** fn(key) вызовется один раз, если хранилище переполнится */
-export const onStorageFull = (fn) => fullListeners.push(fn);
+export const onStorageFull = (fn: (key: string) => void) => fullListeners.push(fn);
 
-export function load(key, fallback) {
+/** Прочитать сохранённое. Нет, испорчено или хранилища нет — fallback. Что там лежит, проверяет вызывающий */
+export function load<T>(key: string, fallback: T): T {
   try {
     const raw = localStorage.getItem(PREFIX + key);
     return raw === null ? fallback : JSON.parse(raw);
@@ -27,12 +28,12 @@ export function load(key, fallback) {
   }
 }
 
-export function save(key, value) {
+export function save(key: string, value: unknown): boolean {
   try {
     localStorage.setItem(PREFIX + key, JSON.stringify(value, compact));
     return true;
   } catch (e) {
-    const full = e?.name === 'QuotaExceededError' || e?.code === 22 || e?.code === 1014;
+    const full = e instanceof DOMException && (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014);
     if (full && !warnedFull) {
       warnedFull = true;
       fullListeners.forEach((fn) => fn(key));
@@ -41,19 +42,19 @@ export function save(key, value) {
   }
 }
 
-export function remove(key) {
+export function remove(key: string): void {
   try {
     localStorage.removeItem(PREFIX + key);
   } catch { /* нет хранилища — и ладно */ }
 }
 
 /** Сколько места занимает AI Race, в байтах (браузер хранит строки по 2 байта на символ) */
-export function usedBytes() {
+export function usedBytes(): number {
   try {
     let chars = 0;
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key.startsWith(PREFIX)) chars += key.length + (localStorage.getItem(key)?.length ?? 0);
+      if (key?.startsWith(PREFIX)) chars += key.length + (localStorage.getItem(key)?.length ?? 0);
     }
     return chars * 2;
   } catch {

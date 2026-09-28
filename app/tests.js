@@ -1,6 +1,6 @@
 // Проверки кода студентов. advice: true — это совет (жёлтый), а не ошибка (красный).
 import { createBrain, cloneBrain, brainSizes } from '../engine/brain.ts';
-import { errorLine } from './student-code.js';
+import { errorLine } from './student-code.ts';
 
 class Fail extends Error {}
 const expect = (cond, msg) => { if (!cond) throw new Fail(msg); };

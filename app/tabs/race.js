@@ -2,14 +2,14 @@
 import { Car, carReport, maxTicksFor } from '../../engine/car.ts';
 import { cloneBrain } from '../../engine/brain.ts';
 import { TRAFFIC_LEVELS, withTraffic } from '../../engine/traffic.ts';
-import { state, persist, thinkVariant, emit, CAR_COLORS } from '../state.js';
-import { live } from '../student-code.js';
-import { seedTrack } from '../tracks.js';
-import { toCarFile, fromCarFile, approveCode } from '../car-file.js';
+import { state, persist, thinkVariant, emit, CAR_COLORS } from '../state.ts';
+import { live } from '../student-code.ts';
+import { seedTrack } from '../tracks.ts';
+import { toCarFile, fromCarFile, approveCode } from '../car-file.ts';
 import { BOTS } from '../generated/bots.js';
-import { startCountdown, stopCountdown, updateCountdown } from '../countdown.js';
-import { drawScene, paintCar, paintSensors, trafficOn, setHud, lapText, showBanner } from '../stage.js';
-import { $, esc, secs, pct, options, setPressed, delegate, showError, avatarTag } from '../ui.js';
+import { startCountdown, stopCountdown, updateCountdown } from '../countdown.ts';
+import { drawScene, paintCar, paintSensors, trafficOn, setHud, lapText, showBanner } from '../stage.ts';
+import { $, esc, secs, pct, options, setPressed, delegate, showError, avatarTag } from '../ui.ts';
 
 const SOURCE_LABEL = { bot: 'бот', mine: 'мой', file: 'файл', cross: 'гибрид' };
 

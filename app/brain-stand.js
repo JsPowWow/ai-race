@@ -6,7 +6,7 @@ import { BUTTONS, NOTES } from '../engine/brain.ts';
 import { getTrainingTrack, pointAt } from '../engine/track.ts';
 import { parseCarFile } from '../engine/car-file.ts';
 import { thinkVariants, feedForward } from '../student/think.js';
-import { liveSize } from './ui.js';
+import { liveSize } from './ui.ts';
 
 const SECTION = 150; // шаг швов игрушечной трассы: перескок на секцию назад незаметен
 const LOOP_FROM = 1100; // участок «Разминки» от 1100 до 1250 — длинная прямая напротив старта, черта за кадром

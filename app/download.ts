@@ -7,7 +7,7 @@ const platform = typeof window.claude?.use === 'function'
 /** true — скачивать можно (внутри Claude это разрешает платформа) */
 export const canDownload = () => platform.then((d) => d !== null);
 
-export async function saveFile(filename, data, type = 'application/json') {
+export async function saveFile(filename: string, data: string, type = 'application/json'): Promise<void> {
   const downloads = await platform;
   if (downloads) return downloads.save({ filename, data });
   if (downloads === null) throw new Error('скачивание недоступно');
@@ -20,4 +20,4 @@ export async function saveFile(filename, data, type = 'application/json') {
 }
 
 /** Имя файла из свободного текста */
-export const safeFileName = (text) => text.replace(/[^\p{L}\p{N}_-]+/gu, '_').replace(/^_+|_+$/g, '') || 'file';
+export const safeFileName = (text: string): string => text.replace(/[^\p{L}\p{N}_-]+/gu, '_').replace(/^_+|_+$/g, '') || 'file';

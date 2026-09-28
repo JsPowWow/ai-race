@@ -2,9 +2,9 @@
 // Цель — сразу под названием. «Готово» отмечает шаг и открывает следующий. Теория и влияние на гонку — под «Что изучаем».
 // Отметки запоминаются в браузере по номерам шагов; сменились шаги (LESSONS_VERSION) — старые отметки забываем.
 import { LESSONS, LESSONS_VERSION } from './lessons.js';
-import { load, save } from './storage.js';
-import { on } from './state.js';
-import { $, delegate } from './ui.js';
+import { load, save } from './storage.ts';
+import { on } from './state.ts';
+import { $, delegate } from './ui.ts';
 
 /** @type {Record<string, any>} { v: 2, teach: [0, 2], … } — версия шагов и номера выполненных */
 const saved = load('lessonDone', {});

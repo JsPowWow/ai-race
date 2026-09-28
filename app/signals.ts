@@ -2,7 +2,7 @@
 // Вкладки на dommy не перерисовывают себя целиком: пришло событие — сигнал перечитал данные,
 // и страница обновила ровно те узлы, что от них зависят.
 import { signal } from '@reely/dommy';
-import { on } from './state.js';
+import { on } from './state.ts';
 
 /** События state.js (что каждое значит — там же) */
 export type AppEvent = 'champion' | 'reset' | 'code' | 'config' | 'library' | 'car' | 'garage' | 'save';

@@ -4,11 +4,11 @@
 // Перед тем как пересесть в другую машину, спрашиваем про неприменённый черновик сборки —
 // прямо на месте, где нажали: в плитке или под полкой.
 import { signal, untracked, For, Show } from '@reely/dommy';
-import { state, sizesOf, emit, on } from '../state.js';
-import type { Profile } from '../state.js';
-import { garage, MAX_CARS, switchCar, newCar, copyCar, deleteCar, exportCar, importCar, chooseFolder, allowFolder, stopFolder } from '../garage.js';
+import { state, sizesOf, emit, on } from '../state.ts';
+import type { Profile } from '../state.ts';
+import { garage, MAX_CARS, switchCar, newCar, copyCar, deleteCar, exportCar, importCar, chooseFolder, allowFolder, stopFolder } from '../garage.ts';
 import { avatarUrl } from '../../engine/car-file.ts';
-import { saveFile, safeFileName } from '../download.js';
+import { saveFile, safeFileName } from '../download.ts';
 import { fromEvents } from '../signals.ts';
 import { draft, resets, applyDraft, dropDraft } from './profile-build.tsx';
 

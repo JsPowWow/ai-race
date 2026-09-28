@@ -4,10 +4,10 @@ import { createStand } from '../brain-stand.js';
 import { createBrainBoard } from '../brain-board/board.js';
 import { withTraffic, trafficAt } from '../../engine/traffic.ts';
 import { Car, maxTicksFor } from '../../engine/car.ts';
-import { fromCarFile } from '../car-file.js';
-import { seedTrack } from '../tracks.js';
+import { fromCarFile } from '../car-file.ts';
+import { seedTrack } from '../tracks.ts';
 import { BOTS } from '../generated/bots.js';
-import { $, liveSize } from '../ui.js';
+import { $, liveSize } from '../ui.ts';
 
 const DEMO_SEED = 'витрина';
 const DEMO_SPEED = 3; // тиков за кадр

@@ -2,9 +2,9 @@
 import { createBrain, OUTPUT_LABELS, inputLabel } from '../../engine/brain.ts';
 import { drawNetwork, hitNetwork } from '../../engine/netviz.ts';
 import { mulberry32 } from '../../engine/utils.ts';
-import { state, sizesOf, setChampion } from '../state.js';
-import { remember } from '../library.js';
-import { $ } from '../ui.js';
+import { state, sizesOf, setChampion } from '../state.ts';
+import { remember } from '../library.ts';
+import { $ } from '../ui.ts';
 
 /**
  * getTrace()  — что «горит» в сети прямо сейчас (или null)

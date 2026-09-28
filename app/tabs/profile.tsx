@@ -7,9 +7,9 @@ import { Car } from '../../engine/car.ts';
 import { checkBrain, createBrain } from '../../engine/brain.ts';
 import type { Brain } from '../../engine/brain.ts';
 import { withTraffic } from '../../engine/traffic.ts';
-import { state, sizesOf, thinkFn } from '../state.js';
-import { live } from '../student-code.js';
-import { drawScene, paintCar, trafficOn, setHud } from '../stage.js';
+import { state, sizesOf, thinkFn } from '../state.ts';
+import { live } from '../student-code.ts';
+import { drawScene, paintCar, trafficOn, setHud } from '../stage.ts';
 import { createBrainBoard } from '../brain-board/board.js';
 import { SMOOTH, ANY_ACT } from '../brain-board/formula.js';
 import { element } from '../dom.ts';
@@ -85,9 +85,10 @@ function showBrain(): void {
   const act = shown().think === 'smooth' ? SMOOTH : ANY_ACT;
   board ??= createBrainBoard({ canvas: element<HTMLCanvasElement>('#profileBoard'), card: element('#profileFormula'), zoomBar: element<HTMLElement>('.profile-brain .zoom'), brain, act });
   board.setBrain(brain, act);
-  live.think.feedForward.lastTrace = null;
-  thinkFn(shown().think)(car.lastInputs, brain);
-  const trace: number[][] | null = live.think.feedForward.lastTrace;
+  const feed = live.think.feedForward;
+  feed.lastTrace = null;
+  thinkFn(shown().think)(car.lastInputs, brain); // feedForward запишет, что посчитал каждый слой
+  const trace = feed.lastTrace as number[][] | null; // TypeScript не знает, что вызов выше его поменял
   const now = performance.now();
   if (trace) board.frame(trace.map((layer) => [...layer]), [], (now - boardAt) / 1000);
   boardAt = now;

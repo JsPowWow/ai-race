@@ -16,11 +16,11 @@ import { COURSE_KEY } from '../generated/course-key.js';
 import { runJobs, computeMode } from '../final/pool.js';
 import { StageReplay, countStatuses, drawStage, drawProgressStrip } from '../final/show.js';
 import { resultText, toMarkdown, toCsv, toJson } from '../final/export.js';
-import { startCountdown, stopCountdown, updateCountdown } from '../countdown.js';
-import { drawScene, setHud, lapText, showBanner } from '../stage.js';
-import { saveFile } from '../download.js';
-import { state } from '../state.js';
-import { $, esc, secs, setPressed, delegate, avatarTag } from '../ui.js';
+import { startCountdown, stopCountdown, updateCountdown } from '../countdown.ts';
+import { drawScene, setHud, lapText, showBanner } from '../stage.ts';
+import { saveFile } from '../download.ts';
+import { state } from '../state.ts';
+import { $, esc, secs, setPressed, delegate, avatarTag } from '../ui.ts';
 
 const STAGE_COUNT = STAGES + 1; // этапы и суперфинал
 const BOARD_EVERY = 6;          // обновлять таблицу раз в столько кадров

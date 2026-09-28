@@ -5,9 +5,9 @@ import { signal, For } from '@reely/dommy';
 import { rays, rayCount, BACK_SPREAD } from '../../engine/car.ts';
 import { LIMITS, inputCount, OUTPUTS } from '../../engine/brain.ts';
 import { BUDGET, PRICES, cost } from '../../engine/build.ts';
-import { state, sizesOf, on } from '../state.js';
-import { live } from '../student-code.js';
-import { changeShape } from '../library.js';
+import { state, sizesOf, on } from '../state.ts';
+import { live } from '../student-code.ts';
+import { changeShape } from '../library.ts';
 import { fromEvents } from '../signals.ts';
 
 export type Shape = typeof state.config;

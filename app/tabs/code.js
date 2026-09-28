@@ -1,8 +1,8 @@
 // Вкладка «Код» (урок 3): редактор файлов student/ и проверки к ним.
-import { FILES, live, evalAvailable, getSource, applySource, resetSource, isEdited, errorLine, beginCodeStartup, endCodeStartup } from '../student-code.js';
+import { FILES, live, evalAvailable, getSource, applySource, resetSource, isEdited, errorLine, beginCodeStartup, endCodeStartup } from '../student-code.ts';
 import { runTests } from '../tests.js';
-import { emit } from '../state.js';
-import { $, esc, delegate } from '../ui.js';
+import { emit } from '../state.ts';
+import { $, esc, delegate } from '../ui.ts';
 
 const STATUS_LABEL = { pass: 'OK', advice: 'Совет', fail: 'Ошибка' };
 
