@@ -28,7 +28,7 @@ test('всё на максимум не влезает в бюджет', () => {
 });
 
 test('боты собраны по правилам', () => {
-  for (const name of ['Ржавое ведро', 'Торетто', 'Бабушка']) {
+  for (const name of ['Дедушка', 'Торетто', 'Бабушка']) {
     const b = bot(name);
     assert.ok(cost({ sensors: b.sensors, hidden: b.layers.slice(1, -1) }) <= BUDGET, name);
   }

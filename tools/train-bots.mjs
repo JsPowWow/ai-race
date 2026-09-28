@@ -19,7 +19,7 @@ const bySpeed = FITNESS.fast.fitness;
 const RECIPES = [
   {
     // учился на одной трассе и без машин — пример переобучения
-    name: 'Ржавое ведро', color: '#b5651d', think: 'step',
+    name: 'Дедушка', color: '#b5651d', think: 'step',
     sensors: { count: 5, spread: 90, length: 160 }, hidden: [6],
     generations: 8, population: 80, rate: 0.1, fitness: byDistance,
     tracksFor: () => [training('warmup', 'none')],
