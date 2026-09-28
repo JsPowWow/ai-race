@@ -246,7 +246,7 @@ function layerFrames(ctx, lay, c, pad = [16, 16], buttons = false, part = 'box')
     const tx = right ? x1 : x0;
     if (c.bg) { // подложка: подпись поверх нитей остаётся читаемой
       const w = Math.max(ctx.measureText(t1).width, ctx.measureText(t2).width) + 6;
-      ctx.fillStyle = c.bg; ctx.fillRect(right ? tx - w + 3 : tx - 3, y0 - 29, w, 27);
+      ctx.fillStyle = c.bg; roundRect(ctx, right ? tx - w + 3 : tx - 3, y0 - 29, w, 27, 4); ctx.fill(); // непрозрачная: яркие нити не перечёркивают подпись
     }
     ctx.fillStyle = c.title; ctx.fillText(t1, tx, y0 - 17);
     ctx.fillStyle = c.sub; ctx.fillText(t2, tx, y0 - 5);
@@ -272,7 +272,7 @@ function fireRGB(t) {
 /** «Огонь»: один цвет, где идёт сигнал — там разгорается. decay — как быстро гаснет (секунды). */
 function drawFire(ctx, lay, key, decay = DECAY, framed = false) {
   // рамки — под связями: нити идут поверх, как провода по стенду
-  const frames = (part) => layerFrames(ctx, lay, { frame: 'rgb(255 168 24 / 0.28)', title: '#ffcf8a', sub: '#e0703a', bg: 'rgb(14 12 11 / 0.85)' }, [lay.r + 8, lay.r + (lay.vertical ? 24 : 8)], true, part);
+  const frames = (part) => layerFrames(ctx, lay, { frame: 'rgb(255 168 24 / 0.28)', title: '#ffcf8a', sub: '#e0703a', bg: '#0e0c0b' }, [lay.r + 8, lay.r + (lay.vertical ? 24 : 8)], true, part);
   if (framed) frames('box');
   brain().layers.forEach((L, k) => {
     const hot = [];
@@ -430,7 +430,7 @@ const VARIANTS = [
       const z = lay.zoom, px = 1 / z; // толщины — в пикселях экрана: при приближении линии тоньше и чётче
       const detail = Math.max(0, Math.min(1, (z - 1.3) / 0.4)); // числа проступают между ×1,3 и ×1,7
       const last = lay.sizes.length - 1;
-      const frames = (part) => layerFrames(ctx, lay, { frame: 'rgb(150 165 255 / 0.35)', title: '#b8c4ff', sub: '#ff7a6b', bg: 'rgb(10 12 34 / 0.8)' }, [16, 16], false, part);
+      const frames = (part) => layerFrames(ctx, lay, { frame: 'rgb(150 165 255 / 0.35)', title: '#b8c4ff', sub: '#ff7a6b', bg: '#0a0c22' }, [16, 16], false, part);
       frames('box');
       ctx.globalCompositeOperation = 'lighter'; // нити складываются: где их много — свечение
       brain().layers.forEach((L, k) => {
@@ -469,7 +469,7 @@ const VARIANTS = [
         ctx.fillStyle = '#e8ecff'; ctx.textBaseline = 'middle';
         ctx.font = `600 12px ${MONO}`;
         if (lay.vertical) { ctx.textAlign = 'center'; ctx.fillText(OUT[i], x, y + 24); ctx.fillText(pct(textOf(last, i)).trim(), x, y + 39); }
-        else if (lay.narrow) { ctx.textAlign = 'left'; ctx.fillText(OUT[i], x + r + 8, y - 8); ctx.fillText(pct(textOf(last, i)).trim(), x + r + 8, y + 8); }
+        else if (lay.narrow) { ctx.textAlign = 'left'; ctx.fillText(OUT[i], x + 22, y - 8); ctx.fillText(pct(textOf(last, i)).trim(), x + 22, y + 8); } // за рамкой слоя
         else { ctx.textAlign = 'left'; ctx.fillText(`${OUT[i].padEnd(7, ' ')}${pct(textOf(last, i))}`, x + 24, y); }
       });
     },
