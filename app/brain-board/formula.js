@@ -1,5 +1,6 @@
 // Формула нейрона «в столбик»: те же округлённые числа, что в узлах, поэтому сумма у новичка сходится.
 import { esc } from '../ui.js';
+import { BUTTONS } from '../../engine/brain.js';
 
 /** Числа без дребезга: знак всегда, две цифры, ширина одна и та же */
 export const fmt = (v) => (v < 0 ? '−' : '+') + Math.min(0.99, Math.abs(v)).toFixed(2).replace(/^0/, '');
@@ -31,16 +32,22 @@ export function formulaHTML(brain, trace, k, i, { inputNames, outNames, act }) {
   const bias = round2(L.biases[i]);
   const z = round2(sum - bias);
   const isOut = k === brain.layers.length;
-  const value = isOut ? act.out(z) : act.hidden(z);
+  const value = trace[k][i]; // что нейрон сказал на самом деле — верно для любого варианта «думания»
   const rows = top.map((t) => `<span><span class="src">${esc(source(t.n).padEnd(3, ' '))}</span> ${fmt(t.a)} × ${fmtW(t.w)} = ${fmtW(t.p)}</span>`).join('');
   const more = rest > 0 ? `<span class="more">и ещё ${rest} ${weak(rest)}</span>` : '';
-  return `<b>${isOut ? `Кнопка «${esc(outNames[i])}»` : `Нейрон ${i + 1}`}</b>${rows}${more}
+  const title = !isOut ? `Нейрон ${i + 1}` : i < BUTTONS.length ? `Кнопка «${esc(outNames[i])}»` : `Заметка ${esc(outNames[i])}`;
+  return `<b>${title}</b>${rows}${more}
     <span class="sep">сумма ${fmtW(sum)} − порог ${bias < 0 ? `(${fmtW(bias)})` : fmtW(bias)} = <em>${fmtW(z)}</em></span>
     <span>${(isOut ? act.outText : act.hiddenText)(fmtW(z))} = <em>${isOut ? pct(value).trim() : fmt(value)}</em></span>`;
 }
 
-/** Вариант «плавный»: внутри tanh(2z), на выходе σ(3z) — как в student/think.js */
+/** Как подписать активацию. «Плавный»: внутри tanh(2z), на выходе σ(3z) — как в student/think.js */
 export const SMOOTH = {
-  hidden: (z) => Math.tanh(2 * z), hiddenText: (z) => `tanh(2 × ${z})`,
-  out: (z) => 1 / (1 + Math.exp(-3 * z)), outText: (z) => `σ(3 × ${z})`,
+  hiddenName: 'tanh(2z)', hiddenText: (z) => `tanh(2 × ${z})`,
+  outName: 'σ(3z)', outText: (z) => `σ(3 × ${z})`,
+};
+/** Любой другой вариант (ступенька, свой): формулу не знаем — пишем f(z), а значение берём настоящее */
+export const ANY_ACT = {
+  hiddenName: '', hiddenText: (z) => `f(${z})`,
+  outName: '', outText: (z) => `f(${z})`,
 };

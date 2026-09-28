@@ -14,8 +14,8 @@
 <link rel="icon" href="app/icon.svg" type="image/svg+xml">
 <link rel="preload" href="app/fonts/rubik-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="modulepreload" href="app/generated/chunks/chunk-UPBMMT5G.js">
-<link rel="stylesheet" href="app/generated/app.css?v=69dc44b026">
-<script type="module" src="app/generated/app.js?v=1708fc8886"></script>
+<link rel="stylesheet" href="app/generated/app.css?v=d2a2387cb7">
+<script type="module" src="app/generated/app.js?v=9fc1094404"></script>
 </head>
 <body>
 <a class="skip-link" href="#content">К содержимому</a>
@@ -201,6 +201,21 @@
         <button data-cam="follow" aria-pressed="false">За лидером</button>
       </div>
     </div>
+
+    <section class="block leader-brain" data-panel="train" hidden>
+      <h2>Мозг лидера</h2>
+      <p class="hint" id="leaderHint">Нажми «Старт» — здесь загорится мозг машины, которая едет впереди.</p>
+      <div class="brain-board">
+        <div class="brain-board-bar">
+          <span>Табло мозга</span>
+          <div class="zoom" role="group" aria-label="Масштаб табло"><button class="btn" data-z="in" aria-label="Приблизить">+</button><button class="btn" data-z="out" aria-label="Отдалить" disabled>−</button><button class="btn" data-z="reset" aria-label="Обычный масштаб" hidden>1:1</button></div>
+        </div>
+        <div class="brain-board-screen">
+          <canvas id="leaderBoard" aria-label="Схема нейросети лидера роя: что он видит и что жмёт"></canvas>
+          <div class="formula" id="leaderFormula" hidden></div>
+        </div>
+      </div>
+    </section>
 
     <div class="toolbar" data-for="exam" hidden>
       <button class="btn primary" id="eRun">Проверить чемпиона</button>

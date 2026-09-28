@@ -4,6 +4,10 @@
 .brain-board .zoom { display: flex; gap: 4px; }
 .brain-board .zoom .btn { min-inline-size: 36px; min-block-size: 36px; padding-inline: 8px; font: 600 15px/1 var(--mono); }
 .brain-board .zoom [data-z="reset"] { font-size: 12px; }
+/* у «Мозга лидера» свой заголовок — подпись «Табло мозга» не нужна */
+.leader-brain .brain-board-bar > span { display: none; }
+.leader-brain .brain-board-bar { justify-content: flex-end; }
+
 /* на широком экране зум — внутри табло, в правом нижнем углу: табло целиком влезает в экран вместе со стендом */
 @media (min-width: 901px) {
   .brain-board { position: relative; }

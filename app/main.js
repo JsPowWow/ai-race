@@ -9,7 +9,7 @@ import { steerWith } from './manual-drive.js';
 import { onStorageFull, load, save, remove } from './storage.js';
 import { checkBrain } from '../engine/brain.js';
 import { $, $$, esc, secs, pct, delegate } from './ui.js';
-import { trainTab, updateTraining, isTraining } from './tabs/train.js';
+import { trainTab, updateTraining, isTraining, redrawLeaderBrain } from './tabs/train.js';
 import { codeTab, runAllTests } from './tabs/code.js';
 import { examTab } from './tabs/exam.js';
 import { raceTab } from './tabs/race.js';
@@ -106,6 +106,7 @@ function frame() {
 function redrawCharts() {
   readPalette();
   if (state.tab === 'intro') redrawIntro();
+  if (state.tab === 'train') redrawLeaderBrain();
   if (state.tab === 'teach') {
     renderNetwork();
     redrawLoss();

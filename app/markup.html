@@ -182,6 +182,21 @@
       </div>
     </div>
 
+    <section class="block leader-brain" data-panel="train" hidden>
+      <h2>Мозг лидера</h2>
+      <p class="hint" id="leaderHint">Нажми «Старт» — здесь загорится мозг машины, которая едет впереди.</p>
+      <div class="brain-board">
+        <div class="brain-board-bar">
+          <span>Табло мозга</span>
+          <div class="zoom" role="group" aria-label="Масштаб табло"><button class="btn" data-z="in" aria-label="Приблизить">+</button><button class="btn" data-z="out" aria-label="Отдалить" disabled>−</button><button class="btn" data-z="reset" aria-label="Обычный масштаб" hidden>1:1</button></div>
+        </div>
+        <div class="brain-board-screen">
+          <canvas id="leaderBoard" aria-label="Схема нейросети лидера роя: что он видит и что жмёт"></canvas>
+          <div class="formula" id="leaderFormula" hidden></div>
+        </div>
+      </div>
+    </section>
+
     <div class="toolbar" data-for="exam" hidden>
       <button class="btn primary" id="eRun">Проверить чемпиона</button>
       <span class="note" id="eReplayNote">Щёлкни строку в таблице, чтобы посмотреть заезд</span>

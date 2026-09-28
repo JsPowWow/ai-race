@@ -210,7 +210,7 @@ function frameBoxes(lay) {
 function frameTitles(ctx, { lay, zoom, labels }, skin, boxes) {
   ctx.font = `600 ${12 * Math.min(1, 1 / Math.sqrt(zoom))}px ${MONO}`; ctx.textBaseline = 'alphabetic';
   for (const b of boxes) {
-    const t = labels.frames[b.id.startsWith('hidden') ? 'hidden' : b.id];
+    const t = labels.frames[b.id];
     if (!t) continue;
     const [t1, t2] = lay.narrow ? t[1] : t[0];
     const right = b.id === 'buttons' || b.id === 'notesOut';

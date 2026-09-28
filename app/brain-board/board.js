@@ -1,6 +1,8 @@
-// «Табло мозга»: живая схема сети. Снаружи — одна функция и три метода; внутри — раскладка, «теплота»,
-// импульсы, формула нейрона, зум и нажатие на сенсор.
+// «Табло мозга»: живая схема сети. Снаружи — одна функция и три метода; внутри — раскладка, подписи,
+// «теплота», импульсы, формула нейрона, зум и нажатие на сенсор. Форму мозга (сенсоры, слои, заметки)
+// табло узнаёт из самого мозга: она одна на весь курс (engine/brain.js).
 import { liveSize } from '../ui.js';
+import { inputLabels, OUTPUT_LABELS, NOTES } from '../../engine/brain.js';
 import { layout, buttonCenter } from './layout.js';
 import { formulaHTML, SMOOTH } from './formula.js';
 import { drawFire, readSkin } from './fire-skin.js';
@@ -9,17 +11,35 @@ const ATTACK = 0.04, DECAY = 0.3; // секунды: вспыхивает быс
 const MAX_ZOOM = 4;
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
+/** Подписи табло для мозга этой формы. Рамки: [[обычная, пояснение], [для узкого экрана]] */
+function labelsFor(sizes, act) {
+  const n = (sizes[0] - 1 - NOTES) / 2;
+  /** @type {Record<string, string[][]>} */
+  const frames = {
+    input: [[`СЕНСОРЫ s1–s${n} и скорость v`, 'пунктир — мгновение назад'], ['СЕНСОРЫ и v', '']],
+    notesIn: [['ЗАМЕТКИ m1–m3', 'с прошлого шага'], ['ЗАМЕТКИ', '']],
+    buttons: [['ПУЛЬТ', act.outName], ['ПУЛЬТ', '']],
+    notesOut: [['ЗАМЕТКИ', 'на следующий шаг'], ['ЗАМЕТКИ', '']],
+  };
+  sizes.slice(1, -1).forEach((size, k) => { frames[`hidden${k}`] = [[`СЛОЙ · ${size} нейронов`, act.hiddenName], [`СЛОЙ · ${size}`, '']]; });
+  return {
+    n, inputs: inputLabels(n), outputs: OUTPUT_LABELS, frames,
+    loop: ['заметки → на вход следующего шага', '→ на следующий шаг'],
+    past: ['было', 'сейчас'], // над первой парой кружков
+  };
+}
+
 /**
  * @param {{ canvas: HTMLCanvasElement, card: HTMLElement, zoomBar?: HTMLElement | null, brain: object,
- *   labels: { inputs: string[], outputs: string[], frames: Record<string, string[][]>, loop?: string[], past?: string[] }, act?: typeof SMOOTH,
- *   sensorCount: number, notes: number, onSensor?: (i: number, down: boolean) => void }} opts
- *   frames — подписи рамок: { input, notesIn, hidden, buttons, notesOut } → [[обычная, пояснение], [для узкого экрана]]
- *   onSensor — человек зажал (down) или отпустил кружок сенсора i
+ *   act?: typeof SMOOTH, onSensor?: ((i: number, down: boolean) => void) | null }} opts
+ *   act — как подписать активации (SMOOTH или ANY_ACT из formula.js)
+ *   onSensor — человек зажал (down) или отпустил кружок сенсора i; null — сенсоры не нажимаются
  */
-export function createBrainBoard({ canvas, card, zoomBar = null, brain, labels, sensorCount, notes, act = SMOOTH, onSensor = () => {} }) {
+export function createBrainBoard({ canvas, card, zoomBar = null, brain, act = SMOOTH, onSensor = null }) {
   const ctx = canvas.getContext('2d');
   const size = liveSize(canvas);
-  const sizes = [brain.layers[0].weights.length, ...brain.layers.map((l) => l.biases.length)];
+  const sizesOf = (b) => [b.layers[0].weights.length, ...b.layers.map((l) => l.biases.length)];
+  let sizes = sizesOf(brain), labels = labelsFor(sizes, act);
   let skin = readSkin();
   let trace = null, shown = null, text = null, lastText = 0, lastFormula = 0;
   let lay = null, mouse = null, visible = true;
@@ -70,7 +90,7 @@ export function createBrainBoard({ canvas, card, zoomBar = null, brain, labels, 
     if (!lay) return -1;
     const [x, y] = toBoard(m);
     // нажимаются только сенсоры «сейчас»: скорость, прошлое и заметки мозг считает сам
-    return lay.pos[0].findIndex(([px, py], n) => n < sensorCount && Math.hypot(x - px, y - py) < lay.r + 6);
+    return lay.pos[0].findIndex(([px, py], n) => n < labels.n && Math.hypot(x - px, y - py) < lay.r + 6);
   };
   function zoomAt(factor, cx, cy) {
     const s = Math.max(1, Math.min(MAX_ZOOM, view.s * factor));
@@ -87,7 +107,7 @@ export function createBrainBoard({ canvas, card, zoomBar = null, brain, labels, 
   canvas.style.touchAction = 'pan-y';
   canvas.addEventListener('pointerdown', (e) => {
     const m = local(e);
-    const i = sensorAt(m);
+    const i = onSensor ? sensorAt(m) : -1;
     if (i >= 0) { // держишь кружок сенсора — он «видит» стену, пока не отпустишь
       holding = { id: e.pointerId, i }; onSensor(i, true); canvas.setPointerCapture(e.pointerId); return;
     }
@@ -101,7 +121,7 @@ export function createBrainBoard({ canvas, card, zoomBar = null, brain, labels, 
   canvas.addEventListener('pointermove', (e) => {
     const m = local(e);
     mouse = m;
-    canvas.style.cursor = sensorAt(m) >= 0 ? 'pointer' : 'crosshair';
+    canvas.style.cursor = onSensor && sensorAt(m) >= 0 ? 'pointer' : 'crosshair';
     if (touches.has(e.pointerId)) touches.set(e.pointerId, m);
     if (pinch && touches.size === 2) {
       const [a, b] = [...touches.values()];
@@ -183,7 +203,7 @@ export function createBrainBoard({ canvas, card, zoomBar = null, brain, labels, 
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.fillStyle = skin.bg; ctx.fillRect(0, 0, W, H);
       ctx.setTransform(dpr * view.s, 0, 0, dpr * view.s, dpr * view.x, dpr * view.y); // зум — одной матрицей
-      lay = layout(sizes, sensorCount, notes, W, H);
+      lay = layout(sizes, labels.n, NOTES, W, H);
       drawFire(ctx, {
         lay, brain, sigs, heat, labels, zoom: view.s, pressed, pulses: pulseList,
         act: (k, i) => trace[k][i], text: (k, i) => text[k][i],
@@ -192,5 +212,14 @@ export function createBrainBoard({ canvas, card, zoomBar = null, brain, labels, 
     },
     /** После смены темы: перечитать цвета */
     readColors() { skin = readSkin(); },
+    /** Показать другой мозг (лидер роя сменился). Новая форма — всё «остывает» и считается заново */
+    setBrain(next, nextAct = act) {
+      const nextSizes = sizesOf(next);
+      if (nextSizes.join() !== sizes.join() || nextAct !== act) {
+        sizes = nextSizes; act = nextAct; labels = labelsFor(sizes, act);
+        heatMap.clear(); pulseList.length = 0; shown = null; text = null; card.hidden = true;
+      }
+      brain = next;
+    },
   };
 }

@@ -2,7 +2,6 @@
 import { Camera, fitCanvas, clear, drawTrack, drawTraffic, drawCar } from '../../engine/render.js';
 import { createStand } from '../brain-stand.js';
 import { createBrainBoard } from '../brain-board/board.js';
-import { inputLabels, OUTPUT_LABELS, NOTES } from '../../engine/brain.js';
 import { withTraffic, trafficAt } from '../../engine/traffic.js';
 import { Car, maxTicksFor } from '../../engine/car.js';
 import { fromCarFile } from '../car-file.js';
@@ -26,22 +25,7 @@ let pauseUntil = 0;
 // «Потрогай мозг»: стенд и табло одного бота, зажатый сенсор общий
 const stand = createStand($('#standCanvas'), toretto);
 const board = createBrainBoard({
-  canvas: $('#brainBoard'), card: $('#brainFormula'), zoomBar: $('.brain-board .zoom'), brain: stand.brain, sensorCount: stand.sensorCount,
-  notes: NOTES,
-  labels: {
-    inputs: inputLabels(stand.sensorCount),
-    outputs: OUTPUT_LABELS,
-    // [обычная подпись, короткая — для узкого экрана]
-    frames: {
-      input: [[`СЕНСОРЫ s1–s${stand.sensorCount} и скорость v`, 'пунктир — мгновение назад'], ['СЕНСОРЫ и v', '']],
-      notesIn: [['ЗАМЕТКИ m1–m3', 'с прошлого шага'], ['ЗАМЕТКИ', '']],
-      hidden: [[`СЛОЙ · ${toretto.layers[1]} нейронов`, 'tanh(2z)'], [`СЛОЙ · ${toretto.layers[1]}`, '']],
-      buttons: [['ПУЛЬТ', 'σ(3z)'], ['ПУЛЬТ', '']],
-      notesOut: [['ЗАМЕТКИ', 'на следующий шаг'], ['ЗАМЕТКИ', '']],
-    },
-    loop: ['заметки → на вход следующего шага', '→ на следующий шаг'],
-    past: ['было', 'сейчас'], // подписи над первой парой кружков
-  },
+  canvas: $('#brainBoard'), card: $('#brainFormula'), zoomBar: $('.intro-brain .zoom'), brain: stand.brain,
   onSensor: (i, down) => stand.press(i, down),
 });
 let lastFrame = performance.now();

@@ -5,6 +5,8 @@ import { cloneBrain, checkBrain } from '../../engine/brain.js';
 import { Evolution } from '../../engine/evolution.js';
 import { TRAFFIC_LEVELS, withTraffic } from '../../engine/traffic.js';
 import { drawChart } from '../../engine/netviz.js';
+import { createBrainBoard } from '../brain-board/board.js';
+import { SMOOTH, ANY_ACT } from '../brain-board/formula.js';
 import { state, persist, sizesOf, thinkFn, setChampion, on } from '../state.js';
 import { setBrain, remember, renderLibrary } from '../library.js';
 import { live, errorLine } from '../student-code.js';
@@ -22,6 +24,28 @@ let picked = [];      // машины, выбранные щелчком в ро
 
 export const isTraining = () => running;
 
+// «Мозг лидера»: то же табло, что на титульной, только мозг — у машины, которая сейчас впереди
+const LEADER_IDLE = 'Нажми «Старт» — здесь загорится мозг машины, которая едет впереди.';
+const LEADER_HINT = 'Горит то, что лидер видит и жмёт прямо сейчас. Пунктир — память: сенсоры мгновение назад и заметки m1…m3 — их рой учится писать сам.';
+let board = null, boardAt = performance.now();
+function showLeaderBrain(lead) {
+  const ready = Boolean(lead?.brain && lead.lastInputs);
+  const hint = ready ? LEADER_HINT : LEADER_IDLE;
+  if ($('#leaderHint').textContent !== hint) $('#leaderHint').textContent = hint; // каждый кадр — только если поменялось
+  $('.leader-brain .brain-board').hidden = !ready;
+  if (!ready) return;
+  const act = state.config.think === 'smooth' ? SMOOTH : ANY_ACT;
+  board ??= createBrainBoard({ canvas: $('#leaderBoard'), card: $('#leaderFormula'), zoomBar: $('.leader-brain .zoom'), brain: lead.brain, act });
+  board.setBrain(lead.brain, act);
+  live.think.feedForward.lastTrace = null;
+  lead.think(lead.lastInputs, lead.brain); // пересчитать ход мысли лидера на его последних входах
+  const trace = live.think.feedForward.lastTrace;
+  const now = performance.now();
+  if (trace) board.frame(trace.map((l) => [...l]), [], (now - boardAt) / 1000);
+  boardAt = now;
+}
+export const redrawLeaderBrain = () => board?.readColors();
+
 export const trainTab = {
   enter() {
     renderPanel();
@@ -36,6 +60,7 @@ export const trainTab = {
     }
     for (const car of picked) if (car !== lead) paintCar(car, { color: state.profile.color, highlight: true });
     if (lead) paintCar(lead, { color: state.profile.color, sensors: true, highlight: picked.includes(lead) });
+    showLeaderBrain(lead);
     setHud([
       `поколение <b>${state.generation + 1}</b>`,
       `едут <b>${evo.cars.filter((c) => !c.done).length}</b>/${evo.cars.length}`,
@@ -63,6 +88,7 @@ function drawIdle() {
   drawScene(idleTrack, { traffic: trafficOn(idleTrack, 0) });
   paintCar(new Car(idleTrack, { sensors: state.config.sensors }), { color: state.profile.color });
   setHud([`<b>${esc(idleTrack.name)}</b>`, state.champion ? `продолжим с поколения ${state.generation}` : 'нажми «Старт»']);
+  showLeaderBrain(null);
 }
 
 const leaderOf = (cars) =>
