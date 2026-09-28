@@ -30,7 +30,7 @@ type FinalModule = { finalTab: Tab; leaveFinal(): void };
 
 const TABS: Record<Exclude<TabId, 'final'>, Tab> = { intro: introTab, profile: profileTab, teach: teachTab, train: trainTab, code: codeTab, exam: examTab, race: raceTab };
 let finalModule: FinalModule | null = null;
-const loadFinal = async (): Promise<FinalModule> => (finalModule ??= await import('./tabs/final.js'));
+const loadFinal = async (): Promise<FinalModule> => (finalModule ??= await import('./tabs/final.tsx'));
 /** Вкладка, которая сейчас рисует кадры */
 let current: Tab | null = null;
 /** Старые адреса вкладок: «Гараж» и «Учитель» стали одной вкладкой «Я учу» */
