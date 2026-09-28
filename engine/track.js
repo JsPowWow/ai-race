@@ -130,7 +130,8 @@ function makeWalls(roads, hw) {
   const lines = [];
   for (const r of roads) {
     const n = r.center.length;
-    lines.push(r.left, r.right, [r.left[n - 1], r.right[n - 1]]);          // края и стенка в конце
+    lines.push(r.left, r.right);                                           // края
+    if (r.toIdx === undefined) lines.push([r.left[n - 1], r.right[n - 1]]); // стенка в конце — если дорога не возвращается
     if (r === roads[0]) lines.push([r.left[0], r.right[0]]);              // стенка за стартом
   }
   const walls = [];
@@ -149,7 +150,8 @@ function makeWalls(roads, hw) {
 
 /**
  * Собрать трассу из опорных точек.
- * branches — тупики: ветки, которые отходят от основной дороги (их центральная линия начинается на ней).
+ * branches — ветки, которые отходят от основной дороги (их центральная линия начинается на ней).
+ *   rejoin: true — ветка-петля: кончается снова на основной дороге, стенки в конце нет.
  * signs — дорожные знаки у основной дороги: { s, dir } — на расстоянии s от начала, dir = -1 налево, 1 направо.
  * smooth: false — точки уже плотные (лабиринт), сглаживать не нужно.
  */
@@ -159,7 +161,8 @@ export function buildTrack({ name, points, width = TRACK_WIDTH, lanes = LANES, i
   for (const b of branches) {
     const road = makeRoad(resample(b.points, SPACING), width, lanes);
     const at = nearestOn(main, b.points[0].x, b.points[0].y);
-    roads.push({ ...road, fromIdx: at.idx, fromS: at.s });
+    const end = b.rejoin && nearestOn(main, b.points.at(-1).x, b.points.at(-1).y);
+    roads.push({ ...road, fromIdx: at.idx, fromS: at.s, ...(end && { toIdx: end.idx, toS: end.s }) });
   }
   const walls = makeWalls(roads, width / 2);
   const segList = [];
@@ -201,8 +204,11 @@ export function pointAt(track, s) {
  * Где машина на трассе: ближайшая точка центральной линии рядом с прошлой (road — номер дороги, hint — отрезок).
  * Ищем только рядом — на пару отрезков вокруг: за тик машина проезжает меньше одного.
  * Тогда на перекрёстке, где бордюров нет, прогресс не «перескочит» на другой участок трассы и не «поползёт» за ним.
- * У развилки смотрим и на соседнюю дорогу — так машина переезжает с основной на тупик и обратно.
- * progress — сколько проехано к финишу: в тупике чем глубже, тем меньше (финиш-то в другой стороне).
+ * У развилки смотрим и на соседнюю дорогу — так машина переезжает с основной на ветку и обратно,
+ * а в конце петли — снова на основную.
+ * s — сколько проехано к финишу. На ветке финиш в другой стороне, поэтому s падает: в тупике — чем глубже,
+ * тем меньше, на петле — плавно до того места, где она выходит на дорогу.
+ * along — сколько проехано по своей дороге: так машина понимает, что едет, а не стоит (см. Car.step).
  */
 export function projectProgress(track, x, y, hint, road = 0) {
   const roads = track.roads;
@@ -214,12 +220,20 @@ export function projectProgress(track, x, y, hint, road = 0) {
   if (road === 0) {
     for (let k = 1; k < roads.length; k++) if (Math.abs(roads[k].fromIdx - hint) <= 16) tryRoad(k, 0, 16);
   } else {
-    tryRoad(0, roads[road].fromIdx - 6, roads[road].fromIdx + 16);
+    const r = roads[road];
+    tryRoad(0, r.fromIdx - 6, r.fromIdx + 16);
+    if (r.toIdx !== undefined && hint > r.center.length - 20) tryRoad(0, r.toIdx - 16, r.toIdx + 6);
   }
   // Дальше края дороги — значит, машина съехала на другой участок (на перекрёстке): прогресс стоит, где был
   if (best.d2 > (track.width / 2 + 10) ** 2) best = { road, idx: hint, s: roads[road].cum[hint], d2: best.d2 };
-  const progress = best.road === 0 ? best.s : roads[best.road].fromS - best.s;
-  return { road: best.road, idx: best.idx, s: progress };
+  return { road: best.road, idx: best.idx, s: progressOn(roads[best.road], best.s), along: best.s };
+}
+
+/** Прогресс к финишу для точки на дороге road в along px от её начала */
+function progressOn(road, along) {
+  if (road.fromIdx === undefined) return along;                                  // основная дорога
+  if (road.toIdx === undefined) return road.fromS - along;                       // тупик
+  return road.fromS + (road.toS - road.fromS) * (along / road.total);            // петля
 }
 
 export const SIGN_VIEW = 100; // знак видно за столько px до него — пока проезжаешь рядом
@@ -231,7 +245,7 @@ export function signAt(track, road, s) {
   return 0;
 }
 
-/** Сколько развилок позади: прогресс ушёл за развилку дальше, чем пускает тупик, — значит, свернул верно */
+/** Сколько развилок позади: прогресс ушёл за развилку дальше, чем пускает ветка, — значит, свернул верно */
 export function forksPassed(track, s) {
   return track.roads.slice(1).filter((r) => s > r.fromS + 300).length;
 }
@@ -292,11 +306,11 @@ export const TRAINING_TRACKS = [
     // но у самой развилки его уже не видно: куда повернуть, надо помнить
     id: 'maze', name: 'Лабиринт',
     maze: [
-      ['line', 520], ['fork', 1],
-      ['line', 260], ['arc', -60, 320], ['line', 400], ['fork', -1],
+      ['line', 600], ['fork', 1],
+      ['line', 260], ['arc', -60, 320], ['line', 560], ['fork', -1],
       ['line', 240], ['arc', 60, 320], ['line', 700], ['loop', 1], ['line', 900], ['arc', 90, 230],
-      ['line', 440], ['fork', -1],
-      ['line', 440], ['fork', 1],
+      ['line', 560], ['fork', -1],
+      ['line', 560], ['fork', 1],
       ['line', 420],
     ],
   },

@@ -21,7 +21,7 @@ let evo = null;       // идущая эволюция (null — ещё не з�
 let running = false;
 let track = null;     // трасса текущего поколения
 let picked = [];      // машины, выбранные щелчком в родители
-let leaderInDeadEnd = false; // лидер прошлого поколения застрял в тупике «Лабиринта»
+let leader = { onLoop: false, detours: 0 }; // лидер прошлого поколения: остался ли на петле «Лабиринта», сколько раз свернул не туда
 
 export const isTraining = () => running;
 
@@ -142,7 +142,7 @@ function endGeneration() {
   state.history = [...state.history, entry].slice(-300);
   setChampion(cloneBrain(evo.parent), { by: 'train', generation: evo.generation });
   if (track.id === 'snake') emit('did', 'train:snake'); // шаг 1 урока 2 — рой учится на «Змейке»
-  leaderInDeadEnd = parentCar.road > 0;
+  leader = { onLoop: parentCar.road > 0, detours: parentCar.detours };
   if (isMaze() && forksPassed(track, parentCar.bestS) >= 2) emit('did', 'train:maze'); // шаг 3 — рой прошёл хотя бы две развилки
   addToHall(entry, report);
   showStudentErrors();
@@ -283,8 +283,11 @@ function swarmAdvice() {
   const h = sameTrackHistory(), last = h.at(-1);
   if (!last) return 'Смотри, какая машина уедет дальше всех: от неё пойдёт следующее поколение. Долго — жми «Турбо».';
   const tail = h.slice(-SAME_GENS);
+  if (isMaze() && last.finished && leader.detours > 0) {
+    return `Лабиринт пройден, но не с первого раза: кругов по петле у лидера — ${leader.detours}. Фитнесу «за расстояние» всё равно — кто доехал, тот и хорош. Хвалить за время научит урок 3.`;
+  }
   if (isMaze() && last.finished) {
-    return 'Лабиринт пройден: рой запомнил знаки. Посмотри в «Мозге лидера», чем он помнит: горят ли заметки m1…m3 после знака — или машина заранее перестраивается к нужной стороне.';
+    return 'Лабиринт пройден без ошибок: рой запомнил знаки. Посмотри в «Мозге лидера», чем он помнит: горят ли заметки m1…m3 после знака — или машина заранее перестраивается к нужной стороне.';
   }
   if (tail.length === SAME_GENS && tail.every((e) => e.finished && e.best === last.best)) {
     if (TRAINING_TRACKS.some((t) => t.id === track.id) && track.id !== 'snake') {
@@ -296,7 +299,7 @@ function swarmAdvice() {
   }
   const before = h.at(-STUCK_GENS - 1);
   if (!last.finished && before && h.slice(-STUCK_GENS).every((e) => !e.finished && e.best <= before.best)) {
-    if (isMaze() && leaderInDeadEnd) return `${STUCK_GENS} поколений лидер сворачивает в тупик. Знак остался позади, а свернуть надо у развилки — нужна память. Помоги рою: щёлкни машину, что свернула верно, или подними мутацию до 0,2.`;
+    if (isMaze() && leader.onLoop) return `${STUCK_GENS} поколений лидер сворачивает не туда и крутит петлю. Знак остался позади, а свернуть надо у развилки — нужна память. Помоги рою: щёлкни машину, что свернула верно, или подними мутацию до 0,2.`;
     return `${STUCK_GENS} поколений без улучшения: рой застрял на ${pct(last.progressPct)}. Помоги: щёлкни машину, которая едет лучше, — или поставь «Без машин», а потом верни встречных.`;
   }
   if (last.finished) return `Лучший доехал за ${secs(last.ticks)}. Рой ищет мозг, который фитнес оценит ещё выше.`;

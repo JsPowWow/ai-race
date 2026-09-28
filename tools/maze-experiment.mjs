@@ -3,6 +3,7 @@
 //
 // Рой как на вкладке «Учится само»: мутация и фитнес из student/, фитнес — пройденное расстояние.
 // У каждой развилки знак стоит за SIGN_GAP px до неё: у самой развилки его уже не видно.
+// Свернул не туда — объезжаешь петлю и пробуешь снова, так что доехать может и мозг без знака: сравниваем и время.
 // Сравниваем три мозга одной формы, но с разным «зрением»:
 //   • знак + заметки — всё как на сайте;
 //   • знак, без заметок — заметки на входе всегда нули: помнить можно только «телом» (где едешь, как быстро);
@@ -42,15 +43,16 @@ const passed = (car) => (car.status === 'finished' ? 'F' : String(forksPassed(tr
 function swarm(see, seed) {
   return withSeed(seed, () => {
     const evo = new Evolution({ sizes, sensors: DEFAULT_SENSORS, think: (x, brain) => think(see(x), brain), mutate, fitness, population: POPULATION, rate: 0.1 });
-    let line = '', finishedAt = null;
+    let line = '', finishedAt = null, last = null;
     for (let g = 0; g < GENERATIONS; g++) {
       evo.spawn(track);
       while (evo.step() > 0 && evo.tick < evo.maxTicks);
       const { parentCar } = evo.evaluate();
       line += passed(parentCar);
       if (parentCar.status === 'finished') finishedAt ??= g + 1;
+      last = parentCar;
     }
-    return { line, finishedAt };
+    return { line, finishedAt, last };
   });
 }
 
@@ -58,8 +60,9 @@ console.log(`«${track.name}»: ${track.signs.length} развилки, знак
 console.log('Строка — лидер каждого поколения: сколько развилок прошёл, F — доехал до финиша.\n');
 for (const [name, see] of Object.entries(KINDS)) {
   for (const seed of SEEDS) {
-    const { line, finishedAt } = swarm(see, seed);
-    console.log(`${name.padEnd(18)} опыт ${seed}: ${finishedAt ? `финиш с ${finishedAt}-го поколения` : 'не доехал'}`);
+    const { line, finishedAt, last } = swarm(see, seed);
+    const result = last.status === 'finished' ? `, в конце — ${(last.ticks / 60).toFixed(1)} с, кругов по петле ${last.detours}` : '';
+    console.log(`${name.padEnd(18)} опыт ${seed}: ${finishedAt ? `финиш с ${finishedAt}-го поколения${result}` : 'не доехал'}`);
     console.log(`  ${line}`);
   }
 }

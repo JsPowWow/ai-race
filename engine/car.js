@@ -13,7 +13,7 @@ export const CAR = {
   friction: 0.03,
   turn: 0.05,          // поворот за тик на малой скорости
   gripLoss: 0.7,       // на максимальной скорости руль слабее на 70%
-  stallTicks: 180, // столько тиков без продвижения — «заглох»
+  stallTicks: 180, // столько тиков не продвигается по своей дороге — «заглох»
 };
 
 /**
@@ -59,7 +59,9 @@ export class Car {
 
     this.status = 'driving'; // driving | crashed | stalled | timeout | finished
     this.ticks = 0;
-    this.road = 0; // 0 — основная дорога, дальше — тупики развилок
+    this.road = 0; // 0 — основная дорога, дальше — ветки развилок
+    this.bestAlong = track.startS; // докуда доехал по своей дороге
+    this.detours = 0; // сколько раз свернул не туда и объехал петлю «Лабиринта»
     this.segIdx = start.idx;
     this.s = track.startS;
     this.bestS = track.startS;
@@ -112,11 +114,18 @@ export class Car {
     }
 
     const p = projectProgress(track, this.x, this.y, this.segIdx, this.road);
+    if (p.road !== this.road) { // заехал на петлю или вернулся с неё
+      if (p.road === 0 && this.bestAlong > track.roads[this.road].total / 2) this.detours++; // объехал петлю целиком
+      this.bestAlong = p.along;
+      this.lastImprove = this.ticks;
+    }
     this.road = p.road;
     this.segIdx = p.idx;
     this.s = p.s;
-    if (this.s > this.bestS + 1) {
-      this.bestS = this.s;
+    if (this.s > this.bestS + 1) this.bestS = this.s;
+    // «Едет» — значит, продвигается по своей дороге. На петле прогресс к финишу падает, но машина-то едет
+    if (p.along > this.bestAlong + 1) {
+      this.bestAlong = p.along;
       this.lastImprove = this.ticks;
     }
     if (this.s >= track.finishS) {
