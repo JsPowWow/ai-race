@@ -10,7 +10,7 @@ import { $, liveSize } from '../ui.js';
 
 const DEMO_SEED = 'витрина';
 const DEMO_SPEED = 3; // тиков за кадр
-const demoBot = fromCarFile(BOTS.find((b) => b.name === 'Сквозняк') ?? BOTS[0]);
+const demoBot = fromCarFile(BOTS.find((b) => b.name === 'Торетто') ?? BOTS[0]);
 const smallBot = BOTS.reduce((a, b) => (JSON.stringify(a).length <= JSON.stringify(b).length ? a : b));
 
 const canvas = $('#introCanvas');

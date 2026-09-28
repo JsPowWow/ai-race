@@ -1,5 +1,5 @@
 // Вкладка «Я учу» (урок 1): ездишь сам — заезды записываются, сеть учится повторять за тобой.
-// Здесь же «глаза» (лучи), форма сети и «мозг под микроскопом» — ручная правка весов.
+// Здесь же «глаза» (сенсоры), форма сети и «мозг под микроскопом» — ручная правка весов.
 import { TRAINING_TRACKS, getTrainingTrack } from '../../engine/track.js';
 import { Car, carReport } from '../../engine/car.js';
 import { createBrain, cloneBrain, LIMITS } from '../../engine/brain.js';
@@ -68,8 +68,8 @@ export const teachTab = {
       `скорость <b>${car.speed.toFixed(1)}</b>`,
       `пройдено <b>${pct(carReport(car, track).progressPct)}</b>`,
       `время <b>${secs(car.ticks)}</b>`,
-      // числа лучей нужны, когда разбираешься с «Глазами»; на первом заезде это лишний шум
-      ...(eyesFold.open ? [`лучи <b>${[...car.readings].map((v) => v.toFixed(2)).join(' ')}</b>`] : []),
+      // числа сенсоров нужны, когда разбираешься с «Глазами»; на первом заезде это лишний шум
+      ...(eyesFold.open ? [`сенсоры <b>${[...car.readings].map((v) => v.toFixed(2)).join(' ')}</b>`] : []),
     ]);
     if (mode === 'brain' && frameNo % 3 === 0) editor.render();
   },
@@ -157,7 +157,7 @@ function renderRuns() {
       return `
         <li class="${r.on && fits ? '' : 'off'} ${r.status === 'finished' ? 'good' : r.status === 'crashed' ? 'bad' : ''}">
           <input type="checkbox" data-run="${r.id}" ${r.on ? 'checked' : ''} ${fits ? '' : 'disabled'} aria-label="Учить на этом заезде">
-          <span>${esc(r.trackName)}<span class="meta"> · ${r.packed.length} прим.${fits ? '' : ` · записан с ${r.inputs - 1} лучами`}</span></span>
+          <span>${esc(r.trackName)}<span class="meta"> · ${r.packed.length} прим.${fits ? '' : ` · записан с ${r.inputs - 1} сенсорами`}</span></span>
           <span class="res">${res}</span>
           <button data-del-run="${r.id}" aria-label="Удалить заезд">×</button>
         </li>`;
@@ -243,7 +243,7 @@ function renderTraining() {
 
 export const redrawLoss = () => drawSeries($('#lossChart'), losses, { label: 'Здесь появится график ошибки' });
 
-// ── глаза: лучи ──
+// ── глаза: сенсоры ──
 
 /** @type {[selector: string, key: 'count' | 'spread' | 'length', format: (v: number) => string][]} */
 const SENSOR_SLIDERS = [

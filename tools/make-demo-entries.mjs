@@ -20,7 +20,7 @@ const rnd = mulberry32(2026);
 
 const A = ['turbo', 'neo', 'red', 'fast', 'lazy', 'pixel', 'dark', 'happy', 'mad', 'tiny', 'mega', 'cool', 'silent', 'crazy', 'retro'];
 const B = ['fox', 'coder', 'cat', 'driver', 'bot', 'moose', 'panda', 'wolf', 'duck', 'rider', 'dev', 'owl', 'tiger', 'yak', 'otter'];
-const NAMES = ['Молния', 'Сквозняк', 'Ржавая пуля', 'Тапок', 'Ракета', 'Черепашка', 'Шустрик', 'Боливар', 'Комета', 'Жук', 'Торпеда', 'Пончик'];
+const NAMES = ['Молния', 'Летти', 'Ржавая пуля', 'Тапок', 'Ракета', 'Бабуля', 'Шустрик', 'Боливар', 'Комета', 'Жук', 'Торпеда', 'Пончик'];
 const pick = (list) => list[Math.floor(rnd() * list.length)];
 
 function mutated(brain, rate) {

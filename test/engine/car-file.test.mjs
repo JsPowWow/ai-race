@@ -4,11 +4,11 @@ import assert from 'node:assert/strict';
 import { parseCarFile, checkAvatar } from '../../engine/car-file.js';
 import { bot } from '../helpers.mjs';
 
-const good = () => structuredClone(bot('Сквозняк'));
+const good = () => structuredClone(bot('Торетто'));
 
 test('файл бота читается', () => {
   const car = parseCarFile(good());
-  assert.equal(car.name, 'Сквозняк');
+  assert.equal(car.name, 'Торетто');
   assert.equal(car.sizes.at(-1), 4, 'четыре выхода: газ, тормоз, влево, вправо');
 });
 
@@ -16,10 +16,10 @@ test('не файл машины — понятная ошибка', () => {
   assert.throws(() => parseCarFile({ hello: 1 }), /не файл машины/);
 });
 
-test('слишком много лучей или сеть больше разрешённой — ошибка с именем машины', () => {
+test('слишком много сенсоров или сеть больше разрешённой — ошибка с именем машины', () => {
   const file = good();
   file.sensors.count = 99;
-  assert.throws(() => parseCarFile(file), /Сквозняк: лучей должно быть/);
+  assert.throws(() => parseCarFile(file), /Торетто: сенсоров должно быть/);
 });
 
 test('вариант «Мой» без своего кода — ошибка', () => {
