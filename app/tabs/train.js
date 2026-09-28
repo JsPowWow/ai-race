@@ -61,11 +61,13 @@ export const trainTab = {
     if (!evo) return drawIdle();
     const lead = leaderOf(evo.cars);
     drawScene(track, { camera: state.train.camera, follow: lead, traffic: evo.traffic ?? trafficOn(track, 0), tick: evo.tick });
+    const elite = evo.parent ? evo.cars[0] : null; // лучший прошлого поколения: едет без изменений — хорошее не теряется
     for (const car of evo.cars) {
-      if (car !== lead && !picked.includes(car)) paintCar(car, { color: state.profile.color, alpha: car.done ? 0.18 : 0.35, ghost: true });
+      if (car !== lead && car !== elite && !picked.includes(car)) paintCar(car, { color: state.profile.color, alpha: car.done ? 0.18 : 0.35, ghost: true });
     }
+    if (elite && elite !== lead && !picked.includes(elite)) paintCar(elite, { color: state.profile.color, alpha: elite.done ? 0.4 : 0.8, number: 1 });
     for (const car of picked) if (car !== lead) paintCar(car, { color: state.profile.color, highlight: true });
-    if (lead) paintCar(lead, { color: state.profile.color, sensors: true, highlight: picked.includes(lead) });
+    if (lead) paintCar(lead, { color: state.profile.color, sensors: true, highlight: picked.includes(lead), number: lead === elite ? 1 : null });
     showLeaderBrain(lead);
     setHud([
       `поколение <b>${state.generation + 1}</b>`,
