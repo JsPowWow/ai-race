@@ -243,3 +243,71 @@ test('гараж: копия в папке на диске — машины пр
   await close();
   assert.deepEqual(problems, []);
 });
+
+/** Бот из сборки — как готовый обученный мозг: кладём его в «старый» localStorage, гараж заберёт его при старте */
+async function withChampion(page) {
+  const { BOTS } = await import(new URL('../app/generated/bots.js', import.meta.url));
+  const [bot] = BOTS;
+  await page.goto(`${base}app/icon.svg`);
+  await page.evaluate((b) => {
+    localStorage.setItem('ai-race:champion', JSON.stringify(b.brain));
+    localStorage.setItem('ai-race:config', JSON.stringify({ sensors: b.sensors, hidden: [6], think: 'step' }));
+    localStorage.setItem('ai-race:profile', JSON.stringify({ name: 'Молния', color: '#3ddc84' }));
+  }, bot);
+  return BOTS;
+}
+
+test('«Экзамен»: чемпион едет по всем трассам, строку можно выбрать, логин GitHub выправляется по регистру', async () => {
+  const { page, problems, close } = await openPage(SCREENS[0]);
+  await page.route('https://api.github.com/**', (r) => r.fulfill({ json: { login: 'octocat', name: 'The Octocat', avatar_url: 'https://avatars.githubusercontent.com/u/583231?v=4' } }));
+  await page.route('https://avatars.githubusercontent.com/**', (r) => r.fulfill({ contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"/>' }));
+  await withChampion(page);
+  await page.goto(`${base}#exam`);
+  await page.waitForFunction(() => document.body.dataset.tab === 'exam');
+  assert.match(await page.textContent('#examTable'), /4 знакомые и 3 незнакомые/);
+
+  await page.click('#eRun');
+  await page.waitForFunction(() => document.querySelectorAll('#examTable tbody tr:not(.empty)').length === 7);
+  assert.notEqual((await page.textContent('#examVerdict')).trim(), '', 'есть вывод по экзамену');
+  await page.click('#examTable tbody tr:nth-child(3)');
+  assert.equal(await page.getAttribute('#examTable tbody tr:nth-child(3)', 'class'), 'sel', 'выбранная строка подсвечена');
+
+  await page.fill('#pLogin', 'OctoCat');
+  await page.waitForFunction(() => document.querySelector('#pLogin').value === 'octocat', null, { timeout: 5000 });
+  assert.match(await page.textContent('#pLoginCheck'), /Это ты\? The Octocat @octocat/);
+  assert.equal(await page.isDisabled('#pSeal'), false, 'логин есть, мозг есть — можно сдавать');
+  await close();
+  assert.deepEqual(problems, []);
+});
+
+test('«Гонка»: чужой код едет только после «Разрешить», гонка доезжает до номинаций', async () => {
+  const { page, problems, close } = await openPage(SCREENS[0]);
+  const BOTS = await withChampion(page);
+  await page.goto(`${base}#race`);
+  await page.waitForFunction(() => document.body.dataset.tab === 'race');
+  const boardNames = () => page.$$eval('#rBoard li:not(.empty)', (rows) => rows.map((r) => r.querySelector('.res').previousElementSibling.textContent));
+  assert.equal((await boardNames()).length, 3, 'на старте — три бота');
+
+  await page.click('#rAddMine');
+  const code = 'export const thinkVariants = { mine: { title: "Мой", think(inputs, brain) { return [1, 0, 0, 0]; } } };';
+  await page.click('summary:has-text("Вставить JSON текстом")');
+  await page.fill('#rPaste', JSON.stringify({ ...BOTS[0], name: 'Чужой', think: 'mine', thinkSource: code }));
+  await page.click('#rPasteAdd');
+  await page.waitForSelector('#rList .review-btn');
+  assert.ok(!(await boardNames()).includes('Чужой'), 'пока код не разрешили, машина не едет');
+
+  await page.click('#rList .review-btn');
+  assert.match(await page.textContent('#rReviewCode'), /return \[1, 0, 0, 0\]/, 'код показан, чтобы его прочитать');
+  await page.click('#rReviewAllow');
+  await page.waitForFunction(() => !document.querySelector('#rReview'));
+  assert.ok((await boardNames()).includes('Чужой'), 'после «Разрешить» — в таблице');
+  assert.equal(await page.$('#rList .review-btn'), null);
+
+  await page.click('[data-rspeed="8"]');
+  assert.equal(await page.getAttribute('[data-rspeed="8"]', 'aria-pressed'), 'true');
+  await page.click('#rStart');
+  assert.equal((await page.textContent('#rStart')).trim(), 'Заново');
+  await page.waitForSelector('#rAwards .award', { timeout: 60000 });
+  await close();
+  assert.deepEqual(problems, []);
+});

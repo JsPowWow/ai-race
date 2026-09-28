@@ -7,7 +7,7 @@ import { signal, untracked, For, Show } from '@reely/dommy';
 import { state, sizesOf, emit, on } from '../state.js';
 import type { Profile } from '../state.js';
 import { garage, MAX_CARS, switchCar, newCar, copyCar, deleteCar, exportCar, importCar, chooseFolder, allowFolder, stopFolder } from '../garage.js';
-import { avatarUrl } from '../../engine/car-file.ts';
+import { Avatar } from '../avatar.tsx';
 import { saveFile, safeFileName } from '../download.js';
 import { fromEvents } from '../signals.ts';
 import { draft, resets, applyDraft, dropDraft } from './profile-build.tsx';
@@ -134,15 +134,6 @@ function DeleteQuestion(): Node {
   );
 }
 
-/** Аватар (картинка через <img> — скрипты из SVG так не выполняются) или кружок цвета машины */
-function Avatar({ profile }: { profile: () => Profile }): Node {
-  return (
-    <Show when={() => profile().avatar} fallback={() => <span className="car-dot" styles={{ background: () => profile().color }} />}>
-      {() => <img className="avatar" src={() => avatarUrl(profile().avatar) ?? ''} alt="" loading="lazy" />}
-    </Show>
-  );
-}
-
 /** Части полоски размера: мозг и сборка | «История» | мои заезды */
 const PARTS = [['', 'car'], ['h', 'history'], ['r', 'runs']] as const;
 
@@ -155,7 +146,7 @@ function Tile({ car, biggest }: { car: () => Summary; biggest: () => number }): 
         <button className="g-tile" data-car={id} disabled={busy}
           aria={{ ariaPressed: () => String(id === shelf().id) }}
           onClick={() => id !== garage.id && leave(id, () => switchCar(id))}>
-          <span className="g-name"><Avatar profile={() => car().profile} /><b>{() => nameOf(car().profile)}</b></span>
+          <span className="g-name"><Avatar look={() => car().profile} /><b>{() => nameOf(car().profile)}</b></span>
           <span className="g-meta"><span className="g-shape">{() => car().shape}</span> {() => progress(car())}</span>
           <span className="g-bar" aria={{ ariaHidden: 'true' }} styles={{ '--w': () => `${Math.max(4, (total(car()) / biggest()) * 100)}%` }}>
             {/* «[]» — пустой файл: такие части не рисуем */}
