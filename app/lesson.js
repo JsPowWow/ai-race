@@ -44,16 +44,14 @@ export function renderLesson(tab) {
   el.innerHTML = `
     <div class="lesson-card">
       <div class="lesson-head">
-        <div class="lesson-title">
-          <h1 id="lessonTitle">${lesson.title}</h1>
-          <p class="lesson-goal"><b>Цель:</b> ${lesson.goal}</p>
-        </div>
+        <h1 id="lessonTitle">${lesson.title}</h1>
         <ol class="lesson-dots" aria-label="Шаги урока">
           ${lesson.tasks.map((_, i) => `
             <li><button type="button" data-step="${i}" class="${checked.has(i) ? 'done' : ''}"
               aria-label="Шаг ${i + 1}${checked.has(i) ? ' — сделано' : ''}"${i === step ? ' aria-current="step"' : ''}>${i + 1}</button></li>`).join('')}
         </ol>
       </div>
+      <p class="lesson-goal"><b>Цель:</b> ${lesson.goal}</p>
       <div class="lesson-step${isDone ? ' is-done' : ''}">
         <span class="step-num" aria-hidden="true">${step + 1}</span>
         <p class="step-text"><span class="step-action">${action}</span>${detail ? ` <span class="step-detail">${detail}</span>` : ''}</p>
