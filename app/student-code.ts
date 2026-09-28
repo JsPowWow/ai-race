@@ -9,7 +9,7 @@ import { compileSource, type StudentModule } from '../engine/compile.ts';
 import type { Brain } from '../engine/brain.ts';
 import type { Controls } from '../engine/car.ts';
 import type { Mutate } from '../engine/recipes.ts';
-import type { Crossover, Fitness } from '../engine/evolution.ts';
+import type { Fitness } from '../engine/evolution.ts';
 import * as acorn from 'acorn';
 import { load, save, remove } from './storage.ts';
 
@@ -30,7 +30,8 @@ export type StudentFiles = {
   };
   mutate: { mutate: Mutate };
   fitness: { fitness: Fitness };
-  crossover: { crossover: Crossover };
+  /** должен вернуть мозг той же формы; рой и «Гонка» всё равно проверяют, что вернулось */
+  crossover: { crossover(mom: Brain, dad: Brain): Brain };
 };
 export type FileId = keyof StudentFiles;
 /** Файл студента на вкладке «Код»: required — что он обязан экспортировать, task — задание */

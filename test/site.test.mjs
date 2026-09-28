@@ -420,3 +420,39 @@ test('«Гонка»: чужой код едет только после «Ра�
   await close();
   assert.deepEqual(problems, []);
 });
+
+test('«Код»: правки не теряются при смене вкладки, Tab сдвигает строки, «Вернуть исходный» спрашивает', async () => {
+  const { page, problems, close } = await openPage(SCREENS[0]);
+  await page.goto(`${base}#code`);
+  await page.waitForFunction(() => document.body.dataset.tab === 'code');
+  const source = await page.inputValue('#codeEditor');
+  assert.equal(await page.isDisabled('#codeReset'), true, 'файл исходный — возвращать нечего');
+
+  // неприменённая правка переживает уход на другую вкладку и другой файл
+  await page.fill('#codeEditor', `${source}\n// моя правка`);
+  await page.click('[data-tab="teach"]');
+  await page.click('[data-tab="code"]');
+  await page.click('#fileTabs [role="tab"]:nth-child(2)');
+  await page.click('#fileTabs [role="tab"]:nth-child(1)');
+  assert.match(await page.inputValue('#codeEditor'), /\/\/ моя правка$/);
+  assert.match(await page.textContent('#codeMsg'), /не применены/);
+
+  // Tab на выделенных строках сдвигает их, а не стирает
+  await page.fill('#codeEditor', 'export function fitness(car) {\nreturn car.progress;\n}');
+  await page.evaluate(() => document.querySelector('#codeEditor').setSelectionRange(31, 51));
+  await page.keyboard.press('Tab');
+  assert.equal(await page.inputValue('#codeEditor'), 'export function fitness(car) {\n  return car.progress;\n}');
+
+  await page.click('#codeApply');
+  assert.match(await page.textContent('#codeMsg'), /^Применено/);
+  assert.match(await page.textContent('#fileTabs [aria-selected="true"]'), /•/, 'у изменённого файла — точка');
+  assert.equal(await page.getAttribute('.lesson-dots li:nth-child(1) button', 'class'), 'done', 'шаг 1 урока отметился сам');
+  assert.match(await page.textContent('.step-action'), /mutate\.js/, 'и открылся шаг 2');
+
+  await page.click('#codeReset');
+  await page.click('#codeResetYes');
+  assert.equal(await page.inputValue('#codeEditor'), source);
+  assert.doesNotMatch(await page.textContent('#fileTabs [aria-selected="true"]'), /•/);
+  await close();
+  assert.deepEqual(problems, []);
+});

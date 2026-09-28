@@ -1,10 +1,10 @@
 ---
 paths:
   - "student/**"
-  - "app/tests.js"
+  - "app/tests.ts"
 ---
 # student/
 
 - Это файлы студентов. Их простота — часть задания: рабочий, но заведомо не лучший вариант, подсказки в комментариях, без хитрого кода.
-- Экспорты — контракт (`handleKey`, `feedForward`, `thinkVariants`, `mutate`, `fitness`, `crossover`): на них завязаны вкладки, проверки в `app/tests.js` и финал. Переименовывать нельзя.
+- Экспорты — контракт (`handleKey`, `feedForward`, `thinkVariants`, `mutate`, `fitness`, `crossover`): на них завязаны вкладки, проверки в `app/tests.ts` и финал. Переименовывать нельзя.
 - После правки — `npm run build` (исходники попадают во вкладку «Код» через `app/generated/sources.js`) и проверки на вкладке «Код».

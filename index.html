@@ -13,9 +13,9 @@
 <script>try{const t=JSON.parse(localStorage.getItem('ai-race:theme'));if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch{}</script>
 <link rel="icon" href="app/icon.svg" type="image/svg+xml">
 <link rel="preload" href="app/fonts/rubik-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="modulepreload" href="app/generated/chunks/chunk-QKHD7KGB.js">
+<link rel="modulepreload" href="app/generated/chunks/chunk-OYS5KZS4.js">
 <link rel="stylesheet" href="app/generated/app.css?v=e0526e23e8">
-<script type="module" src="app/generated/app.js?v=40e971a8f7"></script>
+<script type="module" src="app/generated/app.js?v=bbfcf9e4b3"></script>
 </head>
 <body>
 <a class="skip-link" href="#content">К содержимому</a>
@@ -120,10 +120,8 @@
         <p>Каждая линия — это <b>вес</b>, одно число. Нейрон складывает входы, умноженные на веса, и решает, «загореться» ли ему. Чем сильнее сигнал, тем ярче горит линия. Наведи на нейрон или нажми на него — увидишь его формулу с настоящими числами.</p>
         <p>Заметил? Перед стеной «Торетто» сбрасывает газ и уходит влево — как от бордюра в повороте. А остановиться и развернуться не пробует. <b>Мозг умеет только то, что видел</b>: стен поперёк дороги в его учёбе не было.</p>
       </div>
-      <div class="brain-file">
-        <p>Весь «мозг» машины — это маленький файл: <b id="brainSize">—</b>, в нём <b id="brainCount">—</b>. Обучение — это поиск правильных чисел. Этот файл вы и приносите на гонку.</p>
-        <pre id="brainJson" tabindex="0" aria-label="Фрагмент файла с весами"></pre>
-      </div>
+      <!-- файл мозга: строится из файла бота — app/tabs/intro.tsx -->
+      <div class="brain-file" id="brainFile"></div>
     </div>
   </section>
 
@@ -169,19 +167,8 @@
       </div>
     </div>
 
-    <div class="editor" id="editor" hidden>
-      <div class="filetabs" id="fileTabs" role="tablist" aria-label="Файлы студента"></div>
-      <div class="code-error" id="codeError" role="alert" hidden></div>
-      <div class="code-box">
-        <pre class="gutter" id="codeGutter" aria-hidden="true"></pre>
-        <textarea id="codeEditor" spellcheck="false" autocomplete="off" autocapitalize="off" wrap="off" aria-label="Код" aria-describedby="codeError"></textarea>
-      </div>
-      <div class="row">
-        <button class="btn primary" id="codeApply">Применить</button>
-        <button class="btn" id="codeReset">Вернуть исходный</button>
-        <span class="note" id="codeMsg" role="status"></span>
-      </div>
-    </div>
+    <!-- КОД: редактор рисует app/tabs/code.tsx -->
+    <div class="editor" id="editor" hidden></div>
 
     <!-- «Я учу»: кто рулит, трасса, машины — рисует app/tabs/teach-toolbar.tsx -->
     <div class="toolbar" data-for="teach" id="teachToolbar" hidden></div>
@@ -252,19 +239,8 @@
     <!-- УЧИТСЯ САМО: панель рисует app/tabs/train-panel.tsx -->
     <div data-panel="train" id="trainPanel" hidden></div>
 
-    <!-- КОД -->
-    <div data-panel="code" hidden>
-      <section class="block">
-        <h2 id="codeTitle">Задание</h2>
-        <p id="codeTask"></p>
-        <p class="error" id="evalNote" hidden>Здесь нельзя запускать отредактированный код. Правьте файлы в папке <code>student/</code> и обновите страницу.</p>
-      </section>
-      <section class="block">
-        <h2>Проверки</h2>
-        <ul class="tests" id="testList"></ul>
-        <p class="legend"><span class="badge pass">OK</span> работает <span class="badge advice">Совет</span> можно лучше <span class="badge fail">Ошибка</span> надо чинить</p>
-      </section>
-    </div>
+    <!-- КОД: панель рисует app/tabs/code.tsx -->
+    <div data-panel="code" id="codePanel" hidden></div>
 
     <!-- ЭКЗАМЕН -->
     <div data-panel="exam" id="examPanel" hidden></div>

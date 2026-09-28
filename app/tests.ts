@@ -1,14 +1,30 @@
-// Проверки кода студентов. advice: true — это совет (жёлтый), а не ошибка (красный).
+// Проверки кода студентов (вкладка «Код»). advice: true — это совет (жёлтый), а не ошибка (красный).
+// Код студента может быть каким угодно: проверка сама ловит, чего в нём нет, и объясняет по-русски.
 import { createBrain, cloneBrain, brainSizes } from '../engine/brain.ts';
-import { errorLine } from './student-code.ts';
+import type { Brain } from '../engine/brain.ts';
+import type { Controls, CarReport } from '../engine/car.ts';
+import { errorLine, type StudentFiles, type FileId } from './student-code.ts';
 
+export type { StudentFiles, FileId };
+
+/** Итог одной проверки: pass — OK, advice — совет, fail — ошибка */
+export type TestStatus = 'pass' | 'advice' | 'fail';
+export type TestResult = { name: string; status: TestStatus; msg?: string };
+
+type Test<M> = { name: string; advice?: boolean; run(m: M): void };
+type Suites = { [K in FileId]: Test<StudentFiles[K]>[] };
+
+/** Проверка не прошла — сообщение для студента. Остальные ошибки — это ошибки в самом коде */
 class Fail extends Error {}
-const expect = (cond, msg) => { if (!cond) throw new Fail(msg); };
-const blank = () => ({ gas: 0, brake: 0, left: 0, right: 0 });
-const report = (o) => ({ progress: 3000, trackLength: 9000, progressPct: 33.3, finished: false, crashed: true, hitCar: false, stalled: false, ticks: 1500, avgSpeed: 2, topSpeed: 4, wiggle: 20, ...o });
-const flat = (b) => b.layers.flatMap((l) => [...l.biases, ...l.weights.flat()]);
+function expect(cond: boolean, msg: string): void {
+  if (!cond) throw new Fail(msg);
+}
+const blank = (): Controls => ({ gas: 0, brake: 0, left: 0, right: 0 });
+const report = (o: Partial<CarReport> = {}): CarReport => ({ progress: 3000, trackLength: 9000, progressPct: 33.3, finished: false, crashed: true, hitCar: false, stalled: false, ticks: 1500, avgSpeed: 2, topSpeed: 4, wiggle: 20, ...o });
+/** Все числа мозга подряд: пороги и веса слой за слоем */
+const flat = (b: Brain): number[] => b.layers.flatMap((l) => [...l.biases, ...l.weights.flat()]);
 
-const TESTS = {
+const TESTS: Suites = {
   controls: [
     { name: '↑ — газ: нажали 1, отпустили 0', run(m) {
       const c = blank(); m.handleKey('ArrowUp', true, c); expect(c.gas === 1, `после нажатия gas = ${c.gas}`);
@@ -155,30 +171,40 @@ const TESTS = {
         const col = [bias, ...l.weights.map((r) => r[j])];
         const fromA = [a.layers[k].biases[j], ...a.layers[k].weights.map((r) => r[j])];
         const fromB = [b.layers[k].biases[j], ...b.layers[k].weights.map((r) => r[j])];
-        const same = (x, y) => x.every((v, i) => v === y[i]);
+        const same = (x: number[], y: number[]) => x.every((v, i) => v === y[i]);
         expect(same(col, fromA) || same(col, fromB), `нейрон ${j + 1} слоя ${k + 1} собран из кусков двух родителей`);
       }));
     } },
   ],
 };
 
-export function runTests(id, mod) {
-  return (TESTS[id] || []).map((t) => {
+/** Прогнать проверки файла id на модуле mod (исходном или скомпилированном из правок) */
+export function runTests(id: string, mod: unknown): TestResult[] {
+  if (!Object.hasOwn(TESTS, id)) return [];
+  // форма модуля заранее не известна — поэтому проверки и ловят всё, что бросит обращение к нему
+  const suite = TESTS[id as FileId] as Test<unknown>[];
+  return suite.map((t) => {
     try {
       t.run(mod);
       return { name: t.name, status: 'pass' };
     } catch (e) {
-      const line = e instanceof Fail ? null : errorLine(e);
-      const msg = e instanceof Fail ? e.message : `ошибка${line ? ` в строке ${line}` : ''}: ${e.message}`;
-      return { name: t.name, status: t.advice && e instanceof Fail ? 'advice' : 'fail', msg };
+      if (e instanceof Fail) return { name: t.name, status: t.advice ? 'advice' : 'fail', msg: e.message };
+      const line = errorLine(e);
+      const text = e instanceof Error ? e.message : String(e); // студент мог бросить и не Error: throw 'упс'
+      return { name: t.name, status: 'fail', msg: `ошибка${line ? ` в строке ${line}` : ''}: ${text}` };
     }
   });
 }
 
-function seeded(s) {
+/** Детерминированные «случайные» числа: проверки дают один и тот же итог при каждом запуске */
+function seeded(s: number): () => number {
   let a = s * 9973;
-  return () => { a = (a * 16807) % 2147483647; return a / 2147483647; };
+  return () => {
+    a = (a * 16807) % 2147483647;
+    return a / 2147483647;
+  };
 }
-function randInputs(k, n = 6) {
+/** Вход сети из n чисел от 0 до 1, свой для каждого k */
+function randInputs(k: number, n = 6): number[] {
   return Array.from({ length: n }, (_, i) => ((Math.sin(k * 12.9898 + i * 78.233) * 43758.5453) % 1 + 1) % 1);
 }
