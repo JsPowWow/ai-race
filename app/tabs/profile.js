@@ -14,6 +14,7 @@ import { createBrainBoard } from '../brain-board/board.js';
 import { SMOOTH, ANY_ACT } from '../brain-board/formula.js';
 import { $, options, delegate } from '../ui.js';
 import { renderLook } from './profile-look.js';
+import { renderGarage, guardDraft } from './profile-garage.js';
 
 const track = withTraffic(getTrainingTrack('warmup'), 'all');
 let car = null;
@@ -24,6 +25,7 @@ const shown = () => draft ?? state.config;
 
 export const profileTab = {
   enter() {
+    renderGarage();
     renderLook();
     renderShape();
     resetCar();
@@ -86,17 +88,20 @@ function renderDraftBar() {
   $('#draftApply').classList.toggle('primary', !resets);
 }
 
-$('#draftApply').addEventListener('click', () => {
+function applyDraft() {
   const next = draft;
   draft = null;
   if (next) changeShape(next); // дальше — событие config: перерисуем и пересадим машину
-});
-$('#draftCancel').addEventListener('click', () => {
+}
+function dropDraft() {
   draft = null;
   $('#bMsg').hidden = true;
   renderShape();
   resetCar();
-});
+}
+$('#draftApply').addEventListener('click', applyDraft);
+$('#draftCancel').addEventListener('click', dropDraft);
+guardDraft({ pending: () => draft, apply: applyDraft, drop: dropDraft }); // гараж спросит про черновик, прежде чем пересесть
 
 // ── табло мозга: какая сеть получится с этой сборкой и что она думает прямо сейчас ──
 
@@ -228,7 +233,7 @@ on('config', () => {
 });
 on('champion', () => state.tab === 'profile' && resetCar());
 on('car', () => {
-  draft = null; // черновик был у прежней машины (гараж спросил, что с ним делать)
+  draft = null; // черновик был у прежней машины (гараж уже спросил, что с ним делать)
   $('#bMsg').hidden = true;
   if (state.tab === 'profile') renderShape();
 });

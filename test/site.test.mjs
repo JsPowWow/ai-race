@@ -147,3 +147,39 @@ test('гараж: машина из старого localStorage переезжа
   await close();
   assert.deepEqual(problems, []);
 });
+
+test('гараж: новая машина, пересесть обратно, черновик спрашивает, удалить', async () => {
+  const { page, problems, close } = await openPage(SCREENS[1]);
+  await page.goto(`${base}#profile`);
+  await page.waitForSelector('#gShelf [data-car]');
+  await page.fill('#pName', 'Первая');
+  const tiles = () => page.$$eval('#gShelf [data-car]', (list) => list.map((b) => `${b.querySelector('b').textContent}${b.getAttribute('aria-pressed') === 'true' ? ' *' : ''}`));
+
+  await page.click('#gShelf [data-new]');
+  await page.waitForFunction(() => document.querySelectorAll('#gShelf [data-car]').length === 2);
+  assert.deepEqual(await tiles(), ['Первая', 'Машина 2 *'], 'новая машина — пустая, и мы сразу в ней');
+  assert.equal(await page.inputValue('#pName'), 'Машина 2');
+
+  // черновик сборки: перед тем как пересесть, плитка спрашивает, что с ним делать
+  await page.click('#addLayer');
+  await page.click('#gShelf [data-car]:not([aria-pressed="true"])');
+  await page.waitForSelector('#gShelf .g-ask');
+  await page.click('#gShelf [data-ask="stay"]');
+  assert.equal(await page.isVisible('#draftBar'), true, '«Остаться» — черновик на месте');
+  await page.click('#gShelf [data-car]:not([aria-pressed="true"])');
+  await page.click('#gShelf [data-ask="drop"]');
+  await page.waitForFunction(() => document.querySelector('#pName').value === 'Первая');
+  assert.deepEqual(await tiles(), ['Первая *', 'Машина 2']);
+  assert.equal(await page.isVisible('#draftBar'), false);
+
+  await page.click('#gDelete');
+  await page.click('#gConfirm [data-ask="yes"]');
+  await page.waitForFunction(() => document.querySelectorAll('#gShelf [data-car]').length === 1);
+  assert.deepEqual(await tiles(), ['Машина 2 *'], 'удалили выбранную — пересели в соседнюю');
+  assert.equal(await page.isDisabled('#gDelete'), true, 'последнюю машину удалить нельзя');
+  assert.deepEqual((await garageFiles(page)).map((c) => c.name), ['Машина 2']);
+  const { scroll, width } = await page.evaluate(() => ({ scroll: document.documentElement.scrollWidth, width: innerWidth }));
+  assert.ok(scroll <= width, 'без горизонтальной прокрутки');
+  await close();
+  assert.deepEqual(problems, []);
+});

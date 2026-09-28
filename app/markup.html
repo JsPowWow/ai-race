@@ -305,6 +305,25 @@
 
     <!-- ПРОФИЛЬ -->
     <div data-panel="profile" hidden>
+      <section class="block garage" aria-labelledby="gTitle">
+        <h2 id="gTitle">Гараж</h2>
+        <p class="hint">У каждой машины свой облик, сборка, мозг и «История». Учишь, проверяешь и сдаёшь ту, что выбрана, — она жёлтая.</p>
+        <div class="g-shelf" id="gShelf" role="group" aria-label="Машины гаража"></div>
+        <p class="g-legend" aria-hidden="true"><span><i></i>мозг и сборка</span><span><i class="h"></i>«История»</span></p>
+        <div class="row g-actions" id="gActions">
+          <button class="btn small" id="gCopy">Скопировать</button>
+          <button class="btn small" id="gExport">Сохранить в файл</button>
+          <label class="btn small file">Открыть из файла<input type="file" id="gImport" accept=".json,application/json"></label>
+          <button class="btn small danger" id="gDelete">Удалить</button>
+        </div>
+        <div class="pending g-confirm" id="gConfirm" role="group" aria-label="Подтверди" hidden></div>
+        <p class="error" id="gError" role="alert" hidden></p>
+        <details class="g-files-box">
+          <summary>Файлы машины</summary>
+          <ul class="g-files" id="gFiles"></ul>
+        </details>
+        <div class="g-meter" id="gMeter"></div>
+      </section>
       <section class="block">
         <h2>Облик</h2>
         <div class="field"><label for="pName">Имя машины</label><input type="text" id="pName" maxlength="24" placeholder="Например, Торетто"></div>
