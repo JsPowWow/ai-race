@@ -23,3 +23,5 @@
 .tune-feel dt { color: color-mix(in srgb, var(--hud-ink) 70%, transparent); }
 .tune-feel dd { margin: 0; white-space: nowrap; }
 .tune-copy { margin-block-end: 12px; }
+.tune button[aria-pressed="true"] { border-color: var(--hud-digit); color: var(--hud-digit); }
+.tune-hint { margin-block: 0 8px; color: var(--hud-ink); }
