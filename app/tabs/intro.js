@@ -2,6 +2,7 @@
 import { Camera, fitCanvas, clear, drawTrack, drawTraffic, drawCar } from '../../engine/render.js';
 import { createStand } from '../brain-stand.js';
 import { createBrainBoard } from '../brain-board/board.js';
+import { inputLabels, OUTPUT_LABELS, NOTES } from '../../engine/brain.js';
 import { withTraffic, trafficAt } from '../../engine/traffic.js';
 import { Car, maxTicksFor } from '../../engine/car.js';
 import { fromCarFile } from '../car-file.js';
@@ -24,18 +25,21 @@ let pauseUntil = 0;
 
 // «Потрогай мозг»: стенд и табло одного бота, зажатый сенсор общий
 const stand = createStand($('#standCanvas'), toretto);
-const sensorNames = Array.from({ length: stand.sensorCount }, (_, i) => `s${i + 1}`);
 const board = createBrainBoard({
-  canvas: $('#brainBoard'), card: $('#brainFormula'), zoomBar: $('.brain-board .zoom'), brain: stand.brain,
+  canvas: $('#brainBoard'), card: $('#brainFormula'), zoomBar: $('.brain-board .zoom'), brain: stand.brain, sensorCount: stand.sensorCount,
+  notes: NOTES,
   labels: {
-    inputs: [...sensorNames, 'v'],
-    outputs: ['Газ', 'Тормоз', 'Влево', 'Вправо'],
+    inputs: inputLabels(stand.sensorCount),
+    outputs: OUTPUT_LABELS,
     // [обычная подпись, короткая — для узкого экрана]
-    layers: [
-      [[`ВХОД · ${toretto.layers[0]}`, `сенсоры s1–s${stand.sensorCount} и скорость v`], [`ВХОД · ${toretto.layers[0]}`, 'сенсоры и v']],
-      [[`СЛОЙ 1 · ${toretto.layers[1]} нейронов`, 'tanh(2z)'], [`СЛОЙ 1 · ${toretto.layers[1]}`, 'tanh']],
-      [[`ВЫХОД · ${toretto.layers.at(-1)}`, 'σ(3z) · кнопки пульта'], [`ВЫХОД · ${toretto.layers.at(-1)}`, 'σ']],
-    ],
+    frames: {
+      input: [[`СЕНСОРЫ s1–s${stand.sensorCount} и скорость v`, 'маленький кружок — мгновение назад'], ['СЕНСОРЫ и v', '○ — мгновение назад']],
+      notesIn: [['ЗАМЕТКИ m1–m3', 'с прошлого шага'], ['ЗАМЕТКИ', '']],
+      hidden: [[`СЛОЙ · ${toretto.layers[1]} нейронов`, 'tanh(2z)'], [`СЛОЙ · ${toretto.layers[1]}`, 'tanh']],
+      buttons: [['ПУЛЬТ', 'σ(3z)'], ['ПУЛЬТ', 'σ']],
+      notesOut: [['ЗАМЕТКИ', 'на следующий шаг'], ['ЗАМЕТКИ', '']],
+    },
+    loop: 'заметки → на вход следующего шага',
   },
   onSensor: (i, down) => stand.press(i, down),
 });

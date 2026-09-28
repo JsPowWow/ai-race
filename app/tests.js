@@ -34,12 +34,12 @@ const TESTS = {
   ],
 
   think: [
-    { name: 'Каждый вариант отвечает 4 числами от 0 до 1', run(m) {
+    { name: 'Каждый вариант отвечает числом на каждый выход, от 0 до 1', run(m) {
       const brain = createBrain([6, 6, 4], seeded(1));
       for (const [id, v] of Object.entries(m.thinkVariants)) {
         for (let k = 0; k < 20; k++) {
           const out = v.think(randInputs(k), brain);
-          expect(Array.isArray(out) && out.length === 4, `${id}: ответ не из 4 чисел`);
+          expect(Array.isArray(out) && out.length === 4, `${id}: ответ не из 4 чисел (у этой проверочной сети 4 выхода)`);
           expect(out.every((x) => Number.isFinite(x) && x >= 0 && x <= 1), `${id}: число вне 0..1 (${out.map((x) => +x.toFixed?.(2)).join(', ')})`);
         }
       }

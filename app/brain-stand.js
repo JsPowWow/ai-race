@@ -1,7 +1,8 @@
 // Стенд: машина бота на прямом участке «Разминки». Колёса крутятся, дорога бежит, а сама машина
 // не уезжает — поэтому можно спокойно зажать сенсор и посмотреть, что сделает мозг.
 import { Camera, fitCanvas, clear, drawTrack, drawCar, cssColor } from '../engine/render.js';
-import { Car, CAR } from '../engine/car.js';
+import { Car } from '../engine/car.js';
+import { BUTTONS, NOTES } from '../engine/brain.js';
 import { getTrainingTrack, pointAt } from '../engine/track.js';
 import { parseCarFile } from '../engine/car-file.js';
 import { thinkVariants, feedForward } from '../student/think.js';
@@ -33,10 +34,13 @@ export function createStand(canvas, file) {
   function tick() {
     car.sense(track, null);
     for (const i of pressed) { car.readings[i] = PRESSED; car.rayT[i] = 1 - PRESSED; }
-    const inputs = [...car.readings, car.speed / CAR.maxSpeed];
-    const [gas, brake, left, right] = think(inputs, bot.brain);
+    const inputs = car.inputs(); // сейчас, скорость, мгновение назад, заметки — как в настоящем заезде
+    car.before = car.readings.slice();
+    const out = think(inputs, bot.brain);
     trace = feedForward.lastTrace.map((l) => [...l]);
+    const [gas, brake, left, right] = out;
     Object.assign(car.controls, { gas, brake, left, right });
+    car.notes = out.slice(BUTTONS.length, BUTTONS.length + NOTES);
     car.move();
     car.angle = home.angle; // руль виден по колёсам, а сама машина не поворачивает
     const along = (car.x - home.x) * Math.cos(home.angle) + (car.y - home.y) * Math.sin(home.angle);

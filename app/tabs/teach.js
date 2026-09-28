@@ -2,7 +2,7 @@
 // Здесь же «глаза» (сенсоры), форма сети и «мозг под микроскопом» — ручная правка весов.
 import { TRAINING_TRACKS, getTrainingTrack } from '../../engine/track.js';
 import { Car, carReport } from '../../engine/car.js';
-import { createBrain, cloneBrain, LIMITS } from '../../engine/brain.js';
+import { createBrain, cloneBrain, LIMITS, inputCount, OUTPUTS } from '../../engine/brain.js';
 import { TRAFFIC_LEVELS, withTraffic } from '../../engine/traffic.js';
 import { sampleOf, worthLearning, trainEpoch, agreement, TEACH_THINK } from '../../engine/imitation.js';
 import { drawSeries } from '../../engine/netviz.js';
@@ -157,7 +157,7 @@ function renderRuns() {
       return `
         <li class="${r.on && fits ? '' : 'off'} ${r.status === 'finished' ? 'good' : r.status === 'crashed' ? 'bad' : ''}">
           <input type="checkbox" data-run="${r.id}" ${r.on ? 'checked' : ''} ${fits ? '' : 'disabled'} aria-label="Учить на этом заезде">
-          <span>${esc(r.trackName)}<span class="meta"> · ${r.packed.length} прим.${fits ? '' : ` · записан с ${r.inputs - 1} сенсорами`}</span></span>
+          <span>${esc(r.trackName)}<span class="meta"> · ${r.packed.length} прим.${fits ? '' : ` · записан для другой формы сети`}</span></span>
           <span class="res">${res}</span>
           <button data-del-run="${r.id}" aria-label="Удалить заезд">×</button>
         </li>`;
@@ -301,8 +301,8 @@ function renderShape() {
       <button data-act="del" data-i="${i}" aria-label="Удалить слой ${i + 1}">×</button>
     </span>`).join('');
   $('#layersEditor').innerHTML = `
-    <span class="layer fixed">Входы <b>${shape.sensors.count + 1}</b></span>${hidden}
-    <span class="arrow" aria-hidden="true">→</span><span class="layer fixed">Выходы <b>4</b></span>`;
+    <span class="layer fixed" title="сенсоры сейчас, скорость, сенсоры мгновение назад, заметки">Входы <b>${inputCount(shape.sensors.count)}</b></span>${hidden}
+    <span class="arrow" aria-hidden="true">→</span><span class="layer fixed" title="4 кнопки пульта и заметки">Выходы <b>${OUTPUTS}</b></span>`;
   $('#addLayer').disabled = shape.hidden.length >= LIMITS.hiddenLayersMax;
 
   const variants = live.think.thinkVariants ?? {};

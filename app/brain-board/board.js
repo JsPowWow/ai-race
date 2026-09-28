@@ -1,7 +1,7 @@
 // «Табло мозга»: живая схема сети. Снаружи — одна функция и три метода; внутри — раскладка, «теплота»,
 // импульсы, формула нейрона, зум и нажатие на сенсор.
 import { liveSize } from '../ui.js';
-import { layout } from './layout.js';
+import { layout, buttonCenter } from './layout.js';
 import { formulaHTML, SMOOTH } from './formula.js';
 import { drawFire, readSkin } from './fire-skin.js';
 
@@ -11,11 +11,12 @@ const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
 /**
  * @param {{ canvas: HTMLCanvasElement, card: HTMLElement, zoomBar?: HTMLElement | null, brain: object,
- *   labels: { inputs: string[], outputs: string[], layers: string[][][] }, act?: typeof SMOOTH,
- *   onSensor?: (i: number, down: boolean) => void }} opts
+ *   labels: { inputs: string[], outputs: string[], frames: Record<string, string[][]>, loop?: string }, act?: typeof SMOOTH,
+ *   sensorCount: number, notes: number, onSensor?: (i: number, down: boolean) => void }} opts
+ *   frames — подписи рамок: { input, notesIn, hidden, buttons, notesOut } → [[обычная, пояснение], [для узкого экрана]]
  *   onSensor — человек зажал (down) или отпустил кружок сенсора i
  */
-export function createBrainBoard({ canvas, card, zoomBar = null, brain, labels, act = SMOOTH, onSensor = () => {} }) {
+export function createBrainBoard({ canvas, card, zoomBar = null, brain, labels, sensorCount, notes, act = SMOOTH, onSensor = () => {} }) {
   const ctx = canvas.getContext('2d');
   const size = liveSize(canvas);
   const sizes = [brain.layers[0].weights.length, ...brain.layers.map((l) => l.biases.length)];
@@ -68,8 +69,8 @@ export function createBrainBoard({ canvas, card, zoomBar = null, brain, labels, 
   const sensorAt = (m) => {
     if (!lay) return -1;
     const [x, y] = toBoard(m);
-    // скорость (последний вход) не нажимается — это не сенсор
-    return lay.pos[0].findIndex(([px, py], n) => n < sizes[0] - 1 && Math.hypot(x - px, y - py) < lay.r + 6);
+    // нажимаются только сенсоры «сейчас»: скорость, прошлое и заметки мозг считает сам
+    return lay.pos[0].findIndex(([px, py], n) => n < sensorCount && Math.hypot(x - px, y - py) < lay.r + 6);
   };
   function zoomAt(factor, cx, cy) {
     const s = Math.max(1, Math.min(MAX_ZOOM, view.s * factor));
@@ -141,7 +142,8 @@ export function createBrainBoard({ canvas, card, zoomBar = null, brain, labels, 
     lay.pos.forEach((col, k) => col.forEach(([x, y], i) => {
       if (k === 0) return;
       const out = k === sizes.length - 1;
-      const [cx, cy, rad] = !out ? [x, y, lay.r + 12] : lay.vertical ? [x, y + 24, 30] : [x + lay.button.w / 2 - 6, y, lay.button.w / 2];
+      const note = out && i >= lay.buttons;
+      const [cx, cy, rad] = !out ? [x, y, lay.r + 12] : note ? [x + 24, y, 30] : [...buttonCenter(lay, [x, y]), lay.button.w / 2];
       if (Math.hypot(mx - cx, my - cy) < rad) hit = { k, i, x, y };
     }));
     if (!hit) { card.hidden = true; return; }
@@ -152,11 +154,9 @@ export function createBrainBoard({ canvas, card, zoomBar = null, brain, labels, 
     const sx = (x) => x * view.s + view.x;
     const hx = sx(hit.x), hy = hit.y * view.s + view.y, hr = lay.r * view.s;
     let left = null;
-    if (!lay.vertical) {
-      const out = hit.k === sizes.length - 1;
-      const room = out ? hx - 6 * view.s - (sx(lay.pos[hit.k - 1][0][0]) + hr) : sx(lay.pos[hit.k + 1][0][0]) - 6 * view.s - (hx + hr);
-      if (room >= cw + 28) left = out ? hx - 6 * view.s - cw - 14 : hx + hr + 14;
-    }
+    const out = hit.k === sizes.length - 1;
+    const room = out ? hx - 6 * view.s - (sx(lay.pos[hit.k - 1][0][0]) + hr) : sx(lay.pos[hit.k + 1][0][0]) - 6 * view.s - (hx + hr);
+    if (room >= cw + 28) left = out ? hx - 6 * view.s - cw - 14 : hx + hr + 14;
     if (left !== null) {
       card.style.left = `${left}px`;
       card.style.top = `${clamp(hy - ch / 2, 8, H - ch - 8)}px`;
@@ -182,7 +182,7 @@ export function createBrainBoard({ canvas, card, zoomBar = null, brain, labels, 
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.fillStyle = skin.bg; ctx.fillRect(0, 0, W, H);
       ctx.setTransform(dpr * view.s, 0, 0, dpr * view.s, dpr * view.x, dpr * view.y); // зум — одной матрицей
-      lay = layout(sizes, W, H, W < 640);
+      lay = layout(sizes, sensorCount, notes, W, H);
       drawFire(ctx, {
         lay, brain, sigs, heat, labels, zoom: view.s, pressed, pulses: pulseList,
         act: (k, i) => trace[k][i], text: (k, i) => text[k][i],

@@ -1,6 +1,6 @@
 // Общее состояние приложения, его сохранение и простые события между вкладками.
 import { DEFAULT_SENSORS } from '../engine/car.js';
-import { layerSizes } from '../engine/brain.js';
+import { layerSizes, checkBrain } from '../engine/brain.js';
 import { CAR_COLORS } from '../engine/car-file.js';
 import { load, save, remove } from './storage.js';
 import { live } from './student-code.js';
@@ -28,6 +28,11 @@ export const state = {
   race: { seed: 'урок-1', traffic: 'all', ...load('race', {}) },
   profile: { name: '', color: CAR_COLORS[0], ...load('profile', {}) },
 };
+
+// Мозг, сохранённый до памяти (#4), другой формы: на нём машина не поедет. Начинаем с чистого листа.
+if (state.champion && checkBrain(state.champion, layerSizes(state.config.sensors.count, state.config.hidden))) {
+  Object.assign(state, { champion: null, generation: 0, history: [], hall: [], handEdited: false, brainNote: '' });
+}
 
 const PERSISTED = ['config', 'champion', 'generation', 'hall', 'handEdited', 'brainNote', 'versions', 'train', 'drive', 'race', 'profile'];
 

@@ -1,12 +1,14 @@
 // Обучение с учителем («повторяй за мной»): сеть учится нажимать то же, что нажимал человек.
 //
-// Пример — это пара: что видели сенсоры (x) и что нажал учитель (y = [газ, тормоз, влево, вправо]).
+// Пример — это пара: что видела сеть на входе (x) и что нажал учитель (y = [газ, тормоз, влево, вправо]).
+// Заметки (m1…m3) учитель не пишет: на входе они нулевые, а ошибку считаем только по 4 кнопкам.
+// Поэтому веса заметок обучение на примерах не трогает — пользоваться ими мозг учится только в рое.
 // Обучение — обратное распространение ошибки: для каждого примера смотрим, насколько ответ сети
 // отличается от ответа учителя, и чуть-чуть подвигаем каждый вес в сторону, где ошибка меньше.
 //
 // Активации те же, что у варианта мозга «Плавный»: внутри tanh(2·z), на выходе sigmoid(3·z), z = сумма − порог.
 // Поэтому обученный мозг сразу ездит с think = 'smooth'.
-import { CAR } from './car.js';
+import { NOTES } from './brain.js';
 
 export const TEACH_THINK = 'smooth';
 
@@ -14,7 +16,7 @@ export const TEACH_THINK = 'smooth';
 export function sampleOf(car) {
   const c = car.controls;
   return {
-    x: car.lastInputs ?? [...car.readings, car.speed / CAR.maxSpeed],
+    x: car.lastInputs ?? car.inputs(),
     y: [c.gas, c.brake, c.left, c.right].map((v) => (v > 0.5 ? 1 : 0)),
   };
 }
@@ -24,7 +26,7 @@ export function sampleOf(car) {
  * не тронулся после рестарта. Таких тиков набирается много, а «газ с места» — всего один-два,
  * и ученик выучит главное: «стоишь — стой». Поэтому такие примеры выбрасываем.
  */
-export const worthLearning = ({ x, y }) => y.some(Boolean) || Math.abs(x[x.length - 1]) > 0.02;
+export const worthLearning = ({ x, y }, sensorCount = (x.length - 1 - NOTES) / 2) => y.some(Boolean) || Math.abs(x[sensorCount]) > 0.02;
 
 const sigmoid = (z) => 1 / (1 + Math.exp(-z));
 
@@ -59,7 +61,9 @@ export function trainEpoch(brain, samples, learningRate = 0.1, rnd = Math.random
     const { x, y } = samples[index];
     const acts = forward(brain, x);
     // ошибка на выходе и её «вина» по слоям, от выхода к входу
+    // учитель знает только кнопки: у заметок ошибки нет, и их веса не двигаются
     let delta = acts.at(-1).map((a, j) => {
+      if (j >= y.length) return 0;
       loss += (a - y[j]) ** 2;
       return (a - y[j]) * 3 * a * (1 - a);
     });
@@ -77,7 +81,7 @@ export function trainEpoch(brain, samples, learningRate = 0.1, rnd = Math.random
       delta = prevDelta;
     }
   }
-  return loss / (samples.length * 4);
+  return loss / (samples.length * (samples[0]?.y.length ?? 4));
 }
 
 /** Насколько сеть совпадает с учителем: доля примеров, где все 4 кнопки такие же */
@@ -85,7 +89,7 @@ export function agreement(brain, samples) {
   if (!samples.length) return 0;
   let same = 0;
   for (const { x, y } of samples) {
-    const out = predict(brain, x);
+    const out = predict(brain, x).slice(0, y.length);
     if (out.every((v, j) => (v > 0.5 ? 1 : 0) === y[j])) same++;
   }
   return same / samples.length;

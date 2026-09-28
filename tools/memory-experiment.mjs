@@ -10,7 +10,7 @@
 import { getTrainingTrack, generateTrack } from '../engine/track.js';
 import { withTraffic } from '../engine/traffic.js';
 import { Car, CAR, carReport, maxTicksFor } from '../engine/car.js';
-import { createBrain, cloneBrain, OUTPUTS } from '../engine/brain.js';
+import { createBrain as create, cloneBrain, BUTTONS } from '../engine/brain.js';
 import { trainEpoch, agreement, worthLearning } from '../engine/imitation.js';
 import { mulberry32 } from '../engine/utils.js';
 import { thinkVariants } from '../student/think.js';
@@ -18,10 +18,15 @@ import { mutate } from '../student/mutate.js';
 
 const SENSORS = { count: 7, spread: 120, length: 180 };
 const HIDDEN = [8];
-const smooth = thinkVariants.smooth.think;
+const OUTPUTS = BUTTONS.length;
+// опыт ставился до «одной формы на весь курс» (#4): здесь у мозга только то, что перечислено у варианта, без заметок
+const createBrain = (sizes) => create(sizes, Math.random, 0);
+const now = (inputs) => inputs.slice(0, SENSORS.count + 1); // сенсоры и скорость — без того, что машина добавляет сама
+const smoothNow = thinkVariants.smooth.think;
+const smooth = (inputs, brain) => smoothNow(inputs, brain);
 
 /** Мозг с памятью или без: сколько входов и как их собрать */
-const plain = { name: 'без памяти', inputs: SENSORS.count + 1, driver: () => smooth };
+const plain = { name: 'без памяти', inputs: SENSORS.count + 1, driver: () => (inputs, brain) => smooth(now(inputs), brain) };
 /** Память только о прошлых сенсорах: «стена была дальше, теперь ближе». Списать нажатие не с чего */
 const sensorsOnly = {
   name: 'помнит сенсоры',
@@ -29,7 +34,7 @@ const sensorsOnly = {
   driver: () => {
     let prevSensors = new Array(SENSORS.count).fill(0);
     return (inputs, brain) => {
-      const out = smooth([...inputs, ...prevSensors], brain);
+      const out = smooth([...now(inputs), ...prevSensors], brain);
       prevSensors = inputs.slice(0, SENSORS.count);
       return out;
     };
@@ -42,7 +47,7 @@ const buttons = {
   driver: () => {
     let prevOut = new Array(OUTPUTS).fill(0);
     return (inputs, brain) => {
-      const out = smooth([...inputs, ...prevOut], brain);
+      const out = smooth([...now(inputs), ...prevOut], brain);
       prevOut = out.map((v) => (v > 0.5 ? 1 : 0));
       return out;
     };
@@ -55,7 +60,7 @@ const memory = {
   driver: () => {
     let prevSensors = new Array(SENSORS.count).fill(0), prevOut = new Array(OUTPUTS).fill(0);
     return (inputs, brain) => {
-      const out = smooth([...inputs, ...prevSensors, ...prevOut], brain);
+      const out = smooth([...now(inputs), ...prevSensors, ...prevOut], brain);
       prevSensors = inputs.slice(0, SENSORS.count);
       prevOut = out.map((v) => (v > 0.5 ? 1 : 0)); // помним, какие кнопки были нажаты
       return out;
@@ -138,12 +143,12 @@ function collectExamples(kind) {
     while (!car.done) {
       car.step(track, max);
       const x = {
-        [memory.name]: () => [...car.lastInputs, ...prevSensors, ...prevOut],
-        [buttons.name]: () => [...car.lastInputs, ...prevOut],
-        [sensorsOnly.name]: () => [...car.lastInputs, ...prevSensors],
-      }[kind.name]?.() ?? car.lastInputs;
+        [memory.name]: () => [...now(car.lastInputs), ...prevSensors, ...prevOut],
+        [buttons.name]: () => [...now(car.lastInputs), ...prevOut],
+        [sensorsOnly.name]: () => [...now(car.lastInputs), ...prevSensors],
+      }[kind.name]?.() ?? now(car.lastInputs);
       const y = car.lastOutputs.map((v) => (v > 0.5 ? 1 : 0));
-      if (worthLearning({ x, y })) samples.push({ x, y });
+      if (worthLearning({ x, y }, SENSORS.count)) samples.push({ x, y });
       prevSensors = car.lastInputs.slice(0, SENSORS.count); prevOut = y;
     }
     console.log(`  учитель на «${track.name}»: ${car.status}, ${Math.round(carReport(car, track).progressPct)}%`);

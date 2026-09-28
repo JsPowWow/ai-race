@@ -2,6 +2,7 @@
 import { clamp, lerp, segmentT } from './utils.js';
 import { castSegment, projectProgress, pointAt } from './track.js';
 import { trafficAt } from './traffic.js';
+import { BUTTONS, NOTES } from './brain.js';
 
 export const CAR = {
   width: 24,
@@ -48,6 +49,8 @@ export class Car {
     this.think = think;
     this.sensors = { ...sensors };
     this.readings = new Array(sensors.count).fill(0);
+    this.before = null; // что сенсоры видели тиком раньше (на первом тике — то же, что сейчас)
+    this.notes = new Array(NOTES).fill(0); // заметки мозга самому себе: на старте пустые
     this.rayT = new Float32Array(sensors.count).fill(-1);
     this.controls = { gas: 0, brake: 0, left: 0, right: 0 };
     this.lastInputs = null;
@@ -79,10 +82,10 @@ export class Car {
     this.ticks++;
     this.sense(track, traffic);
 
-    // что «видит» машина на этом тике: сенсоры и скорость до шага (так же записывает пример «Учитель»)
-    const inputs = this.readings.slice();
-    inputs.push(this.speed / CAR.maxSpeed);
+    // что «видит» машина на этом тике: сенсоры, скорость, сенсоры тиком раньше, заметки (так же записывает пример «Учитель»)
+    const inputs = this.inputs();
     this.lastInputs = inputs;
+    this.before = this.readings.slice();
     if (this.brain && this.think) {
       const out = this.think(inputs, this.brain) || [];
       this.lastOutputs = out;
@@ -91,6 +94,7 @@ export class Car {
       c.brake = safe(out[1]);
       c.left = safe(out[2]);
       c.right = safe(out[3]);
+      for (let i = 0; i < NOTES; i++) this.notes[i] = safe(out[BUTTONS.length + i]);
     }
 
     this.move();
@@ -143,6 +147,11 @@ export class Car {
     this.y += Math.sin(this.angle) * this.speed;
     this.distance += Math.abs(this.speed);
     this.topSpeed = Math.max(this.topSpeed, this.speed);
+  }
+
+  /** Входы сети сейчас: [s1…sn, v, s1′…sn′, m1…m3] */
+  inputs() {
+    return [...this.readings, this.speed / CAR.maxSpeed, ...(this.before ?? this.readings), ...this.notes];
   }
 
   /** Сенсоры: 0 — стены не видно, 1 — стена вплотную. Слева направо. */

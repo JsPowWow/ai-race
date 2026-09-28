@@ -9,6 +9,7 @@ import { join } from 'path';
 import { cloneBrain } from '../engine/brain.js';
 import { mulberry32 } from '../engine/utils.js';
 import { generateCourseKeys, sealCar } from '../engine/seal.js';
+import { FORMAT } from '../engine/car-file.js';
 
 const args = process.argv.slice(2).filter((a) => !a.startsWith('--'));
 const sealed = process.argv.includes('--seal');
@@ -46,7 +47,7 @@ function shuffleHidden(brain) {
 }
 
 const carFile = (bot, extra = {}) => ({
-  format: 'ai-race/car@1',
+  format: FORMAT,
   name: `${pick(NAMES)} ${Math.floor(rnd() * 90) + 10}`,
   color: `#${Math.floor(rnd() * 0xffffff).toString(16).padStart(6, '0')}`,
   think: bot.think,
@@ -89,6 +90,6 @@ for (let i = 0; i < count; i++) {
     writeFileSync(join(folder, 'car.sealed.json'), text);
   } else writeFileSync(join(folder, 'car.json'), JSON.stringify(file));
   if (i % 10 === 0) writeFileSync(join(folder, 'package.json'), '{"name":"not-a-car"}');
-  if (i === 11) writeFileSync(join(folder, 'car.json'), '{"format":"ai-race/car@1","name":"Сломанный","brain":{}}');
+  if (i === 11) writeFileSync(join(folder, 'car.json'), `{"format":"${FORMAT}","name":"Сломанный","brain":{}}`);
 }
 console.log(`${count} работ → ${dir}/${keys ? ` (запечатаны, секретный ключ — ${dir}.private-key.json)` : ''}`);

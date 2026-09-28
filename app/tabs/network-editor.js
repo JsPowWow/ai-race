@@ -1,5 +1,5 @@
 // «Мозг под микроскопом» на вкладке «Я учу»: подсветка работы нейронов и ручная правка весов.
-import { createBrain, OUTPUT_LABELS } from '../../engine/brain.js';
+import { createBrain, OUTPUT_LABELS, inputLabel } from '../../engine/brain.js';
 import { drawNetwork, hitNetwork } from '../../engine/netviz.js';
 import { mulberry32 } from '../../engine/utils.js';
 import { state, sizesOf, setChampion } from '../state.js';
@@ -145,9 +145,9 @@ function write(brain, sel, value) {
   else brain.layers[sel.k].biases[sel.j] = value;
 }
 
-/** Имя нейрона: с1…сN и «скорость» на входе, н1.2 внутри, «Газ»… на выходе */
+/** Имя нейрона: s1…sN, v, s1′…sN′, m1…m3 на входе, н1.2 внутри, «Газ»… и заметки на выходе */
 function nodeName(brain, level, index) {
-  if (level === 0) return index === brain.layers[0].weights.length - 1 ? 'скорость' : `с${index + 1}`;
+  if (level === 0) return inputLabel(brain.layers[0].weights.length, index);
   if (level === brain.layers.length) return OUTPUT_LABELS[index];
   return `н${level}.${index + 1}`;
 }

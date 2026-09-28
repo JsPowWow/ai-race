@@ -8,19 +8,47 @@
 //   ]
 // }
 
-export const OUTPUT_LABELS = ['Газ', 'Тормоз', 'Влево', 'Вправо'];
+// Форма мозга одна на весь курс:
+//   входы  = сенсоры сейчас (s1…sn), скорость (v), сенсоры мгновение назад (s1′…sn′), заметки (m1…m3);
+//   выходы = 4 кнопки пульта и 3 новые заметки.
+// Заметки — память, которую мозг ведёт сам: что выдал в m1…m3 на этом тике, то увидит на входе в следующем.
+// Так он может «помнить» дольше мгновения («я в тупике», «уже разворачиваюсь»). Заметки всегда последние.
+export const BUTTONS = ['Газ', 'Тормоз', 'Влево', 'Вправо'];
+export const NOTES = 3;
+export const NOTE_LABELS = Array.from({ length: NOTES }, (_, i) => `m${i + 1}`);
+export const OUTPUT_LABELS = [...BUTTONS, ...NOTE_LABELS];
 export const OUTPUTS = OUTPUT_LABELS.length;
 
 export const LIMITS = { sensorsMin: 3, sensorsMax: 15, hiddenLayersMax: 3, neuronsMin: 2, neuronsMax: 16 };
 
-/** Размеры слоёв: входы = сенсоры + скорость, дальше скрытые, в конце 4 выхода */
-export const layerSizes = (sensorCount, hidden) => [sensorCount + 1, ...hidden, OUTPUTS];
+/** Сколько входов у сети при n сенсорах: сейчас, скорость, мгновение назад, заметки */
+export const inputCount = (sensorCount) => 2 * sensorCount + 1 + NOTES;
 
-export function createBrain(sizes, rnd = Math.random) {
+/** Подписи входов: s1…sn, v, s1′…sn′, m1…m3 */
+export function inputLabels(sensorCount) {
+  const now = Array.from({ length: sensorCount }, (_, i) => `s${i + 1}`);
+  return [...now, 'v', ...now.map((s) => `${s}′`), ...NOTE_LABELS];
+}
+
+/** Подпись входа i у сети с sizes0 входами (s3, v, s3′, m1); если форма не наша — просто номер */
+export function inputLabel(sizes0, i) {
+  const n = (sizes0 - 1 - NOTES) / 2;
+  return Number.isInteger(n) && n > 0 ? inputLabels(n)[i] : `вход ${i + 1}`;
+}
+
+/** Размеры слоёв: входы, дальше скрытые, в конце кнопки и заметки */
+export const layerSizes = (sensorCount, hidden) => [inputCount(sensorCount), ...hidden, OUTPUTS];
+
+/**
+ * Новый мозг со случайными числами. Веса от последних silentInputs входов (заметок) — нули:
+ * пока рой не научит мозг пользоваться заметками, они ни на что не влияют.
+ */
+export function createBrain(sizes, rnd = Math.random, silentInputs = NOTES) {
   const layers = [];
   for (let k = 0; k < sizes.length - 1; k++) {
+    const silentFrom = k === 0 ? sizes[0] - silentInputs : Infinity;
     layers.push({
-      weights: Array.from({ length: sizes[k] }, () => Array.from({ length: sizes[k + 1] }, () => rnd() * 2 - 1)),
+      weights: Array.from({ length: sizes[k] }, (_, i) => Array.from({ length: sizes[k + 1] }, () => (i >= silentFrom ? 0 : rnd() * 2 - 1))),
       biases: Array.from({ length: sizes[k + 1] }, () => rnd() * 2 - 1),
     });
   }

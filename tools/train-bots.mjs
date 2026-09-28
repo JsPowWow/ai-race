@@ -3,6 +3,7 @@
 import { writeFileSync } from 'node:fs';
 import { getTrainingTrack, generateTrack } from '../engine/track.js';
 import { layerSizes } from '../engine/brain.js';
+import { FORMAT } from '../engine/car-file.js';
 import { withTraffic } from '../engine/traffic.js';
 import { thinkVariants } from '../student/think.js';
 import { drive, evolveOnTracks, resultText } from './sim.mjs';
@@ -41,7 +42,7 @@ const bots = RECIPES.map(({ name, color, think, sensors, hidden, ...plan }) => {
     ...plan, sizes, sensors, think: thinkVariants[think].think,
     log: (gen, score) => gen % 10 === 0 && console.log(`${name}: поколение ${gen}, фитнес ${Math.round(score)}`),
   });
-  return { format: 'ai-race/car@1', name, color, think, sensors, layers: sizes, brain, trainedGenerations: plan.generations };
+  return { format: FORMAT, name, color, think, sensors, layers: sizes, brain, trainedGenerations: plan.generations };
 });
 
 writeFileSync(new URL('./bots.json', import.meta.url), JSON.stringify(bots));

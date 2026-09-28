@@ -1,5 +1,5 @@
 // Картинка нейросети: слои слева направо, цвет связи — знак веса, яркость — сила.
-import { OUTPUT_LABELS } from './brain.js';
+import { OUTPUT_LABELS, inputLabel } from './brain.js';
 import { cssColor as css } from './render.js';
 
 /**
@@ -90,7 +90,7 @@ export function drawNetwork(canvas, brain, trace = null, selected = null, hover 
       ctx.fillStyle = muted;
       if (k === 0) {
         ctx.textAlign = 'right';
-        ctx.fillText(i === n - 1 ? 'v' : `с${i + 1}`, x - r - 5, y);
+        ctx.fillText(inputLabel(n, i), x - r - 5, y);
       }
       if (k === sizes.length - 1) {
         ctx.textAlign = 'left';

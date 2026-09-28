@@ -11,9 +11,9 @@
   background: var(--bb-bg); border: 1px solid var(--line); border-radius: var(--r-l);
 }
 .brain-board-screen::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; box-shadow: inset 0 2px 12px rgb(0 0 0 / 0.35); }
-.brain-board-screen canvas { display: block; inline-size: 100%; block-size: 470px; cursor: crosshair; }
-/* узкое табло рисуется сверху вниз — ему нужна высота */
-@container (max-width: 639px) { .brain-board-screen canvas { block-size: 540px; } }
+.brain-board-screen canvas { display: block; inline-size: 100%; block-size: 580px; cursor: crosshair; }
+/* на узком табло 18 входов стоят плотнее — нужно чуть больше высоты */
+@container (max-width: 639px) { .brain-board-screen canvas { block-size: 620px; } }
 
 /* формула нейрона — карточка поверх табло; числа моноширинные, чтобы не прыгали */
 .brain-board .formula {
