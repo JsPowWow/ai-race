@@ -7,7 +7,7 @@ import { TRAFFIC_LEVELS, withTraffic } from '../../engine/traffic.js';
 import { drawChart } from '../../engine/netviz.js';
 import { createBrainBoard } from '../brain-board/board.js';
 import { SMOOTH, ANY_ACT } from '../brain-board/formula.js';
-import { state, persist, sizesOf, thinkFn, setChampion, on } from '../state.js';
+import { state, persist, persistSoon, sizesOf, thinkFn, setChampion, on } from '../state.js';
 import { setBrain, remember, renderLibrary } from '../library.js';
 import { live, errorLine } from '../student-code.js';
 import { seedTrack } from '../tracks.js';
@@ -29,6 +29,7 @@ const LEADER_IDLE = 'Нажми «Старт» — здесь загорится
 const LEADER_HINT = 'Горит то, что лидер видит и жмёт прямо сейчас. Пунктир — память: сенсоры мгновение назад и заметки m1…m3 — их рой учится писать сам.';
 let board = null, boardAt = performance.now();
 function showLeaderBrain(lead) {
+  if (lead && !lead.lastInputs && board) return; // новое поколение ещё не тронулось: держим прошлый кадр, иначе табло мигнёт и страница прыгнет
   const ready = Boolean(lead?.brain && lead.lastInputs);
   const hint = ready ? LEADER_HINT : LEADER_IDLE;
   if ($('#leaderHint').textContent !== hint) $('#leaderHint').textContent = hint; // каждый кадр — только если поменялось
@@ -56,7 +57,7 @@ export const trainTab = {
     const lead = leaderOf(evo.cars);
     drawScene(track, { camera: state.train.camera, follow: lead, traffic: evo.traffic ?? trafficOn(track, 0) });
     for (const car of evo.cars) {
-      if (car !== lead && !picked.includes(car)) paintCar(car, { color: state.profile.color, alpha: car.done ? 0.18 : 0.35 });
+      if (car !== lead && !picked.includes(car)) paintCar(car, { color: state.profile.color, alpha: car.done ? 0.18 : 0.35, ghost: true });
     }
     for (const car of picked) if (car !== lead) paintCar(car, { color: state.profile.color, highlight: true });
     if (lead) paintCar(lead, { color: state.profile.color, sensors: true, highlight: picked.includes(lead) });
@@ -138,9 +139,17 @@ function endGeneration() {
   setChampion(cloneBrain(evo.parent), { by: 'train', generation: evo.generation });
   addToHall(entry, report);
   showStudentErrors();
-  persist();
+  saveOften();
   renderPanel();
   startGeneration();
+}
+
+// В турбо поколение длится доли секунды, а сохранять весь мозг и историю каждый раз дорого: не чаще раза в 2 с
+let savedAt = 0;
+function saveOften() {
+  if (performance.now() - savedAt < 2000) return persistSoon();
+  savedAt = performance.now();
+  persist();
 }
 
 /** Рекорды роя: лучший результат на каждой трассе */

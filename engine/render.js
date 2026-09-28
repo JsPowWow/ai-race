@@ -154,8 +154,9 @@ function checkered(ctx, pt, width, p) {
 
 /** Слот-кар: литой корпус, тёмное стекло, белый круг под номер на капоте. Разбитая — серая. */
 /** Машинка сверху: колёса повёрнуты рулём, при тормозе горят стоп-сигналы — видно, что делает водитель */
-export function drawCar(ctx, car, { color = null, alpha = 1, sensors = false, label = null, highlight = false, cam = null, number = null } = {}) {
+export function drawCar(ctx, car, { color = null, alpha = 1, sensors = false, label = null, highlight = false, cam = null, number = null, ghost = false } = {}) {
   const p = getPalette();
+  if (ghost) return drawGhost(ctx, car, color ?? p.you, alpha, p);
   if (sensors && !car.done) drawSensors(ctx, car);
   ctx.save();
   ctx.globalAlpha = alpha;
@@ -211,6 +212,23 @@ export function drawCar(ctx, car, { color = null, alpha = 1, sensors = false, la
 /** Угол колёс на экране догоняет нужный плавно — руль не щёлкает, как выключатель (по машине, без записи в неё) */
 const shownWheel = new WeakMap();
 /** Колёса торчат из-под корпуса; передние повёрнуты на угол, с которым машина правда описывает свою дугу */
+/**
+ * Машина роя на заднем плане: только корпус и стекло, без теней, колёс и стоп-сигналов.
+ * Размытая тень на холсте дорогая, а машин в рое сотня: с тенями кадр в начале поколения рисуется в разы дольше.
+ */
+function drawGhost(ctx, car, color, alpha, p) {
+  const L = CAR.length, W = CAR.width;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(car.x, car.y);
+  ctx.rotate(car.angle);
+  ctx.fillStyle = car.status === 'crashed' ? p.crashed : color;
+  roundRect(ctx, -L / 2, -W / 2, L, W, 7); ctx.fill();
+  ctx.fillStyle = 'rgb(0 0 0 / 0.55)';
+  ctx.fillRect(L * 0.04, -W / 2 + 3, L * 0.22, W - 6); // лобовое стекло: видно, куда смотрит
+  ctx.restore();
+}
+
 function drawWheels(ctx, car, L, W) {
   const c = car.controls;
   const steer = c && !car.done ? Math.max(-1, Math.min(1, (c.right ?? 0) - (c.left ?? 0))) : 0;
