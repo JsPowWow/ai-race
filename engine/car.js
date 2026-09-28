@@ -7,17 +7,20 @@ import { BUTTONS, NOTES } from './brain.js';
 export const CAR = {
   width: 24,
   length: 44,
-  accel: 0.075,   // газ: с места до максимума ≈ 1,5 с — успеваешь почувствовать, как меняется руль
-  brake: 0.1,     // тормоз сильнее газа: с максимума до нуля ≈ 0,5 с
-  maxSpeed: 4,
+  accel: 0.075,   // газ: с места до максимума ≈ 1,9 с — успеваешь почувствовать, как меняется руль
+  brake: 0.1,     // тормоз сильнее газа: с максимума до нуля ≈ 0,6 с
+  maxSpeed: 5,
   reverseMax: 1.5,
   friction: 0.03,
+  coast: 0.055,   // торможение двигателем: отпустил газ — машина заметно сбавляет, тормоз нужен только в опасности
   // Руль как у настоящей машины: он задаёт дугу, а не скорость поворота. Стоишь — не поворачиваешь,
   // едешь медленно — поворачиваешь медленно. Самая крутая дуга — minRadius; на скорости v дуга не круче v²/grip,
-  // иначе колёса сорвутся: на максимальной скорости радиус ≈ 320 px, в поворот надо тормозить
-  minRadius: 60,
-  grip: 0.05,
-  steerRate: 0.12,     // руль не щёлкает: от середины до упора — за 8 тиков
+  // иначе колёса сорвутся: на максимальной скорости радиус 250 px, в поворот надо тормозить
+  minRadius: 70,
+  grip: 0.1,
+  steerRate: 0.55,     // руль отзывчивый: от середины до упора — за 2 тика, но дуга всё равно ограничена скоростью
+  pivot: 1,            // вокруг чего поворачивает корпус: 0 — центр машины, 1 — задняя ось (как у настоящей: нос ведёт, хвост идёт следом)
+  centerRate: 0.31,    // отпустил стрелку — руль возвращается к середине за 3–4 тика
   stallTicks: 180, // столько тиков не продвигается по своей дороге — «заглох»
   slowDown: 0.3,   // так быстро тормозит, заехав в медленную зону
 };
@@ -186,17 +189,23 @@ export class Car {
     this.speed -= CAR.brake * safe(c.brake);
     this.speed = clamp(this.speed, -CAR.reverseMax, CAR.maxSpeed);
     if (this.slow) this.speed = clamp(this.speed, -SLOW_SPEED, Math.max(SLOW_SPEED, this.speed - CAR.slowDown));
-    if (this.speed > 0) this.speed = Math.max(0, this.speed - CAR.friction);
+    if (this.speed > 0) this.speed = Math.max(0, this.speed - CAR.friction - CAR.coast * (1 - safe(c.gas)));
     else if (this.speed < 0) this.speed = Math.min(0, this.speed + CAR.friction);
 
     const steer = safe(c.right) - safe(c.left); // куда крутят руль кнопки
-    this.steer += clamp(steer - this.steer, -CAR.steerRate, CAR.steerRate);
+    // крутишь от середины — руль идёт со скоростью steerRate, к середине — со скоростью centerRate
+    const outward = Math.abs(steer) > Math.abs(this.steer) && steer * this.steer >= 0;
+    const rate = outward ? CAR.steerRate : CAR.centerRate;
+    this.steer += clamp(steer - this.steer, -rate, rate);
+    const before = this.angle;
     this.angle += this.speed * this.steer * maxCurve(this.speed); // задним ходом дуга та же, но поворот в другую сторону — как у машины
     this.wiggle += Math.abs(steer - this.prevSteer);
     this.prevSteer = steer;
 
-    this.x += Math.cos(this.angle) * this.speed;
-    this.y += Math.sin(this.angle) * this.speed;
+    // по дуге идёт точка поворота (при pivot = 1 — задняя ось), а центр машины поворачивается вокруг неё
+    const arm = (CAR.pivot * WHEELBASE) / 2;
+    this.x += Math.cos(this.angle) * this.speed + arm * (Math.cos(this.angle) - Math.cos(before));
+    this.y += Math.sin(this.angle) * this.speed + arm * (Math.sin(this.angle) - Math.sin(before));
     this.distance += Math.abs(this.speed);
     this.topSpeed = Math.max(this.topSpeed, this.speed);
   }
