@@ -9,7 +9,7 @@
 .tune summary { padding: 8px 12px; font-weight: 700; cursor: pointer; }
 .tune details > :not(summary) { margin-inline: 12px; }
 .tune-note { margin-block: 0 8px; color: color-mix(in srgb, var(--hud-ink) 70%, transparent); }
-.tune-presets { display: flex; flex-wrap: wrap; gap: 6px; margin-block-end: 8px; }
+.tune-presets { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-block-end: 8px; }
 .tune button {
   padding: 4px 10px; border: 1px solid color-mix(in srgb, var(--hud-ink) 30%, transparent); border-radius: var(--r-s, 6px);
   background: transparent; color: inherit; font: inherit; cursor: pointer;

@@ -9,31 +9,62 @@ import { $ } from './ui.js';
 
 /** Что можно крутить: ключ CAR, подпись, пределы, шаг */
 const KNOBS = [
-  ['accel', 'Газ', 0.02, 0.2, 0.005],
-  ['brake', 'Тормоз', 0.03, 0.3, 0.005],
-  ['friction', 'Трение', 0, 0.1, 0.005],
-  ['coast', 'Торможение двигателем', 0, 0.1, 0.005],
-  ['maxSpeed', 'Макс. скорость', 2, 8, 0.25],
-  ['grip', 'Сцепление', 0.02, 0.4, 0.01],
+  ['accel', 'Газ', 0.005, 0.2, 0.001],
+  ['brake', 'Тормоз', 0.01, 0.3, 0.001],
+  ['friction', 'Трение', 0, 0.1, 0.001],
+  ['coast', 'Торможение двигателем', 0, 0.1, 0.001],
+  ['maxSpeed', 'Макс. скорость', 2, 8, 0.1],
+  ['grip', 'Сцепление', 0.01, 0.4, 0.001],
   ['minRadius', 'Самый крутой радиус', 20, 120, 5],
-  ['steerRate', 'Руль к упору (чем меньше, тем дольше держать)', 0.02, 1, 0.01],
-  ['centerRate', 'Возврат руля к середине', 0.02, 1, 0.01],
+  ['steerRate', 'Руль к упору (чем меньше, тем дольше держать)', 0.01, 1, 0.005],
+  ['centerRate', 'Возврат руля к середине', 0.01, 1, 0.005],
   ['pivot', 'Точка поворота: 0 — центр, 1 — задняя ось', 0, 1, 0.1],
 ];
 
 /** Физика, какой она была до подстройки */
 const ORIGINAL = Object.fromEntries(KNOBS.map(([key]) => [key, CAR[key]]));
-/** Готовые наборы: с чего начать. Масштаб: машина 44 px ≈ 4,4 м, значит 10 px ≈ 1 м, скорость 1 ≈ 21,6 км/ч */
-const REAL = { friction: 0.01, pivot: 1 }; // у всех настоящих: колёса катятся легко, по дуге идёт задняя ось
+// ── настоящие машины ──
+// Масштаб: 10 px ≈ 1 м (наша машина 44 px ≈ 4,4 м), 60 тиков ≈ 1 с.
+// Разгон 0–100, скорость, тормозной путь и радиус разворота — из характеристик и тестов; сцепление в поворотах
+// у обычных шин 0,75–0,85 g. Где цифры не нашлись, взяты типичные для такой машины (отмечены «≈»).
+const CARS = {
+  'Toyota Corolla': { from: '1.8 гибрид (E210): 0–100 за 10,9 с, 180 км/ч, тормозной путь со 100 — 35,2 м (ADAC), радиус разворота 5,4 м, сцепление ≈ 0,85 g',
+    zeroTo100: 10.9, top: 180, brake100: 35.2, g: 0.85, radius: 5.4 },
+  'Nissan Qashqai': { from: '1.3 DIG-T 140 (J12): 0–100 за 10,2 с, 196 км/ч, тормозной путь ≈ 36 м, радиус разворота ≈ 5,5 м, высокий кроссовер — сцепление ≈ 0,8 g',
+    zeroTo100: 10.2, top: 196, brake100: 36, g: 0.8, radius: 5.5 },
+  'Daihatsu Cuore': { from: '1.0 (L276): 0–100 за 11 с, 160 км/ч, узкие шины — тормозной путь ≈ 40 м и сцепление ≈ 0,75 g, крошечная — радиус разворота ≈ 4,4 м',
+    zeroTo100: 11, top: 160, brake100: 40, g: 0.75, radius: 4.4 },
+};
+/** Во сколько раз ускорить время: трассы у нас короткие, повороты крутые (радиус ~16 м) — в реальном времени разгон тянется долго */
+let time = 1;
+const round = (v) => Math.round(v * 10000) / 10000;
+
+/** Физика настоящей машины: m/s² → px/тик², при ускоренном в k раз времени скорости ×k, ускорения ×k² */
+function fromReal(car, k) {
+  const acc = (ms2) => round(((ms2 * 10) / 3600) * k * k);
+  const kmhToTick = (kmh) => (kmh / 3.6) * 10 / 60;
+  const friction = acc(0.2); // качение и воздух: машина катится долго
+  return {
+    accel: round(acc(100 / 3.6 / car.zeroTo100) + friction), // средний разгон 0–100 плюс то, что съедает трение
+    brake: acc((100 / 3.6) ** 2 / (2 * car.brake100)),
+    friction,
+    coast: acc(0.8),                                              // торможение двигателем ≈ 0,08 g
+    maxSpeed: round(Math.min(6, kmhToTick(car.top) * k)),         // быстрее 6 (≈ 130 км/ч) трассам не нужно
+    grip: acc(car.g * 9.8),
+    minRadius: Math.round(car.radius * 10),
+    // Баранка настоящей машины доходит до упора ≈ за 0,8 с, но её крутят плавно. Стрелки — «вкл/выкл»:
+    // с таким медленным рулём машину раскачивает и выносит. Поэтому руль быстрее: до упора 0,33 с, обратно 0,17 с
+    steerRate: 0.05,
+    centerRate: 0.1,
+    pivot: 1,
+  };
+}
+
+/** Готовые наборы: [подсказка, числа] (числа настоящих машин считаются с учётом ускорения времени) */
 const PRESETS = {
-  'Легковушка': ['Обычная машина: разгоняется не спеша, тормозит втрое сильнее, в поворот — только сбросив скорость (перегрузка до 1,1 g).',
-    { ...REAL, accel: 0.04, brake: 0.12, coast: 0.02, maxSpeed: 5, grip: 0.03, minRadius: 55, steerRate: 0.03, centerRate: 0.06 }],
-  'Спорткар': ['Быстрая и цепкая (1,8 g): мощный тормоз, руль отзывчивее. Перед крутым поворотом всё равно тормози.',
-    { ...REAL, accel: 0.07, brake: 0.2, coast: 0.03, maxSpeed: 6, grip: 0.05, minRadius: 55, steerRate: 0.05, centerRate: 0.1 }],
-  'Картинг': ['Маленький и цепкий (2,5 g): скорость ниже, руль острый, почти все повороты — на газу.',
-    { ...REAL, friction: 0.02, accel: 0.07, brake: 0.15, coast: 0.05, maxSpeed: 4, grip: 0.07, minRadius: 35, steerRate: 0.1, centerRate: 0.15 }],
+  ...Object.fromEntries(Object.entries(CARS).map(([name, car]) => [name, [car.from, () => fromReal(car, time)]])),
   'Машинка на пульте': ['Игрушка на игрушечной трассе: резкая, цепкая, руль почти мгновенный — как в аркадах.',
-    { ...REAL, friction: 0.03, accel: 0.1, brake: 0.2, coast: 0.06, maxSpeed: 5, grip: 0.2, minRadius: 40, steerRate: 0.15, centerRate: 0.25 }],
+    { friction: 0.03, accel: 0.1, brake: 0.2, coast: 0.06, maxSpeed: 5, grip: 0.2, minRadius: 40, steerRate: 0.15, centerRate: 0.25, pivot: 1 }],
   'Твой + задняя ось': ['Твои числа, но поворачивает как настоящая машина: нос ведёт, хвост идёт следом.',
     { accel: 0.075, brake: 0.1, friction: 0.03, coast: 0.055, maxSpeed: 5, grip: 0.1, minRadius: 50, steerRate: 0.18, centerRate: 0.18, pivot: 1 }],
   'Твой': ['Твои числа как есть: машина крутится вокруг центра.',
@@ -78,7 +109,8 @@ function feel() {
 
 function apply(name) {
   active = name;
-  const values = PRESETS[name]?.[1] ?? load('tune', ORIGINAL);
+  const preset = PRESETS[name]?.[1];
+  const values = typeof preset === 'function' ? preset() : preset ?? load('tune', ORIGINAL);
   for (const [key] of KNOBS) CAR[key] = values[key] ?? ORIGINAL[key];
   save('tune', Object.fromEntries(KNOBS.map(([key]) => [key, CAR[key]])));
   render();
@@ -94,6 +126,8 @@ function render() {
       <summary>Подстройка руля</summary>
       <p class="tune-note">Рули на «Я учу»: щёлкни по трассе, потом стрелки. Числа — только в этом браузере, боты учились на обычной физике.</p>
       <div class="tune-presets">${Object.keys(PRESETS).map((name) => `<button type="button" data-preset="${name}" aria-pressed="${name === active}">${name}</button>`).join('')}</div>
+      <div class="tune-presets" role="group" aria-label="Время для настоящих машин">Время
+        ${[1, 1.5, 2].map((k) => `<button type="button" data-time="${k}" aria-pressed="${k === time}">×${String(k).replace('.', ',')}</button>`).join('')}</div>
       ${active ? `<p class="tune-hint">${PRESETS[active][0]}</p>` : ''}
       ${KNOBS.map(([key, title, min, max, step]) => `
         <label class="tune-knob"><span>${title}</span>
@@ -120,6 +154,11 @@ box.addEventListener('click', (e) => {
   const target = /** @type {HTMLElement} */ (e.target);
   const preset = /** @type {HTMLElement | null} */ (target.closest('[data-preset]'));
   if (preset) apply(preset.dataset.preset);
+  const speedUp = /** @type {HTMLElement | null} */ (target.closest('[data-time]'));
+  if (speedUp) {
+    time = +speedUp.dataset.time;
+    apply(typeof PRESETS[active]?.[1] === 'function' ? active : 'Toyota Corolla');
+  }
   target.blur(); // стрелки — машине, а не кнопке
   const copy = target.closest('.tune-copy');
   if (copy) {
