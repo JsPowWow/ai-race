@@ -1,4 +1,4 @@
-// ПРОТОТИП (ветка wip/tune, в main не идёт). // Подстройка руля (ветка-прототип wip/tune): ползунки меняют физику машины прямо на ходу.
+// ПРОТОТИП (ветка wip/tune, в main не идёт). Подстройка руля: ползунки меняют физику машины прямо на ходу.
 // Нужна, чтобы подобрать «ощущение» ручной езды, прежде чем переобучать под него ботов.
 // Меняет только этот браузер: сохраняется у тебя и работает в ветке-прототипе wip/tune.
 // Боты и рой учились на обычной физике — с другими числами они могут ездить хуже.
@@ -16,7 +16,8 @@ const KNOBS = [
   ['maxSpeed', 'Макс. скорость', 2, 8, 0.25],
   ['grip', 'Сцепление', 0.02, 0.4, 0.01],
   ['minRadius', 'Самый крутой радиус', 20, 120, 5],
-  ['steerRate', 'Скорость руля', 0.04, 1, 0.02],
+  ['steerRate', 'Руль к упору (чем меньше, тем дольше держать)', 0.02, 1, 0.01],
+  ['centerRate', 'Возврат руля к середине', 0.02, 1, 0.01],
 ];
 
 /** Физика, какой она была до подстройки */
@@ -25,7 +26,9 @@ const ORIGINAL = Object.fromEntries(KNOBS.map(([key]) => [key, CAR[key]]));
 const PRESETS = {
   'Как сейчас': ORIGINAL,
   'Бодрее': { ...ORIGINAL, grip: 0.1, coast: 0.03 },
-  'Аркада': { ...ORIGINAL, grip: 0.2, coast: 0.04, minRadius: 40, steerRate: 0.2 },
+  'Аркада': { ...ORIGINAL, grip: 0.2, coast: 0.04, minRadius: 40, steerRate: 0.2, centerRate: 0.2 },
+  'Твой': { accel: 0.075, brake: 0.1, friction: 0.03, coast: 0.055, maxSpeed: 5, grip: 0.1, minRadius: 50, steerRate: 0.18, centerRate: 0.18 },
+  'Твой, руль дольше': { accel: 0.075, brake: 0.1, friction: 0.03, coast: 0.055, maxSpeed: 5, grip: 0.14, minRadius: 50, steerRate: 0.05, centerRate: 0.25 },
 };
 
 const degPerSec = (radPerTick) => Math.round((radPerTick * 60 * 180) / Math.PI);
@@ -52,6 +55,8 @@ function feel() {
     ['разгон с места', seconds(ticksUntil({ gas: 1 }, 0, (c) => c.speed >= v - 2 * CAR.friction))],
     ['без газа: с полной до ¾', seconds(ticksUntil({}, v, (c) => c.speed <= v * 0.75))],
     ['тормоз: с полной до 0', seconds(ticksUntil({ brake: 1 }, v, (c) => c.speed <= 0))],
+    ['руль до упора', seconds(Math.ceil(1 / CAR.steerRate))],
+    ['руль обратно', seconds(Math.ceil(1 / CAR.centerRate))],
   ];
 }
 

@@ -19,6 +19,7 @@ export const CAR = {
   minRadius: 60,
   grip: 0.05,
   steerRate: 0.12,     // руль не щёлкает: от середины до упора — за 8 тиков
+  centerRate: 0.12,    // отпустил стрелку — руль возвращается к середине (можно быстрее, чем поворачивается)
   stallTicks: 180, // столько тиков не продвигается по своей дороге — «заглох»
   slowDown: 0.3,   // так быстро тормозит, заехав в медленную зону
 };
@@ -191,7 +192,10 @@ export class Car {
     else if (this.speed < 0) this.speed = Math.min(0, this.speed + CAR.friction);
 
     const steer = safe(c.right) - safe(c.left); // куда крутят руль кнопки
-    this.steer += clamp(steer - this.steer, -CAR.steerRate, CAR.steerRate);
+    // крутишь от середины — руль идёт со скоростью steerRate, к середине — со скоростью centerRate
+    const outward = Math.abs(steer) > Math.abs(this.steer) && steer * this.steer >= 0;
+    const rate = outward ? CAR.steerRate : CAR.centerRate;
+    this.steer += clamp(steer - this.steer, -rate, rate);
     this.angle += this.speed * this.steer * maxCurve(this.speed); // задним ходом дуга та же, но поворот в другую сторону — как у машины
     this.wiggle += Math.abs(steer - this.prevSteer);
     this.prevSteer = steer;
