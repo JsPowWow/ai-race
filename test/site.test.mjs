@@ -243,3 +243,35 @@ test('гараж: копия в папке на диске — машины пр
   await close();
   assert.deepEqual(problems, []);
 });
+
+test('табло мозга: наведи на нейрон — формула в столбик; масштаб — кнопками', async () => {
+  const { page, problems, close } = await openPage(SCREENS[0]);
+  await page.goto(`${base}#intro`);
+  const canvas = page.locator('#brainBoard');
+  await canvas.scrollIntoViewIfNeeded();
+  const box = await canvas.boundingBox();
+  // скрытый слой — посередине табло: ведём указатель вниз по середине, пока не попадём в нейрон
+  let shown = false;
+  for (let y = 0.2; y < 0.8 && !shown; y += 0.02) {
+    await page.mouse.move(box.x + box.width * 0.47, box.y + box.height * y);
+    shown = await page.waitForFunction(() => !document.querySelector('#brainFormula').hidden, null, { timeout: 150 }).then(() => true, () => false);
+  }
+  assert.ok(shown, 'формула появилась');
+  assert.match(await page.textContent('#brainFormula'), /^Нейрон \d+.*сумма .* − порог .*tanh\(2 × /s);
+  await page.mouse.move(box.x + box.width / 2, box.y - 20); // увели указатель с табло — формула прячется
+  await page.waitForFunction(() => document.querySelector('#brainFormula').hidden);
+
+  const zoom = (z) => page.locator(`.brain-board:has(#brainBoard) [data-z="${z}"]`);
+  assert.equal(await zoom('out').isDisabled(), true, 'отдалять дальше обычного некуда');
+  assert.equal(await zoom('reset').isHidden(), true);
+  await zoom('in').click();
+  assert.equal(await zoom('out').isDisabled(), false);
+  assert.equal(await zoom('reset').isVisible(), true, 'приблизили — есть «1:1»');
+  for (let n = 0; n < 3; n++) await zoom('in').click(); // 1.5 → 2.25 → 3.4 → 4
+  assert.equal(await zoom('in').isDisabled(), true, 'дальше предела не приблизить');
+  await zoom('reset').click();
+  assert.equal(await zoom('reset').isHidden(), true);
+  assert.equal(await zoom('out').isDisabled(), true);
+  await close();
+  assert.deepEqual(problems, []);
+});

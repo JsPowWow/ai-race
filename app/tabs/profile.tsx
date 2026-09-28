@@ -10,8 +10,8 @@ import { withTraffic } from '../../engine/traffic.ts';
 import { state, sizesOf, thinkFn } from '../state.ts';
 import { live } from '../student-code.ts';
 import { drawScene, paintCar, trafficOn, setHud } from '../stage.ts';
-import { createBrainBoard } from '../brain-board/board.js';
-import { SMOOTH, ANY_ACT } from '../brain-board/formula.js';
+import { createBrainBoard, type BrainBoard } from '../brain-board/board.ts';
+import { SMOOTH, ANY_ACT } from '../brain-board/formula.ts';
 import { element } from '../dom.ts';
 import { Garage } from './profile-garage.tsx';
 import { Look } from './profile-look.tsx';
@@ -70,7 +70,7 @@ const BRAIN_EMPTY = 'Так выглядит сеть с этой сборкой
 const fold = element<HTMLDetailsElement>('.profile-brain');
 const hint = element('#profileBrainHint');
 const emptyBrains = new Map<string, Brain>(); // форма → пустой мозг (чтобы не создавать каждый кадр)
-let board: ReturnType<typeof createBrainBoard> | null = null;
+let board: BrainBoard | null = null;
 let boardAt = performance.now();
 
 function showBrain(): void {
@@ -90,7 +90,7 @@ function showBrain(): void {
   thinkFn(shown().think)(car.lastInputs, brain); // feedForward запишет, что посчитал каждый слой
   const trace = feed.lastTrace as number[][] | null; // TypeScript не знает, что вызов выше его поменял
   const now = performance.now();
-  if (trace) board.frame(trace.map((layer) => [...layer]), [], (now - boardAt) / 1000);
+  if (trace) board.frame(trace, [], (now - boardAt) / 1000);
   boardAt = now;
 }
 
