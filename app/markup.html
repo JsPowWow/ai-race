@@ -71,12 +71,30 @@
   </div>
 
   <section class="intro-block intro-brain">
-    <h2>Что такое нейросеть здесь</h2>
+    <h2>Потрогай мозг</h2>
+    <div class="brain-lab">
+      <div class="brain-top">
+        <p class="brain-hint">Машина «Торетто» стоит на стенде: колёса крутятся, а сама она не уезжает. <b>Зажми любой сенсор</b> — кружок <b>s1…s7</b> на табло или жёлтую линию у машины. Мозг «увидит» стену вплотную: сигнал побежит к кнопкам пульта, передние колёса повернут, загорятся стоп-сигналы.</p>
+      <figure class="brain-stand">
+        <canvas id="standCanvas" aria-label="Машина на стенде с сенсорами"></canvas>
+        <figcaption>Стенд: дорога бежит, машина стоит</figcaption>
+      </figure>
+      </div>
+      <div class="brain-board">
+        <div class="brain-board-bar">
+          <span>Табло мозга</span>
+          <div class="zoom" role="group" aria-label="Масштаб табло"><button class="btn" data-z="in" aria-label="Приблизить">+</button><button class="btn" data-z="out" aria-label="Отдалить">−</button><button class="btn" data-z="reset" aria-label="Обычный масштаб" hidden>1:1</button></div>
+        </div>
+        <div class="brain-board-screen">
+          <canvas id="brainBoard" aria-label="Схема нейросети: сигнал идёт от сенсоров к кнопкам пульта"></canvas>
+          <div class="formula" id="brainFormula" hidden></div>
+        </div>
+      </div>
+    </div>
     <div class="brain-grid">
       <div class="brain-explain">
-        <p>Слева — <b>входы</b>: что видят сенсоры (0 — пусто, 1 — вплотную) и скорость. Справа — <b>выходы</b>: газ, тормоз, влево, вправо. Посередине — нейроны.</p>
-        <p>Каждая линия — это <b>вес</b>, одно число: красные толкают к действию, синие мешают. Нейрон складывает входы, умноженные на веса, и решает, «загореться» ли ему.</p>
-        <canvas id="introNet" class="net" aria-label="Схема нейросети бота"></canvas>
+        <p>Слева — <b>входы</b>: что видят сенсоры <b>s1…s7</b> (0 — пусто, 1 — вплотную) и скорость <b>v</b>. Справа — <b>выходы</b>: газ, тормоз, влево, вправо. Посередине — нейроны.</p>
+        <p>Каждая линия — это <b>вес</b>, одно число. Нейрон складывает входы, умноженные на веса, и решает, «загореться» ли ему. Чем сильнее сигнал, тем ярче горит линия. Наведи на нейрон или нажми на него — увидишь его формулу с настоящими числами.</p>
       </div>
       <div class="brain-file">
         <p>Весь «мозг» машины — это маленький файл: <b id="brainSize">—</b>, в нём <b id="brainCount">—</b>. Обучение — это поиск правильных чисел. Этот файл вы и приносите на гонку.</p>
