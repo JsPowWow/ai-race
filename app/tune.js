@@ -5,6 +5,7 @@
 import { CAR, Car, maxCurve } from '../engine/car.js';
 import { getTrainingTrack } from '../engine/track.js';
 import { load, save } from './storage.js';
+import { $ } from './ui.js';
 
 /** Что можно крутить: ключ CAR, подпись, пределы, шаг */
 const KNOBS = [
@@ -68,7 +69,7 @@ function render() {
   box.innerHTML = `
     <details${matchMedia('(max-width: 700px)').matches ? '' : ' open'}>
       <summary>Подстройка руля</summary>
-      <p class="tune-note">Только в этом браузере. Боты учились на обычной физике.</p>
+      <p class="tune-note">Рули на «Я учу»: щёлкни по трассе, потом стрелки. Числа — только в этом браузере, боты учились на обычной физике.</p>
       <div class="tune-presets">${Object.keys(PRESETS).map((name) => `<button type="button" data-preset="${name}">${name}</button>`).join('')}</div>
       ${KNOBS.map(([key, title, min, max, step]) => `
         <label class="tune-knob"><span>${title}</span>
@@ -94,6 +95,7 @@ box.addEventListener('click', (e) => {
   const target = /** @type {HTMLElement} */ (e.target);
   const preset = /** @type {HTMLElement | null} */ (target.closest('[data-preset]'));
   if (preset) apply(PRESETS[preset.dataset.preset]);
+  target.blur(); // стрелки — машине, а не кнопке
   const copy = target.closest('.tune-copy');
   if (copy) {
     const text = KNOBS.map(([key]) => `${key}: ${CAR[key]}`).join(', ');
@@ -104,4 +106,11 @@ box.addEventListener('click', (e) => {
 export function mountTune() {
   apply(load('tune', ORIGINAL));
   document.body.append(box);
+  // рулить руками можно только на «Я учу» — сразу туда
+  if (document.body.dataset.tab !== 'teach') /** @type {HTMLElement} */ (document.querySelector('.tabs button[data-tab="teach"]'))?.click();
+  // страница может быть в рамке (iframe): клавиши доходят до неё, только когда она в фокусе
+  $('#viewport')?.addEventListener('pointerdown', () => {
+    /** @type {HTMLElement} */ (document.activeElement)?.blur?.();
+    window.focus();
+  });
 }
