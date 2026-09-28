@@ -28,6 +28,6 @@
     "vite": "^8.3.1"
   },
   "dependencies": {
-    "@reely/dommy": "^0.1.0-next.0"
+    "@reely/dommy": "^0.1.0-next.1"
   }
 }
