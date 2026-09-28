@@ -20,7 +20,7 @@ import { codeTab, runAllTests } from './tabs/code.js';
 import { examTab } from './tabs/exam.js';
 import { raceTab } from './tabs/race.js';
 import { introTab, redrawIntro } from './tabs/intro.js';
-import { teachTab, redrawLoss, renderNetwork } from './tabs/teach.js';
+import { teachTab, redrawLoss, renderNetwork } from './tabs/teach.tsx';
 import { profileTab, redrawProfileBrain } from './tabs/profile.tsx';
 
 /** Вкладка: enter() — её открыли, frame() — нарисовать кадр (зовётся, пока она открыта) */

@@ -78,6 +78,48 @@ test('«Я учу»: машина ждёт на старте, пока не на
   assert.deepEqual(problems, []);
 });
 
+test('«Я учу»: заезд с другими глазами виден, обучение честно говорит про «Плавный» и сажает мозг за руль', async () => {
+  const { page, problems, close } = await openPage(SCREENS[0]);
+  await page.goto(`${base}app/icon.svg`); // тот же сайт без приложения: кладём машину «как до гаража» — гараж её заберёт
+  await page.evaluate(() => {
+    const sample = (inputs) => String.fromCharCode(0x101) + String.fromCharCode(0x100 + 100).repeat(inputs); // газ, все входы 0
+    const run = (id, inputs, count) => ({ id, at: '2026-09-01T10:00:00Z', trackName: 'Разминка', traffic: 'none', status: 'finished', progressPct: 100, ticks: count, inputs, packed: Array(count).fill(sample(inputs)), on: true });
+    localStorage.setItem('ai-race:config', JSON.stringify({ sensors: { count: 5, spread: 90, length: 160 }, hidden: [6], think: 'step' }));
+    // 5 сенсоров → 15 входов; второй заезд записан с 7 сенсорами (19 входов) — на нём учить нельзя
+    localStorage.setItem('ai-race:runs', JSON.stringify([run('fits', 15, 250), run('other', 19, 40)]));
+  });
+  await page.goto(`${base}#teach`);
+  await page.waitForFunction(() => document.body.dataset.tab === 'teach' && document.querySelectorAll('#runsList li').length === 2);
+  const other = page.locator('#runsList li', { hasText: '40 прим.' });
+  assert.match(await other.textContent(), /7 сенсорами.*сейчас их 5.*не учим/);
+  assert.ok(await other.locator('input').isDisabled(), 'галочку у чужого заезда не поставить');
+  assert.ok(!(await other.locator('input').isChecked()), 'и она не стоит: на нём не учим');
+  assert.match(await page.textContent('#runsOthers'), /1 заезд записан с другими глазами/);
+  assert.match(await page.textContent('#teachStatus'), /^1 заезд, 250 примеров/);
+  assert.match(await page.textContent('#teachThink'), /с «Ступенька» на «Плавный»/, 'заранее говорим, что вариант мозга сменится');
+
+  await page.click('#teachGo');
+  await page.waitForFunction(() => document.querySelector('#dBrain').getAttribute('aria-pressed') === 'true', null, { timeout: 10000 });
+  assert.match(await page.textContent('#banner'), /думает теперь «Плавный»/);
+  assert.ok(await page.isHidden('#teachThink'), 'мозг уже плавный — предупреждать не о чем');
+  assert.match(await page.textContent('#lrSummary'), /^Эпоха 20 · ошибка/);
+  assert.match(await page.textContent('#champChip'), /обучен на 1 заезде/);
+
+  // «Мозг под микроскопом»: щёлкаем по схеме, пока не попадём в нейрон или связь, и правим вес руками
+  await page.locator('#netCanvas').scrollIntoViewIfNeeded();
+  const box = await page.locator('#netCanvas').boundingBox();
+  for (let x = box.width - 60; x > 0 && await page.isHidden('#wRow'); x -= 4) {
+    for (let y = 8; y < box.height && await page.isHidden('#wRow'); y += 8) await page.mouse.click(box.x + x, box.y + y);
+  }
+  assert.ok(await page.isVisible('#wExplain'), 'выбранный вес объяснён словами');
+  await page.fill('#wVal', '-0.5');
+  assert.equal(await page.textContent('#wValOut'), '-0.50');
+  assert.match(await page.textContent('#netNote'), /поправлен руками/);
+  assert.match(await page.textContent('.library .history summary'), /История · 1/, 'обученный мозг до правки — в «Истории»');
+  await close();
+  assert.deepEqual(problems, []);
+});
+
 test('финал не грузится, пока его не открыли', async () => {
   const { page, close } = await openPage(SCREENS[0]);
   const loaded = [];

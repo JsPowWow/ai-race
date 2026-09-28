@@ -15,7 +15,7 @@
 <link rel="preload" href="app/fonts/rubik-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="modulepreload" href="app/generated/chunks/chunk-VR4CE2FN.js">
 <link rel="stylesheet" href="app/generated/app.css?v=610b177309">
-<script type="module" src="app/generated/app.js?v=f55eeed262"></script>
+<script type="module" src="app/generated/app.js?v=a08fffa0de"></script>
 </head>
 <body>
 <a class="skip-link" href="#content">К содержимому</a>
@@ -183,15 +183,8 @@
       </div>
     </div>
 
-    <div class="toolbar" data-for="teach" hidden>
-      <div class="seg" role="group" aria-label="Кто рулит">
-        <button id="dMe" aria-pressed="true">Еду я</button>
-        <button id="dBrain" aria-pressed="false">Едет мозг</button>
-      </div>
-      <button class="btn" id="dRestart">Заново</button>
-      <label class="inline">Трасса <select id="dTrack"></select></label>
-      <label class="inline">Машины <select id="dTraffic"></select></label>
-    </div>
+    <!-- «Я учу»: кто рулит, трасса, машины — рисует app/tabs/teach-toolbar.tsx -->
+    <div class="toolbar" data-for="teach" id="teachToolbar" hidden></div>
 
     <div class="toolbar" data-for="train" hidden>
       <button class="btn primary" id="tToggle">Старт</button>
@@ -283,50 +276,8 @@
   </section>
 
   <aside class="panel">
-    <!-- Я УЧУ -->
-    <div data-panel="teach" class="parts" hidden>
-      <h2 class="parts-title">Детали набора</h2>
-      <section class="block">
-        <h2>Мои заезды</h2>
-        <p class="hint" id="runsHint">Просто езди: заезд записывается сам — от старта до финиша или аварии. Каждый тик — пример «что видят сенсоры → что ты нажал».</p>
-        <ol class="runs" id="runsList"></ol>
-        <button class="btn primary" id="teachGo" disabled>Учить на заездах</button>
-        <p class="note" id="teachStatus" role="status"></p>
-        <details class="learn-box">
-          <summary>Как учится</summary>
-          <canvas id="lossChart" class="chart" aria-label="Ошибка по эпохам"></canvas>
-          <p class="note" id="lrSummary"></p>
-          <div class="field"><label for="epochs">Эпох</label><input type="range" id="epochs" min="5" max="100" step="5"><output id="epochsOut"></output></div>
-          <div class="field wide"><span class="lbl">Шаг обучения</span>
-            <div class="seg" role="group" aria-label="Шаг обучения">
-              <button data-lr="0.01">0,01</button><button data-lr="0.05">0,05</button><button data-lr="0.2">0,2</button><button data-lr="1">1</button>
-            </div>
-          </div>
-          <p class="hint">Эпоха — один проход по всем примерам. Шаг — насколько сильно двигать веса за раз. Учёба продолжается с текущего мозга: его веса чуть-чуть подвигаются под твои заезды. Вариант мозга станет «Плавный» — обучение на примерах работает с плавными кривыми.</p>
-        </details>
-        <p class="hint" id="exMemory"></p>
-      </section>
-      <section class="block library" data-library></section>
-      <details class="block fold">
-        <summary><h2>Мозг под микроскопом</h2></summary>
-        <canvas id="netCanvas" class="net" aria-label="Схема нейросети: щёлкни связь или нейрон, чтобы поменять вес"></canvas>
-        <p class="legend"><span class="sw pos"></span>положительный вес <span class="sw neg"></span>отрицательный <span class="sw act"></span>нейрон сработал</p>
-        <div class="wedit" id="wEdit">
-          <p id="wLabel" class="hint">Щёлкни связь или нейрон на схеме, чтобы поменять вес руками. Попробуй: удали скрытый слой, нажми «Все веса в ноль», опусти порог «Газа» ниже нуля — и научи машину отворачивать от бордюров.</p>
-          <div class="field" id="wRow" hidden>
-            <label for="wVal" id="wName">Вес</label>
-            <input type="range" id="wVal" min="-1" max="1" step="0.01">
-            <output id="wValOut"></output>
-          </div>
-          <p class="hint" id="wExplain" hidden></p>
-          <div class="row">
-            <button class="btn small" id="wZero">Все веса в ноль</button>
-            <button class="btn small" id="wRandom">Случайные веса</button>
-          </div>
-        </div>
-        <p class="hint" id="netNote"></p>
-      </details>
-    </div>
+    <!-- Я УЧУ: панель рисует app/tabs/teach.tsx -->
+    <div data-panel="teach" id="teachPanel" class="parts" hidden></div>
 
     <!-- ПРОФИЛЬ: панель рисует app/tabs/profile.tsx -->
     <div data-panel="profile" id="profilePanel" hidden></div>
