@@ -67,6 +67,17 @@ for (const screen of SCREENS) {
   });
 }
 
+test('«Я учу»: машина ждёт на старте, пока не нажмёшь газ, — не глохнет', async () => {
+  const { page, problems, close } = await openPage(SCREENS[0]);
+  await page.goto(`${base}#teach`);
+  await page.waitForFunction(() => document.body.dataset.tab === 'teach');
+  await page.waitForTimeout(3600); // дольше, чем машина стоит до «заглох» (CAR.stallTicks = 3 с)
+  const banner = await page.evaluate(() => { const b = document.querySelector('#banner'); return b && !b.hidden ? b.textContent : ''; });
+  assert.doesNotMatch(banner, /Заглох/);
+  await close();
+  assert.deepEqual(problems, []);
+});
+
 test('финал не грузится, пока его не открыли', async () => {
   const { page, close } = await openPage(SCREENS[0]);
   const loaded = [];
