@@ -20,7 +20,7 @@ export class StageReplay {
     this.length = rows.reduce((max, r) => Math.max(max, r.result.ticks), 0);
   }
 
-  /** Машина на тике tick: { x, y, angle, progress, status, since } (since — тиков после финиша/схода) */
+  /** Машина на тике tick: { x, y, angle, curve, progress, status, since } (since — тиков после финиша/схода) */
   at({ result }, tick) {
     const { traj, ticks, status } = result;
     const n = traj.length / REC_FIELDS;
@@ -33,10 +33,13 @@ export class StageReplay {
     }
     const a = i * REC_FIELDS, b = Math.min(i + 1, n - 1) * REC_FIELDS;
     const mix = (k) => traj[a + k] + (traj[b + k] - traj[a + k]) * f;
+    const turn = wrapAngle(traj[b + 2] - traj[a + 2]);
+    const path = Math.hypot(traj[b] - traj[a], traj[b + 1] - traj[a + 1]);
     return {
       x: mix(0),
       y: mix(1),
-      angle: traj[a + 2] + wrapAngle(traj[b + 2] - traj[a + 2]) * f,
+      angle: traj[a + 2] + turn * f,
+      curve: path > 1 ? turn / path : 0, // в записи руля нет — дугу берём из того, как повернула машина
       progress: mix(3),
       status: tick < ticks ? 'driving' : status,
       since: tick - ticks,

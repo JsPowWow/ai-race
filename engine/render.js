@@ -1,5 +1,5 @@
 // Рисование трассы и машин на canvas.
-import { CAR, wheelAngle, rays } from './car.js';
+import { CAR, WHEELBASE, wheelAngle, rays } from './car.js';
 import { pointAt, freeSide, signShows } from './track.js';
 
 /**
@@ -263,9 +263,9 @@ function drawGhost(ctx, car, color, alpha, p) {
 
 /** Колёса торчат из-под корпуса; передние повёрнуты на угол, с которым машина правда описывает свою дугу */
 function drawWheels(ctx, car, L, W) {
-  const turn = wheelAngle(car.done ? 0 : car.steer ?? 0, car.speed ?? 0);
+  const turn = car.done ? 0 : wheelAngle(car.curve ?? 0);
   ctx.fillStyle = '#16171a';
-  for (const [x, a] of [[L * 0.3, turn], [-L * 0.3, 0]]) {
+  for (const [x, a] of [[WHEELBASE / 2, turn], [-WHEELBASE / 2, 0]]) {
     for (const y of [-W / 2 - 1, W / 2 + 1]) { // чуть наружу из-под корпуса — поворот видно
       ctx.save(); ctx.translate(x, y); ctx.rotate(a);
       roundRect(ctx, -6, -3, 12, 6, 2); ctx.fill();
