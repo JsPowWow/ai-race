@@ -28,6 +28,7 @@ __FONTS__</style>
   }
   #mini { width: 100%; height: 96px; display: block; border-radius: 12px; border: 1px solid var(--line); }
   .top .row { flex-direction: column; align-items: stretch; gap: 6px; }
+  .orient { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; color: var(--muted); font-size: 13px; }
   .jump { display: flex; flex-wrap: wrap; gap: 6px; }
   .jump a { color: var(--ink); text-decoration: none; font-size: 13px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; }
   .jump a:hover { border-color: #6a696d; }
@@ -70,9 +71,10 @@ __FONTS__</style>
   }
 </style>
 <div class="wrap">
-  <h1>Табло мозга: пять вариантов</h1>
-  <p class="lead">Прототип для AI Race. Настоящий мозг бота едет по «Разминке» и думает прямо сейчас — все пять табло показывают одну и ту же сеть в один и тот же миг. Наведи на нейрон или нажми на него — появится его формула с настоящими числами. Приблизить: кнопка «+», Ctrl/⌘ + колесо, двойной щелчок или щипок пальцами. Выбери, какое табло поставить в «Я учу».</p>
-  <nav class="jump" aria-label="Варианты"><a href="#board-two">1 · Два цвета</a><a href="#board-fire">2 · Огонь</a><a href="#board-chalk">3 · Мел</a><a href="#board-stars">4 · Созвездие</a><a href="#board-lab">5 · Лаборатория</a></nav>
+  <h1>Табло мозга: шесть вариантов</h1>
+  <p class="lead">Прототип для AI Race. Настоящий мозг бота едет по «Разминке» и думает прямо сейчас — все шесть табло показывают одну и ту же сеть в один и тот же миг. Наведи на нейрон или нажми на него — появится его формула с настоящими числами. Приблизить: кнопка «+», Ctrl/⌘ + колесо, двойной щелчок или щипок пальцами. <b>Зажми кружок луча</b> — мозг «увидит» стену вплотную: на трассе луч укоротится, машина увернётся, а по табло пробежит сигнал. Выбери, какое табло поставить в «Я учу».</p>
+  <label class="orient">Раскладка схемы <select id="orient"><option value="auto">сама (по ширине экрана)</option><option value="h">слева направо</option><option value="v">сверху вниз</option></select></label>
+  <nav class="jump" aria-label="Варианты"><a href="#board-two">1 · Два цвета</a><a href="#board-fire">2 · Огонь</a><a href="#board-chalk">3 · Мел</a><a href="#board-stars">4 · Созвездие</a><a href="#board-lab">5 · Лаборатория</a><a href="#board-forge">6 · Огонь в рамках</a></nav>
   <div class="top">
     <canvas id="mini" aria-label="Машина бота на трассе «Разминка»"></canvas>
     <div class="row">

@@ -19,10 +19,19 @@ const SANS = 'Rubik, system-ui, sans-serif';
 const track = getTrainingTrack('warmup');
 let bot, driver, car, trace = null;
 let paused = false;
+const pressed = new Set(); // номера лучей, которые сейчас зажаты на табло
 function loadBot(name) {
   bot = BOTS.find((b) => b.name === name);
   const f = parseCarFile(bot);
-  driver = { brain: f.brain, think: thinkVariants[f.thinkId].think, sensors: f.sensors };
+  const think = thinkVariants[f.thinkId].think;
+  // нажатый сенсор: подменяем показание луча, как будто стена совсем близко — и машина, и сеть реагируют по-настоящему
+  driver = {
+    brain: f.brain, sensors: f.sensors,
+    think(inputs, br) {
+      for (const i of pressed) { inputs[i] = 0.9; if (car.rayT) car.rayT[i] = 0.1; }
+      return think(inputs, br);
+    },
+  };
   car = new Car(track, driver);
   pulses.length = 0;
   heat.clear();
@@ -80,18 +89,19 @@ function advancePulses(dt) {
 // ── «теплота»: вспыхивает быстро, гаснет медленно ──
 const ATTACK = 0.04, DECAY = 0.5; // секунды
 const heat = new Map();
-function warm(key, target) {
+function warm(key, target, decay = DECAY) {
   const h = heat.get(key) ?? 0;
-  const v = h + (target - h) * (1 - Math.exp(-frameDt / (target > h ? ATTACK : DECAY)));
+  const v = h + (target - h) * (1 - Math.exp(-frameDt / (target > h ? ATTACK : decay)));
   heat.set(key, v);
   return v;
 }
 
 // ── геометрия: раскладка слоёв и плавные кривые ──
-function layout(W, H, vertical) {
+function layout(W, H, vertical, top = 0) {
+  const narrow = !vertical && W < 640; // телефон, но слева направо: всё компактнее
   const sizes = [brain().layers[0].weights.length, ...brain().layers.map((l) => l.biases.length)];
-  const along = vertical ? H : W, across = vertical ? W : H;
-  const start = vertical ? 64 : 120, end = vertical ? 58 : 170; // место под подписи входов и кнопки выходов
+  const along = vertical ? H : W, across = vertical ? W : H - top;
+  const start = vertical ? 64 + top : narrow ? 66 : 120, end = vertical ? 58 : narrow ? 94 : 170; // место под подписи входов и кнопки выходов
   const maxN = Math.max(...sizes);
   const gap = Math.min(52, (across - 28) / maxN);
   const r = Math.max(10, Math.min(20, gap * 0.42));
@@ -100,11 +110,11 @@ function layout(W, H, vertical) {
     const last = k === sizes.length - 1;
     const g = !last ? gap : vertical ? (across - 24) / n : Math.min(88, (across - 60) / n); // кнопкам пульта — свой шаг, пошире
     return Array.from({ length: n }, (_, i) => {
-      const b = across / 2 + (i - (n - 1) / 2) * g;
+      const b = (vertical ? 0 : top) + across / 2 + (i - (n - 1) / 2) * g;
       return vertical ? [b, a] : [a, b];
     });
   });
-  return { sizes, pos, r, vertical, W, H };
+  return { sizes, pos, r, vertical, narrow, W, H };
 }
 function curve(ctx, [x1, y1], [x2, y2], vertical) {
   ctx.beginPath(); ctx.moveTo(x1, y1);
@@ -123,15 +133,18 @@ function roundRect(ctx, x, y, w, h, r) {
 }
 
 // ── общие детали: подписи входов, кнопки выходов, импульсы, лампочки ──
-function inputLabels(ctx, lay, color) {
+function inputLabels(ctx, lay, color, caption = true) {
   const n = lay.sizes[0];
   ctx.fillStyle = color; ctx.font = `500 12px ${SANS}`; ctx.textBaseline = 'middle';
   lay.pos[0].forEach(([x, y], i) => {
     const speed = i === n - 1;
     if (lay.vertical) { ctx.textAlign = 'center'; ctx.fillText(speed ? 'v' : String(i + 1), x, y - lay.r - 14); }
-    else { ctx.textAlign = 'right'; ctx.fillText(speed ? 'скорость' : `луч ${i + 1}`, x - lay.r - 10, y); }
+    else {
+      ctx.textAlign = 'right'; if (lay.narrow) ctx.font = `500 11px ${SANS}`;
+      ctx.fillText(speed ? (lay.narrow ? 'скор.' : 'скорость') : `луч ${i + 1}`, x - lay.r - (lay.narrow ? 6 : 10), y);
+    }
   });
-  if (lay.vertical) { ctx.textAlign = 'left'; ctx.font = `500 11px ${SANS}`; ctx.fillText('лучи 1–7 и скорость v', 12, 14); }
+  if (lay.vertical && caption) { ctx.textAlign = 'left'; ctx.font = `500 11px ${SANS}`; ctx.fillText('лучи 1–7 и скорость v', 12, 14); }
 }
 /** Победитель пары (газ/тормоз, влево/вправо): машина слушает разницу, заметный перевес — светится */
 const pairWins = (p, i) => p[i] - p[i ^ 1] > 0.08;
@@ -139,13 +152,14 @@ const pairWins = (p, i) => p[i] - p[i ^ 1] > 0.08;
  *  В каждой паре (газ/тормоз, влево/вправо) победитель светится — машина слушает разницу. */
 function outputs(ctx, lay, style) {
   const last = lay.sizes.length - 1;
-  const p = [0, 1, 2, 3].map((i) => warm(`${style.key}-out-${i}`, actOf(last, i)));
+  const p = [0, 1, 2, 3].map((i) => warm(`${style.key}-out-${i}`, actOf(last, i), style.decay));
   const wins = (i) => pairWins(p, i);
   const off = hexRGB(style.off);
   lay.pos[last].forEach(([x, y], i) => {
-    const w = lay.vertical ? (lay.W - 24) / 4 - 6 : 132, h = lay.vertical ? 40 : 36;
+    const two = lay.vertical || lay.narrow; // подпись в две строки: имя над процентами
+    const w = lay.vertical ? (lay.W - 24) / 4 - 6 : lay.narrow ? 78 : 132, h = two ? 40 : 36;
     const cx = lay.vertical ? x : x + w / 2 - 6, cy = lay.vertical ? y + 24 : y;
-    const x0 = cx - w / 2, y0 = cy - h / 2, rr = lay.vertical ? 12 : h / 2;
+    const x0 = cx - w / 2, y0 = cy - h / 2, rr = two ? 12 : h / 2;
     const c = style.on(i, p[i]);
     const a = Math.max(0, Math.min(1, p[i])) ** 2; // квадрат разводит 70 % и 90 % заметнее
     const bg = off.map((v, n) => Math.round(v + (c[n] - v) * a));
@@ -160,7 +174,7 @@ function outputs(ctx, lay, style) {
     ctx.restore();
     roundRect(ctx, x0, y0, w, h, rr); ctx.lineWidth = wins(i) ? 1.5 : 1; ctx.strokeStyle = wins(i) ? rgb(c) : style.ring; ctx.stroke();
     ctx.fillStyle = lum(bg) > 0.45 ? style.inkOn(i) : style.ink; ctx.textBaseline = 'middle';
-    if (lay.vertical) {
+    if (two) {
       ctx.font = `600 11.5px ${SANS}`; ctx.textAlign = 'center'; ctx.fillText(OUT[i], cx, cy - 8);
       ctx.font = `500 11px ${MONO}`; ctx.fillText(pct(textOf(last, i)).trim(), cx, cy + 8);
     } else {
@@ -191,7 +205,7 @@ const lum = ([r, g, b]) => (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
 function lampNode(ctx, lay, key, k, i, s) {
   const [x, y] = lay.pos[k][i];
   const a = actOf(k, i);
-  const h = warm(`${key}-n-${k}-${i}`, Math.min(1, Math.abs(a)));
+  const h = warm(`${key}-n-${k}-${i}`, Math.min(1, Math.abs(a)), s.decay);
   const [c, al] = s.fill(h, a); // цвет [r,g,b] и прозрачность заливки
   const base = hexRGB(s.base);
   const mix = base.map((v, n) => Math.round(v + (c[n] - v) * al));
@@ -207,6 +221,36 @@ function lampNode(ctx, lay, key, k, i, s) {
   ctx.fillStyle = lum(mix) > 0.45 ? s.inkOn : s.ink; // тёмные цифры — только на светлой заливке
   ctx.font = `600 ${Math.min(12, Math.floor((2 * lay.r - 8) / 2.3))}px ${MONO}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText(fmt(textOf(k, i)), x, y + 1);
+}
+/** Рамки слоёв с подписями, как у лабораторного стенда: что за слой, сколько нейронов, какая функция.
+ *  pad — [поперёк слоя, вдоль]; buttons — у выходов кнопки пульта, рамка обнимает их.
+ *  part: 'box' — рамки (рисовать до нитей), 'text' — подписи (после нитей, чтобы нити их не перечёркивали). */
+function layerFrames(ctx, lay, c, pad = [16, 16], buttons = false, part = 'box') {
+  const z = lay.zoom ?? 1, px = 1 / z, last = lay.sizes.length - 1;
+  const titles = lay.narrow
+    ? [['ВХОД · 8', 'лучи и v'], ['СЛОЙ 1 · 8', 'tanh'], ['ВЫХОД · 4', 'σ']]
+    : [['ВХОД · 8', 'лучи 1–7 и скорость'], ['СЛОЙ 1 · 8 нейронов', 'tanh(2z)'], ['ВЫХОД · 4', 'σ(3z) · кнопки пульта']];
+  const [pa, pb] = lay.vertical ? [pad[0], pad[1]] : [pad[1], pad[0]]; // pa — отступ по x, pb — по y
+  lay.pos.forEach((col, k) => {
+    const xs = col.map((q) => q[0]), ys = col.map((q) => q[1]);
+    let x0 = Math.min(...xs) - pa, y0 = Math.min(...ys) - pb, x1 = Math.max(...xs) + pa, y1 = Math.max(...ys) + pb;
+    if (buttons && k === last) { // та же геометрия, что у outputs()
+      if (lay.vertical) { x0 = 6; x1 = lay.W - 6; y0 = Math.min(...ys) - 8; y1 = Math.max(...ys) + 52; }
+      else { const w = lay.narrow ? 78 : 132; x0 = Math.min(...xs) - 14; x1 = Math.min(...xs) - 6 + w + 8; y0 = Math.min(...ys) - 28; y1 = Math.max(...ys) + 28; }
+    }
+    if (part === 'box') { ctx.lineWidth = px; ctx.strokeStyle = c.frame; ctx.strokeRect(x0, y0, x1 - x0, y1 - y0); return; }
+    ctx.font = `600 ${10.5 * Math.min(1, 1 / Math.sqrt(z)) + 0.5}px ${MONO}`; ctx.textBaseline = 'alphabetic';
+    const [t1, t2] = titles[Math.min(k, 2)];
+    const right = !lay.vertical && k === last;
+    ctx.textAlign = right ? 'right' : 'left';
+    const tx = right ? x1 : x0;
+    if (c.bg) { // подложка: подпись поверх нитей остаётся читаемой
+      const w = Math.max(ctx.measureText(t1).width, ctx.measureText(t2).width) + 6;
+      ctx.fillStyle = c.bg; ctx.fillRect(right ? tx - w + 3 : tx - 3, y0 - 29, w, 27);
+    }
+    ctx.fillStyle = c.title; ctx.fillText(t1, tx, y0 - 17);
+    ctx.fillStyle = c.sub; ctx.fillText(t2, tx, y0 - 5);
+  });
 }
 function eachHidden(lay, fn) {
   for (let k = 0; k < lay.sizes.length - 1; k++) for (let i = 0; i < lay.sizes[k]; i++) fn(k, i);
@@ -224,6 +268,33 @@ function fireRGB(t) {
   t = Math.max(0, Math.min(1, t)) * (FIRE.length - 1);
   const i = Math.min(FIRE.length - 2, Math.floor(t)), f = t - i;
   return FIRE[i].map((v, n) => Math.round(v + (FIRE[i + 1][n] - v) * f));
+}
+/** «Огонь»: один цвет, где идёт сигнал — там разгорается. decay — как быстро гаснет (секунды). */
+function drawFire(ctx, lay, key, decay = DECAY, framed = false) {
+  // рамки — под связями: нити идут поверх, как провода по стенду
+  const frames = (part) => layerFrames(ctx, lay, { frame: 'rgb(255 168 24 / 0.28)', title: '#ffcf8a', sub: '#e0703a', bg: 'rgb(14 12 11 / 0.85)' }, [lay.r + 8, lay.r + (lay.vertical ? 24 : 8)], true, part);
+  if (framed) frames('box');
+  brain().layers.forEach((L, k) => {
+    const hot = [];
+    L.weights.forEach((row, i) => row.forEach((w, j) => {
+      const h = warm(`${key}-e-${k}-${i}-${j}`, Math.abs(sigs[k][i][j]) ** 1.4, decay);
+      ctx.lineWidth = 0.7; ctx.strokeStyle = '#27221e';
+      curve(ctx, lay.pos[k][i], lay.pos[k + 1][j], lay.vertical); ctx.stroke();
+      if (h > 0.03) hot.push({ i, j, h });
+    }));
+    hot.sort((a, b) => a.h - b.h);
+    ctx.lineCap = 'round';
+    for (const e of hot) {
+      ctx.lineWidth = 0.9 + 3.2 * e.h; ctx.strokeStyle = fire(e.h, Math.min(1, 0.25 + e.h));
+      curve(ctx, lay.pos[k][e.i], lay.pos[k + 1][e.j], lay.vertical); ctx.stroke();
+    }
+    ctx.lineCap = 'butt';
+  });
+  drawPulses(ctx, lay, (p) => fire(0.8 + 0.2 * Math.abs(p.v)));
+  if (framed) frames('text');
+  inputLabels(ctx, lay, '#9a8f86', !framed);
+  eachHidden(lay, (k, i) => lampNode(ctx, lay, key, k, i, { base: '#181412', ring: '#3a322c', ink: '#efe6db', inkOn: '#1f0e04', fill: (h) => [fireRGB(h), h], decay }));
+  outputs(ctx, lay, { key, decay, off: '#181412', ring: '#3a322c', ink: '#efe6db', inkOn: () => '#1f0e04', on: (i, p) => fireRGB(0.35 + 0.65 * p), glow: () => fire(1, 0.6) });
 }
 const padColor = (i) => (i === 0 ? [209, 31, 40] : i === 1 ? [128, 127, 131] : [31, 95, 224]); // цвета кнопок пульта набора
 
@@ -268,28 +339,7 @@ const VARIANTS = [
     about: 'Один цвет на всё: где идёт сигнал, там разгорается. Вспыхивает быстро, гаснет медленно.',
     legend: [['#8c1c10', 'слабый сигнал'], ['#e04e0c', 'сильнее'], ['#ffeec4', 'сильнейший'], ['#5a4a3e', 'знак веса — в формуле'], ['#ffffff', 'светится победитель пары, если перевес заметный']],
     bg: '#0e0c0b',
-    draw(ctx, lay) {
-      brain().layers.forEach((L, k) => {
-        const hot = [];
-        L.weights.forEach((row, i) => row.forEach((w, j) => {
-          const h = warm(`fire-e-${k}-${i}-${j}`, Math.abs(sigs[k][i][j]) ** 1.4);
-          ctx.lineWidth = 0.7; ctx.strokeStyle = '#27221e';
-          curve(ctx, lay.pos[k][i], lay.pos[k + 1][j], lay.vertical); ctx.stroke();
-          if (h > 0.03) hot.push({ i, j, h });
-        }));
-        hot.sort((a, b) => a.h - b.h);
-        ctx.lineCap = 'round';
-        for (const e of hot) {
-          ctx.lineWidth = 0.9 + 3.2 * e.h; ctx.strokeStyle = fire(e.h, Math.min(1, 0.25 + e.h));
-          curve(ctx, lay.pos[k][e.i], lay.pos[k + 1][e.j], lay.vertical); ctx.stroke();
-        }
-        ctx.lineCap = 'butt';
-      });
-      drawPulses(ctx, lay, (p) => fire(0.8 + 0.2 * Math.abs(p.v)));
-      inputLabels(ctx, lay, '#9a8f86');
-      eachHidden(lay, (k, i) => lampNode(ctx, lay, 'fire', k, i, { base: '#181412', ring: '#3a322c', ink: '#efe6db', inkOn: '#1f0e04', fill: (h) => [fireRGB(h), h] }));
-      outputs(ctx, lay, { key: 'fire', off: '#181412', ring: '#3a322c', ink: '#efe6db', inkOn: () => '#1f0e04', on: (i, p) => fireRGB(0.35 + 0.65 * p), glow: () => fire(1, 0.6) });
-    },
+    draw(ctx, lay) { drawFire(ctx, lay, 'fire'); },
   },
   {
     key: 'chalk', name: 'Мел',
@@ -368,7 +418,7 @@ const VARIANTS = [
     },
   },
   {
-    key: 'lab', name: 'Лаборатория',
+    key: 'lab', name: 'Лаборатория', top: 34,
     about: 'Как в ролике про нейросеть: зелёные и красные нити складываются в свечение, у каждого слоя рамка с подписью. Приблизь — проступят числа.',
     legend: [['#3ddc84', 'вес «+»'], ['#ff4d4d', 'вес «−»'], ['#f4f4ff', 'чем ярче узел, тем сильнее сигнал'], ['#b8c4ff', 'приблизь — появятся числа']],
     bg(ctx, W, H) {
@@ -380,19 +430,8 @@ const VARIANTS = [
       const z = lay.zoom, px = 1 / z; // толщины — в пикселях экрана: при приближении линии тоньше и чётче
       const detail = Math.max(0, Math.min(1, (z - 1.3) / 0.4)); // числа проступают между ×1,3 и ×1,7
       const last = lay.sizes.length - 1;
-      // рамки слоёв с подписями, как у лабораторного стенда
-      const titles = [['ВХОД · 8', 'лучи 1–7 и скорость'], ['СЛОЙ 1 · 8 нейронов', 'tanh(2z)'], ['ВЫХОД · 4', 'σ(3z) · кнопки пульта']];
-      lay.pos.forEach((col, k) => {
-        const xs = col.map((q) => q[0]), ys = col.map((q) => q[1]), pad = 16;
-        const x0 = Math.min(...xs) - pad, y0 = Math.min(...ys) - pad, x1 = Math.max(...xs) + pad, y1 = Math.max(...ys) + pad;
-        ctx.lineWidth = px; ctx.strokeStyle = 'rgb(150 165 255 / 0.35)'; ctx.strokeRect(x0, y0, x1 - x0, y1 - y0);
-        ctx.font = `600 ${10.5 * Math.min(1, 1 / Math.sqrt(z)) + 0.5}px ${MONO}`; ctx.textBaseline = 'alphabetic';
-        const [t1, t2] = titles[Math.min(k, 2)];
-        ctx.textAlign = lay.vertical ? 'left' : k === last ? 'right' : 'left';
-        const tx = lay.vertical ? x0 : k === last ? x1 : x0;
-        ctx.fillStyle = '#b8c4ff'; ctx.fillText(t1, tx, y0 - 17);
-        ctx.fillStyle = '#ff7a6b'; ctx.fillText(t2, tx, y0 - 5);
-      });
+      const frames = (part) => layerFrames(ctx, lay, { frame: 'rgb(150 165 255 / 0.35)', title: '#b8c4ff', sub: '#ff7a6b', bg: 'rgb(10 12 34 / 0.8)' }, [16, 16], false, part);
+      frames('box');
       ctx.globalCompositeOperation = 'lighter'; // нити складываются: где их много — свечение
       brain().layers.forEach((L, k) => {
         L.weights.forEach((row, i) => row.forEach((w, j) => {
@@ -405,6 +444,7 @@ const VARIANTS = [
       ctx.globalAlpha = 1;
       drawPulses(ctx, lay, (p) => (p.v >= 0 ? '#c9ffe0' : '#ffd0d0'), 1.8 * px);
       ctx.globalCompositeOperation = 'source-over';
+      frames('text');
       const dot = (x, y, h, r) => {
         ctx.save(); ctx.shadowColor = `rgb(220 230 255 / ${0.9 * h})`; ctx.shadowBlur = (4 + 14 * h) * px;
         ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = `rgb(${Math.round(150 + 105 * h)} ${Math.round(160 + 95 * h)} 255)`; ctx.fill();
@@ -429,9 +469,17 @@ const VARIANTS = [
         ctx.fillStyle = '#e8ecff'; ctx.textBaseline = 'middle';
         ctx.font = `600 12px ${MONO}`;
         if (lay.vertical) { ctx.textAlign = 'center'; ctx.fillText(OUT[i], x, y + 24); ctx.fillText(pct(textOf(last, i)).trim(), x, y + 39); }
+        else if (lay.narrow) { ctx.textAlign = 'left'; ctx.fillText(OUT[i], x + r + 8, y - 8); ctx.fillText(pct(textOf(last, i)).trim(), x + r + 8, y + 8); }
         else { ctx.textAlign = 'left'; ctx.fillText(`${OUT[i].padEnd(7, ' ')}${pct(textOf(last, i))}`, x + 24, y); }
       });
     },
+  },
+  {
+    key: 'forge', name: 'Огонь в рамках',
+    about: '«Огонь» с рамками слоёв из «Лаборатории»: видно, где входы, где слой и где кнопки. Гаснет чуть быстрее.',
+    legend: [['#8c1c10', 'слабый сигнал'], ['#e04e0c', 'сильнее'], ['#ffeec4', 'сильнейший'], ['#ffcf8a', 'рамка — слой: сколько нейронов и какая функция'], ['#ffffff', 'светится победитель пары, если перевес заметный']],
+    bg: '#0e0c0b', top: 34,
+    draw(ctx, lay) { drawFire(ctx, lay, 'forge', 0.3, true); },
   },
 ];
 
@@ -494,6 +542,9 @@ gallery.innerHTML = VARIANTS.map((v, n) => `
   </section>`).join('');
 
 const MAX_ZOOM = 4;
+// раскладка для всех досок: сама (по ширине экрана), слева направо или сверху вниз
+let orient = 'auto';
+document.getElementById('orient').onchange = (e) => { orient = e.target.value; for (const b of boards) { b.view = { s: 1, x: 0, y: 0 }; clampView(b); } };
 /** Зум вокруг точки экрана (cx, cy): она остаётся на месте, остальное растягивается от неё */
 function zoomAt(b, factor, cx, cy) {
   const v = b.view, s = Math.max(1, Math.min(MAX_ZOOM, v.s * factor));
@@ -515,6 +566,10 @@ const boards = VARIANTS.map((v) => {
   let drag = null, pinch = null;
   b.canvas.style.touchAction = 'pan-y';
   b.canvas.addEventListener('pointerdown', (e) => {
+    const ray = b.lay && inputAt(b, local(b, e));
+    if (ray !== null && ray !== undefined) { // держишь кружок луча — луч «видит» стену, пока не отпустишь
+      pressed.add(ray); b.holding = { id: e.pointerId, ray }; b.canvas.setPointerCapture(e.pointerId); return;
+    }
     touches.set(e.pointerId, local(b, e));
     b.mouse = local(b, e); b.lastFormula = 0; // на телефоне наведения нет — нейрон выбирается касанием
     if (touches.size === 2) {
@@ -534,7 +589,9 @@ const boards = VARIANTS.map((v) => {
       b.view.x = drag.x + m[0] - drag.at[0]; b.view.y = drag.y + m[1] - drag.at[1]; clampView(b);
     }
   });
-  const up = (e) => { touches.delete(e.pointerId); if (touches.size < 2) pinch = null; if (!touches.size) drag = null; };
+  const up = (e) => {
+    if (b.holding?.id === e.pointerId) { pressed.delete(b.holding.ray); b.holding = null; return; }
+    touches.delete(e.pointerId); if (touches.size < 2) pinch = null; if (!touches.size) drag = null; };
   b.canvas.addEventListener('pointerup', up);
   b.canvas.addEventListener('pointercancel', up);
   b.canvas.addEventListener('pointerleave', (e) => { if (e.pointerType !== 'mouse') return; b.mouse = null; b.card.hidden = true; });
@@ -554,10 +611,17 @@ const boards = VARIANTS.map((v) => {
   return b;
 });
 
+/** Какой луч под указателем (скорость не нажимается) */
+function inputAt(b, [mx, my]) {
+  const { s: z, x: vx, y: vy } = b.view, lay = b.lay;
+  const m = [(mx - vx) / z, (my - vy) / z];
+  const i = lay.pos[0].findIndex(([x, y], n) => n < lay.sizes[0] - 1 && Math.hypot(m[0] - x, m[1] - y) < Math.max(lay.r, 12) + 6);
+  return i < 0 ? null : i;
+}
 function drawBoard(b, t) {
   const dpr = Math.min(devicePixelRatio || 1, 2);
-  const vertical = b.canvas.clientWidth < 640;
-  b.canvas.style.height = vertical ? '540px' : '470px';
+  const vertical = orient === 'v' || (orient === 'auto' && b.canvas.clientWidth < 640);
+  b.canvas.style.height = vertical ? '540px' : b.canvas.clientWidth < 640 ? '440px' : '470px';
   const W = b.canvas.clientWidth, H = b.canvas.clientHeight;
   if (b.canvas.width !== Math.round(W * dpr) || b.canvas.height !== Math.round(H * dpr)) { b.canvas.width = Math.round(W * dpr); b.canvas.height = Math.round(H * dpr); }
   const ctx = b.canvas.getContext('2d');
@@ -565,8 +629,15 @@ function drawBoard(b, t) {
   if (typeof b.v.bg === 'function') b.v.bg(ctx, W, H); else { ctx.fillStyle = b.v.bg; ctx.fillRect(0, 0, W, H); }
   const { s: z, x: vx, y: vy } = b.view;
   ctx.setTransform(dpr * z, 0, 0, dpr * z, dpr * vx, dpr * vy); // схема рисуется в своих координатах, зум — одной матрицей
-  const lay = { ...layout(W, H, vertical), zoom: z };
+  const lay = { ...layout(W, H, vertical, b.v.top ?? 0), zoom: z };
   b.v.draw(ctx, lay);
+  b.lay = lay;
+  // зажатые лучи: кольцо «нажато»
+  for (const i of pressed) {
+    const [x, y] = lay.pos[0][i];
+    ctx.beginPath(); ctx.arc(x, y, Math.max(lay.r, 10) + 5, 0, Math.PI * 2);
+    ctx.lineWidth = 2.5 / z; ctx.strokeStyle = '#ffc814'; ctx.stroke();
+  }
   if (!b.mouse || !trace || t - b.lastFormula < 100) return;
   b.lastFormula = t;
   const toScreen = ([x, y]) => [x * z + vx, y * z + vy];
@@ -575,7 +646,7 @@ function drawBoard(b, t) {
   lay.pos.forEach((col, k) => col.forEach(([x, y], i) => {
     if (k === 0) return;
     // у выходов цель — вся кнопка, а не точка, где сходятся связи
-    const [cx, cy, rad] = k < lay.sizes.length - 1 ? [x, y, lay.r + 12] : lay.vertical ? [x, y + 24, 30] : [x + 60, y, 66];
+    const [cx, cy, rad] = k < lay.sizes.length - 1 ? [x, y, lay.r + 12] : lay.vertical ? [x, y + 24, 30] : lay.narrow ? [x + 33, y, 40] : [x + 60, y, 66];
     if (Math.hypot(m[0] - cx, m[1] - cy) < rad) hit = { k, i, x, y };
   }));
   if (!hit) { b.card.hidden = true; return; }
