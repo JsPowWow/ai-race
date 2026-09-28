@@ -80,8 +80,10 @@ function preview(bot) {
   const [first] = bot.brain.layers;
   return [
     '{',
+    `  "format": "${bot.format}",`,
     `  "name": "${bot.name}",`,
     `  "sensors": { "count": ${bot.sensors.count}, "spread": ${bot.sensors.spread}, "length": ${bot.sensors.length} },`,
+    `  "think": "${bot.think}",`,
     `  "layers": [${bot.layers.join(', ')}],`,
     '  "brain": { "layers": [',
     '    {',

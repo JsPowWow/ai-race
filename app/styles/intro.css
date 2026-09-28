@@ -81,6 +81,10 @@
 }
 .intro-path b { font: 700 16px/1.2 var(--font); }
 .intro-path span:last-child { font-size: 13px; line-height: 1.5; color: var(--muted); }
+/* гараж — одна строка под уроками: к «Профилю» можно вернуться с любого урока */
+.intro-garage { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; padding-block-start: 14px; border-block-start: 1px solid var(--line); }
+.intro-garage p { flex: 1 1 40ch; margin: 0; max-inline-size: 75ch; font-size: 14px; line-height: 1.55; color: var(--ink-2); }
+.intro-garage b { color: var(--ink); }
 .intro-cta { justify-content: center; padding-block: 8px; }
 
 @media (max-width: 1100px) { .intro-path { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
