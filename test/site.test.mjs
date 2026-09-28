@@ -120,6 +120,41 @@ test('«Я учу»: заезд с другими глазами виден, о�
   assert.deepEqual(problems, []);
 });
 
+test('«Учится само»: рой идёт, панель и кнопки следят за ним', async () => {
+  const { page, problems, close } = await openPage(SCREENS[0]);
+  await page.goto(`${base}#train`);
+  await page.waitForFunction(() => document.body.dataset.tab === 'train');
+  assert.equal(await page.textContent('#tToggle'), 'Старт');
+  assert.ok(await page.isDisabled('#tEndGen'), 'пока роя нет, заканчивать нечего');
+  await page.click('.toolbar[data-for="train"] button:has-text("Турбо")');
+  assert.equal(await page.getAttribute('.toolbar[data-for="train"] button:has-text("Турбо")', 'aria-pressed'), 'true');
+  await page.click('#tToggle');
+  assert.equal(await page.textContent('#tToggle'), 'Пауза');
+  await page.waitForFunction(() => document.querySelector('#stFin').textContent !== '—', null, { timeout: 20000 });
+  await page.click('#tToggle');
+  assert.equal(await page.textContent('#tToggle'), 'Продолжить');
+  assert.match(await page.textContent('#swarmSay'), /Пауза/);
+  assert.match(await page.textContent('#stFin'), /^\d+ из 100$/);
+
+  // рекорд роя можно взять в текущий мозг
+  await page.click('#hall button:has-text("Взять")');
+  assert.match(await page.textContent('#banner'), /рекорд поколения/);
+
+  // трасса по seed: появляется поле для seed
+  assert.ok(await page.isHidden('#tSeedRow'));
+  await page.selectOption('#tTrack', 'seed');
+  assert.ok(await page.isVisible('#tSeedRow'));
+
+  // «Сбросить мозг» — рой начинается заново
+  await page.click('#trainPanel .library button:has-text("Сбросить мозг")');
+  await page.click('#trainPanel .library button:has-text("Сбросить")');
+  assert.equal(await page.textContent('#tToggle'), 'Старт');
+  assert.equal(await page.textContent('#stFin'), '—');
+  assert.match(await page.textContent('#hall'), /Здесь появятся рекорды/);
+  await close();
+  assert.deepEqual(problems, []);
+});
+
 test('финал не грузится, пока его не открыли', async () => {
   const { page, close } = await openPage(SCREENS[0]);
   const loaded = [];

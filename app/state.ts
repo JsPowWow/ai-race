@@ -14,8 +14,8 @@ export { CAR_COLORS };
 export type Profile = { name: string; color: string; avatar?: string; login?: string };
 /** Форма машины: сенсоры, скрытые слои и вариант «мозга» (id из student/think.js) */
 export type Shape = { sensors: Sensors; hidden: number[]; think: string };
-/** Поколение роя на графике */
-export type HistoryEntry = GenerationEntry & { trackName?: string };
+/** Поколение роя на графике: на какой трассе и сколько было машин (у старых записей может не быть) */
+export type HistoryEntry = GenerationEntry & { trackName?: string; population?: number };
 /** Рекорд роя на трассе: мозг и чем он лучше других */
 export type HallEntry = { gen: number; trackName: string; finished: boolean; ticks: number; progressPct: number; brain: Brain };
 /** Версия мозга в «Истории» */
@@ -59,10 +59,25 @@ export const CAR_KEYS = Object.keys(blankCar()) as (keyof CarData)[];
 
 export type TabId = 'intro' | 'profile' | 'teach' | 'train' | 'code' | 'exam' | 'race' | 'final';
 
+export type Speed = '1' | '4' | '16' | 'turbo';
+export type Camera = 'fit' | 'follow';
 /** Настройки роя («Учится само») */
 export type TrainSettings = {
-  trackId: string; seed: string; traffic: TrafficLevel; parents: 1 | 2; parts: string[]; ownFitness: boolean;
-  mutation: string; population: number; rate: number; speed: string; camera: string;
+  /** учебная трасса, 'seed' — по seed, 'mix' — каждое поколение новая */
+  trackId: string;
+  seed: string;
+  /** машины на трассе: без машин, попутные, попутные и встречные */
+  traffic: TrafficLevel;
+  parents: 1 | 2;
+  /** галочки фитнеса (FITNESS_PARTS) */
+  parts: string[];
+  /** «Мой вариант»: фитнес из student/fitness.js вместо галочек */
+  ownFitness: boolean;
+  mutation: string;
+  population: number;
+  rate: number;
+  speed: Speed;
+  camera: Camera;
 };
 
 export const state: CarData & {

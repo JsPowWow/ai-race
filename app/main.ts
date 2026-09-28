@@ -15,7 +15,7 @@ import { $$, secs, pct } from './ui.ts';
 import { element } from './dom.ts';
 import { initTheme } from './theme.ts';
 import { BrainLibrary } from './library-view.tsx';
-import { trainTab, updateTraining, isTraining, redrawLeaderBrain } from './tabs/train.js';
+import { trainTab, updateTraining, isTraining, redrawLeaderBrain } from './tabs/train.tsx';
 import { codeTab, runAllTests } from './tabs/code.js';
 import { examTab } from './tabs/exam.js';
 import { raceTab } from './tabs/race.js';

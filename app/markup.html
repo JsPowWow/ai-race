@@ -166,32 +166,11 @@
     <!-- «Я учу»: кто рулит, трасса, машины — рисует app/tabs/teach-toolbar.tsx -->
     <div class="toolbar" data-for="teach" id="teachToolbar" hidden></div>
 
-    <div class="toolbar" data-for="train" hidden>
-      <button class="btn primary" id="tToggle">Старт</button>
-      <button class="btn small" id="tEndGen" title="Не ждать, пока доедут все: оценить машины сейчас">Закончить поколение</button>
-      <div class="seg" role="group" aria-label="Скорость">
-        <button data-speed="1" aria-pressed="true">×1</button>
-        <button data-speed="4" aria-pressed="false">×4</button>
-        <button data-speed="16" aria-pressed="false">×16</button>
-        <button data-speed="turbo" aria-pressed="false">Турбо</button>
-      </div>
-      <label class="inline">Трасса <select id="tTrack"></select></label>
-      <label class="inline" id="tSeedRow" hidden>Seed <input type="text" id="tSeed" maxlength="40"></label>
-      <label class="inline" title="На гонке будут попутные и встречные. Если рой не учится, начни без машин, потом включи их">Машины <select id="tTraffic"></select></label>
-      <div class="seg" role="group" aria-label="Камера">
-        <button data-cam="fit" aria-pressed="true">Вся трасса</button>
-        <button data-cam="follow" aria-pressed="false">За лидером</button>
-      </div>
-    </div>
+    <!-- кнопки роя рисует app/tabs/train-controls.tsx -->
+    <div class="toolbar" data-for="train" hidden></div>
 
-    <section class="block swarm-now" data-panel="train" hidden aria-label="Рой сейчас">
-      <ol class="swarm-cycle" aria-label="Как учится рой: одно поколение">
-        <li data-phase="drive"><span class="n">1</span><span><b>Едут <span id="cycPop">100</span> машин</b>мозги у всех чуть разные</span></li>
-        <li data-phase="pick"><span class="n">2</span><span><b>Отбор</b>лучшие 10% по фитнесу — родители</span></li>
-        <li data-phase="mutate"><span class="n">3</span><span><b>Дети</b>нейроны от родителей и немного мутации</span></li>
-      </ol>
-      <p class="swarm-say" id="swarmSay" role="status"></p>
-    </section>
+    <!-- «Рой сейчас» рисует app/tabs/train-controls.tsx -->
+    <section class="block swarm-now" data-panel="train" id="swarmNow" hidden aria-label="Рой сейчас"></section>
 
     <details class="block brain-fold leader-brain" data-panel="train" hidden open>
       <summary><h2>Мозг лидера</h2></summary>
@@ -262,55 +241,8 @@
     <!-- ПРОФИЛЬ: панель рисует app/tabs/profile.tsx -->
     <div data-panel="profile" id="profilePanel" hidden></div>
 
-    <!-- УЧИТСЯ САМО -->
-    <div data-panel="train" hidden>
-      <section class="block recipe">
-        <h2>Рецепт роя</h2>
-        <fieldset class="parts">
-          <legend>За что хвалим</legend>
-          <p class="hint">Основа — сколько проехал. Галочки добавляют поправки.</p>
-          <div id="tParts"></div>
-        </fieldset>
-        <div class="field wide"><label for="tMutation">Как меняем детей</label><select id="tMutation"></select></div>
-        <p class="hint" id="tMutationHint"></p>
-        <div class="field wide"><label for="tThink">Как думает мозг</label><select id="tThink"></select></div>
-        <p class="hint" id="tThinkHint"></p>
-        <div class="field wide"><span class="lbl">Родителей</span>
-          <div class="seg" role="group" aria-label="Сколько родителей">
-            <button data-parents="1" aria-pressed="false">1</button>
-            <button data-parents="2" aria-pressed="true">2</button>
-          </div>
-        </div>
-        <p class="hint">Родители — лучшие 10% поколения. С двумя ребёнок берёт нейроны от обоих (кроссовер), с одним — копия одного. Лучший всегда едет дальше без изменений — на трассе он с номером 1.</p>
-        <p class="hint">Новый рецепт действует со следующего поколения.</p>
-      </section>
-      <section class="block">
-        <h2>Поколение</h2>
-        <div class="field"><label for="tPop">Машин</label><input type="range" id="tPop" min="10" max="300" step="10"><output id="tPopOut"></output></div>
-        <div class="field"><label for="tRate">Сила мутации</label><input type="range" id="tRate" min="0" max="0.5" step="0.01"><output id="tRateOut"></output></div>
-        <p class="hint">Сила мутации — сколько чисел у детей меняется (у «Лёгкого шума» — насколько сильно).</p>
-        <div class="pending" id="pickedBar" hidden>
-          <p id="pickedText">Выбрана машина вручную: она станет родителем следующего поколения.</p>
-          <button class="btn small" id="pickedCancel">Отменить выбор</button>
-        </div>
-        <div class="error" id="tError" hidden></div>
-      </section>
-      <section class="block">
-        <h2>Обучение</h2>
-        <dl class="stats">
-          <div><dt>Лучший</dt><dd id="stBest">—</dd></div>
-          <div><dt>Доехали</dt><dd id="stFin">—</dd></div>
-        </dl>
-        <canvas id="chart" class="chart" aria-label="График фитнеса по поколениям"></canvas>
-        <p class="legend" id="chartLegend"><span class="sw line"></span>лучший фитнес <span class="sw dash"></span>середина роя <span class="sw dot"></span>лучший доехал</p>
-        <p class="hint">Одна точка — одно поколение. Линия ползёт вверх — рой учится. Ровная — рою нечему учиться при таком фитнесе.</p>
-      </section>
-      <section class="block library" data-library></section>
-      <section class="block">
-        <h2>Рекорды роя</h2>
-        <ol class="hall" id="hall"></ol>
-      </section>
-    </div>
+    <!-- УЧИТСЯ САМО: панель рисует app/tabs/train-panel.tsx -->
+    <div data-panel="train" id="trainPanel" hidden></div>
 
     <!-- КОД -->
     <div data-panel="code" hidden>
