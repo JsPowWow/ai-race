@@ -16,7 +16,7 @@ import { examTab } from './tabs/exam.js';
 import { raceTab } from './tabs/race.js';
 import { introTab, redrawIntro } from './tabs/intro.js';
 import { initTheme } from './theme.js';
-import { teachTab, redrawLoss, renderNetwork } from './tabs/teach.js';
+import { teachTab, redrawLoss, renderNetwork } from './tabs/teach.tsx';
 import { profileTab, redrawProfileBrain } from './tabs/profile.tsx';
 import { mount } from '@reely/dommy';
 import { BrainLibrary } from './library-view.tsx';
