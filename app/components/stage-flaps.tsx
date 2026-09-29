@@ -25,7 +25,8 @@ export function StageFlaps<Key extends string>({ host, label, title, columns, ro
 }): Node {
   const side = media(SIDE_QUERY);
   const box = size(host);
-  const fits = () => (side.value ? Math.max(1, Math.floor(box.value.height / FLAP_ROW_PX) - HEAD_ROWS) : TOP_ROWS);
+  // сбоку — сколько строк влезает; пока колонку не измерили (высота 0), строк нет, а не одна случайная
+  const fits = () => (side.value ? Math.max(0, Math.floor(box.value.height / FLAP_ROW_PX) - HEAD_ROWS) : TOP_ROWS);
   const said = throttled(summary, SAY_EVERY_MS);
   return (
     <>

@@ -14,9 +14,9 @@ export function media(query: string): Computed<boolean> {
   return computed(() => matches.value);
 }
 
-/** Размер элемента в CSS-пикселях (без рамок и отступов) — через ResizeObserver */
+/** Размер элемента в CSS-пикселях (без рамок и отступов) — через ResizeObserver. До первого замера — 0×0, как в kit */
 export function size(el: Element): Computed<{ width: number; height: number }> {
-  const box = signal({ width: el.clientWidth, height: el.clientHeight });
+  const box = signal({ width: 0, height: 0 });
   const observer = new ResizeObserver(([entry]) => {
     if (entry) box.value = { width: entry.contentRect.width, height: entry.contentRect.height };
   });
