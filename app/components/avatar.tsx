@@ -1,6 +1,6 @@
 // Аватар машины — общий для гаража, гонки и других списков участников.
 import { Show } from '@reely/dommy';
-import { avatarUrl } from '../engine/car-file.ts';
+import { avatarUrl } from '../../engine/car-file.ts';
 
 /** Облик, из которого рисуем аватар: SVG-картинка (может не быть) и цвет машины */
 export type AvatarLook = { avatar?: string | null; color: string };

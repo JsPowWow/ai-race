@@ -29,3 +29,9 @@ input, textarea { caret-color: var(--action); }
   background: var(--you); color: var(--on-you); padding: 10px 16px; font-weight: 600; border-radius: var(--r-m);
 }
 .skip-link:focus { inset-block-start: 12px; }
+
+/* Только для читалки экрана: на странице не видно, вслух читается */
+.sr-only {
+  position: absolute; inline-size: 1px; block-size: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
+}

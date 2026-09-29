@@ -8,8 +8,8 @@ import type { LessonTab } from './lessons.ts';
 import { load, save } from './storage.ts';
 import { on } from './state.ts';
 import { element } from './dom.ts';
-import { Keyed } from './keyed.tsx';
-import { TextWithCode } from './text-with-code.tsx';
+import { Keyed } from './components/keyed.tsx';
+import { TextWithCode } from './components/text-with-code.tsx';
 
 /** Выполненные шаги: { v: 3, teach: [0, 2], … } — версия шагов и номера по вкладкам */
 type Done = { v: number } & Partial<Record<LessonTab, number[]>>;

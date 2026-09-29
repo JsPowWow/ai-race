@@ -7,7 +7,7 @@ import { toCarFile, fromCarFile, approveCode, type Entrant as CarEntrant } from 
 import { BOTS } from '../generated/bots.js';
 import { showBanner } from '../stage.ts';
 import { element } from '../dom.ts';
-import { Avatar } from '../avatar.tsx';
+import { Avatar } from '../components/avatar.tsx';
 import { Review } from './race-review.tsx';
 import { canCross, childFile, crossNote } from './race-cross.ts';
 

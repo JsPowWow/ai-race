@@ -1,6 +1,6 @@
 // «Гонка», таблица и номинации. Строки не перерисовываются: при обгоне строка переезжает на новое место.
 import { For, Show } from '@reely/dommy';
-import { Avatar } from '../avatar.tsx';
+import { Avatar } from '../components/avatar.tsx';
 import { board, awards } from './race-run.ts';
 
 export function Board(): Node {

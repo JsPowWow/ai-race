@@ -442,6 +442,7 @@ test('«Гонка»: чужой код едет только после «Ра�
   assert.equal((await boardNames()).length, 3, 'на старте — три бота');
 
   await page.click('#rAddMine');
+  await page.waitForSelector('#raceFlaps .flap-row.you', { timeout: 5000 }); // своя машина на табло-флапах подсвечена
   const code = 'export const thinkVariants = { mine: { title: "Мой", think(inputs, brain) { return [1, 0, 0, 0]; } } };';
   await page.click('summary:has-text("Вставить JSON текстом")');
   await page.fill('#rPaste', JSON.stringify({ ...BOTS[0], name: 'Чужой', think: 'mine', thinkSource: code }));
@@ -461,6 +462,27 @@ test('«Гонка»: чужой код едет только после «Ра�
   await page.click('#rStart');
   assert.equal((await page.textContent('#rStart')).trim(), 'Заново');
   await page.waitForSelector('#rAwards .award', { timeout: 60000 });
+  const flapNames = await page.$$eval('#raceFlaps [role="row"]:not(.flap-head):not([aria-hidden]) [role="cell"]:nth-of-type(3) .sr-only', (cells) => cells.map((c) => c.textContent));
+  assert.equal(flapNames.length, 5, 'на табло-флапах — все пятеро');
+  assert.ok(flapNames.includes('Чужой'));
+  await close();
+  assert.deepEqual(problems, []);
+});
+
+test('Табло-флапы: имя участника — только текст, даже если в нём HTML', async () => {
+  const { page, problems, close } = await openPage(SCREENS[1]);
+  await page.goto(`${base}#race`);
+  await page.waitForFunction(() => document.body.dataset.tab === 'race');
+  const { BOTS: bots } = await import(new URL('../app/generated/bots.js', import.meta.url));
+  const name = '<img src=x onerror=f()>'; // короче 24 знаков: длиннее имя обрежется
+  await page.click('summary:has-text("Вставить JSON текстом")');
+  await page.fill('#rPaste', JSON.stringify({ ...bots[0], name }));
+  await page.click('#rPasteAdd');
+  await page.waitForFunction((n) => [...document.querySelectorAll('#raceFlaps .sr-only')].some((el) => el.textContent === n), name, { timeout: 5000 });
+  await page.waitForTimeout(500); // плитки долистались
+  assert.equal(await page.$('img[src="x"]'), null, 'HTML из имени не стал разметкой');
+  const { scroll, width } = await page.evaluate(() => ({ scroll: document.documentElement.scrollWidth, width: innerWidth }));
+  assert.ok(scroll <= width, `горизонтальная прокрутка (${scroll} > ${width})`);
   await close();
   assert.deepEqual(problems, []);
 });

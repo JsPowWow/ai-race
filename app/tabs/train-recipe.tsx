@@ -5,7 +5,7 @@ import { state } from '../state.ts';
 import { live } from '../student-code.ts';
 import { changeShape } from '../library.ts';
 import { fromEvents } from '../signals.ts';
-import { Seg, Select } from '../controls.tsx';
+import { Seg, Select } from '../components/controls.tsx';
 import { train, setTrain } from './train-settings.ts';
 import { mutationId, setParents } from './train-swarm.ts';
 

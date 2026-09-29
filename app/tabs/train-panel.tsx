@@ -6,7 +6,7 @@ import { sizesOf } from '../state.ts';
 import { setBrain } from '../library.ts';
 import { showBanner } from '../stage.ts';
 import { secs, pct } from '../ui.ts';
-import { BrainLibrary } from '../library-view.tsx';
+import { BrainLibrary } from '../components/brain-library.tsx';
 import { train, setTrain } from './train-settings.ts';
 import { results, pickedCars, clearPicked, errorText } from './train-swarm.ts';
 import type { HallEntry, HistoryEntry } from '../state.ts';

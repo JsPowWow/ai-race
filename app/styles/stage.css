@@ -55,6 +55,21 @@
 .countdown span { animation: pop 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; }
 @keyframes pop { from { transform: scale(1.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
+/* Табло-флапы «Гонки»: деталь из того же чёрного пластика, что табло над трассой.
+   Широкий экран — колонка справа от трассы на всю её высоту (строк столько, сколько влезает);
+   узкий — полоса над трассой. Условие «широкий» — то же, что SIDE_QUERY в app/tabs/race-flaps.tsx */
+.flap-board {
+  background: var(--hud-panel); border-radius: var(--r-l); box-shadow: var(--shadow-part);
+  padding: 8px 10px; overflow: hidden;
+}
+@media (min-width: 1180px), (min-width: 760px) and (max-width: 1000px) {
+  .stage:has(> .flap-board:not([hidden])) { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+  :where(.stage:has(> .flap-board:not([hidden]))) > * { grid-column: 1 / -1; }
+  :where(.stage) > .viewport { grid-column: 1; grid-row: 1; }
+  /* contain: size — табло не растит строку сетки: высоту задаёт трасса, а табло берёт столько строк, сколько влезло */
+  :where(.stage) > .flap-board { grid-column: 2; grid-row: 1; contain: size; inline-size: 318px; }
+}
+
 @media (max-width: 700px) {
   /* трасса повыше: на узком экране 16:10 слишком мелко */
   .viewport { aspect-ratio: 4 / 3.4; max-block-size: 62vh; }

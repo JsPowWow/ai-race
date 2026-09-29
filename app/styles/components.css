@@ -124,3 +124,41 @@ details .btn { margin-block-start: 6px; }
 @media (prefers-reduced-motion: reduce) {
   .btn, .seg button { transition: none; }
 }
+
+/* ── табло-флапы «как в аэропорту» (app/components/flap-board.tsx) ──
+   Чёрный пластик, у каждой буквы своя плитка с тёмной «петлёй» посередине. Всё табло — JetBrains Mono:
+   плитки одной ширины, буквы и цифры не прыгают (исключение из «Правила одного шрифта», DESIGN.md) */
+.flap-board-inner {
+  --tile-w: 10px;
+  display: flex; flex-direction: column;
+  font: 600 13px/1 var(--mono); font-variant-numeric: tabular-nums; text-transform: uppercase;
+  color: var(--hud-ink);
+}
+.flap-title { block-size: var(--flap-row); display: flex; align-items: center; color: var(--hud-digit); }
+.flap-row { display: flex; align-items: center; gap: 6px; block-size: var(--flap-row); padding-inline: 4px; border-radius: var(--r-s); }
+.flap-head { font: 500 10px/1 var(--mono); letter-spacing: 0.06em; color: var(--hud-muted); }
+.flap-cell { flex: none; inline-size: calc(var(--w) * var(--tile-w) + (var(--w) - 1) * 1px); display: flex; }
+.flap-cell.end { justify-content: flex-end; }
+.flap-dot { flex: none; inline-size: 6px; block-size: 16px; border-radius: 2px; background: var(--dot, transparent); }
+.flap-tiles { display: inline-flex; gap: 1px; }
+.flap-tile {
+  inline-size: var(--tile-w); block-size: 20px;
+  display: grid; place-items: center; white-space: pre;
+  background: linear-gradient(var(--hud-tile) 0 calc(50% - 0.5px), var(--hud-hinge) 0 calc(50% + 0.5px), var(--hud-tile-low) 0);
+  border-radius: 2px;
+  backface-visibility: hidden;
+}
+/* перелистнулась — верх плитки падает на петлю: два одинаковых кадра по очереди перезапускают анимацию */
+.flap-tile.turn-a { animation: flap-a 0.1s ease-out; }
+.flap-tile.turn-b { animation: flap-b 0.1s ease-out; }
+@keyframes flap-a { from { transform: perspective(40px) rotateX(-75deg); } }
+@keyframes flap-b { from { transform: perspective(40px) rotateX(-75deg); } }
+/* первые три места — золото, серебро, бронза; ты — жёлтая полоса и жёлтые буквы */
+.flap-row[data-rank="1"] .flap-dot + .flap-cell { color: var(--hud-digit); }
+.flap-row[data-rank="2"] .flap-dot + .flap-cell { color: var(--hud-silver); }
+.flap-row[data-rank="3"] .flap-dot + .flap-cell { color: var(--hud-bronze); }
+.flap-row.you { background: color-mix(in srgb, var(--you) 22%, transparent); box-shadow: inset 3px 0 var(--you); }
+.flap-row.you .flap-tile { color: var(--hud-digit); }
+@media (prefers-reduced-motion: reduce) {
+  .flap-tile.turn-a, .flap-tile.turn-b { animation: none; }
+}

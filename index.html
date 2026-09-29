@@ -13,9 +13,9 @@
 <script>try{const t=JSON.parse(localStorage.getItem('ai-race:theme'));if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch{}</script>
 <link rel="icon" href="app/icon.svg" type="image/svg+xml">
 <link rel="preload" href="app/fonts/rubik-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="modulepreload" href="app/generated/chunks/chunk-433W7CUN.js">
-<link rel="stylesheet" href="app/generated/app.css?v=e0526e23e8">
-<script type="module" src="app/generated/app.js?v=bb8d89ed45"></script>
+<link rel="modulepreload" href="app/generated/chunks/chunk-SCKVW2JG.js">
+<link rel="stylesheet" href="app/generated/app.css?v=0a0566dd7f">
+<script type="module" src="app/generated/app.js?v=8c3b09fce3"></script>
 </head>
 <body>
 <a class="skip-link" href="#content">К содержимому</a>
@@ -150,6 +150,8 @@
 
 <main class="work">
   <section class="stage">
+    <!-- табло-флапы «Гонки» рисует app/tabs/race-flaps.tsx: сбоку от трассы или над ней -->
+    <aside class="flap-board" data-panel="race" id="raceFlaps" hidden></aside>
     <div class="viewport" id="viewport">
       <canvas id="stage" aria-label="Трасса"></canvas>
       <div class="hud" id="hud"></div>

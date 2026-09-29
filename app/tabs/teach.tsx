@@ -19,7 +19,7 @@ import { steerWith } from '../manual-drive.ts';
 import { drawScene, paintCar, trafficOn, setHud, lapText, showBanner } from '../stage.ts';
 import { secs, pct } from '../ui.ts';
 import { element } from '../dom.ts';
-import { BrainLibrary } from '../library-view.tsx';
+import { BrainLibrary } from '../components/brain-library.tsx';
 import { DriveBar } from './teach-toolbar.tsx';
 import type { Mode } from './teach-toolbar.tsx';
 import { Runs } from './teach-runs.tsx';

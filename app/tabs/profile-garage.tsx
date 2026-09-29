@@ -7,7 +7,7 @@ import { signal, untracked, For, Show } from '@reely/dommy';
 import { state, sizesOf, emit, on } from '../state.ts';
 import type { Profile } from '../state.ts';
 import { garage, MAX_CARS, switchCar, newCar, copyCar, deleteCar, exportCar, importCar, chooseFolder, allowFolder, stopFolder } from '../garage.ts';
-import { Avatar } from '../avatar.tsx';
+import { Avatar } from '../components/avatar.tsx';
 import { saveFile, safeFileName } from '../download.ts';
 import { fromEvents } from '../signals.ts';
 import { draft, resets, applyDraft, dropDraft } from './profile-build.tsx';

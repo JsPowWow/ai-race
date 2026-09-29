@@ -2,14 +2,16 @@
 // Панель и кнопки под трассой — на @reely/dommy (#20); трассу с машинами рисует кадровый цикл (frame).
 //   race-entrants.tsx — участники: добавить, убрать, проверить чужой код, скрестить
 //   race-run.ts       — сам заезд;  race-results.ts — места и номинации;  race-board.tsx — таблица
+//   race-flaps.tsx    — табло-флапы рядом с трассой
 import { mount } from '@reely/dommy';
 import { TRAFFIC_LEVELS, type TrafficLevel } from '../../engine/traffic.ts';
 import { state, persist } from '../state.ts';
-import { drawScene, paintCar, paintSensors, trafficOn, setHud, lapText } from '../stage.ts';
-import { esc, secs } from '../ui.ts';
+import { drawScene, paintCar, paintSensors, trafficOn, setHud } from '../stage.ts';
+import { secs } from '../ui.ts';
 import { element } from '../dom.ts';
 import { Entrants } from './race-entrants.tsx';
 import { Board } from './race-board.tsx';
+import './race-flaps.tsx';
 import { race, prepare, start, tickRace, speed, started } from './race-run.ts';
 import { standings } from './race-results.ts';
 
@@ -91,12 +93,9 @@ export const raceTab = {
       paintCar(car, { color: entrant.color, alpha: car.status === 'crashed' ? 0.5 : 1, label: isLeader ? entrant.name : null });
     }
     if (leader && !leader.car.done) paintSensors(leader.car);
-    // табло — HTML-строки (app/stage.ts): имя трассы из seed пишет человек, поэтому через esc()
+    // места, круги и отставания — на табло-флапах; над трассой — только время и что сейчас происходит
     setHud([
-      `<b>${esc(track.name)}</b>`,
       `время <b>${secs(race.tick)}</b>`,
-      ...(leader ? [`лидер: ${lapText(track, leader.car.bestS)}`] : []),
-      `участников <b>${race.cars.length}</b>`,
       race.running ? `×${speed.peek()}` : race.finished ? 'финиш' : 'ждём старта',
     ]);
   },
