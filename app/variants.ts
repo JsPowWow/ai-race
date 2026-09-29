@@ -5,7 +5,7 @@
 // Вкладки друг друга не знают: обе зовут propose() отсюда и рисуют ленту попыток компонентом components/tries.tsx.
 import { signal } from '@reely/dommy';
 import { cloneBrain, type Brain } from '../engine/brain.ts';
-import { controlRun, verdict, controlText, type ControlResult, type Mark } from '../engine/control.ts';
+import { controlRun, verdict, controlText, type ControlLeg, type ControlResult, type Mark } from '../engine/control.ts';
 import { getTrainingTrack, type Track } from '../engine/track.ts';
 import { withTraffic } from '../engine/traffic.ts';
 import { state, thinkFn, on, type Shape } from './state.ts';
@@ -61,6 +61,9 @@ function yourResult(tracks: readonly Track[]): ControlResult | null {
   if (!result) yours.set(key, (result = drive(state.champion, state.config, tracks)));
   return result;
 }
+
+/** Твой мозг на трассе урока — первая трасса контрольного (null — мозга нет) */
+export const yourLessonLeg = (lesson: Track): ControlLeg | null => yourResult(controlTracks(lesson))?.legs[0] ?? null;
 
 // ── предложить и взять ──
 

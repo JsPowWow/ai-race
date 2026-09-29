@@ -104,6 +104,7 @@ test('«Я учу»: заезд с другими глазами виден, о�
   assert.ok(await page.isHidden('#teachThink'), 'мозг уже плавный — предупреждать не о чем');
   assert.match(await page.textContent('#lrSummary'), /^Эпоха 20 · ошибка/);
   assert.match(await page.textContent('#champChip'), /обучен на 1 заезде/);
+  assert.match(await page.textContent('#teachDuel'), /^ты: 0,7 с · мозг: /, 'твоё лучшее время рядом с временем мозга');
 
   // «Мозг под микроскопом»: щёлкаем по схеме, пока не попадём в нейрон или связь, и правим вес руками
   await page.click('summary:has-text("Мозг под микроскопом")'); // свёрнут, пока не раскроют

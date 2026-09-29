@@ -10,8 +10,8 @@ import { drawSeries } from '../../engine/netviz.ts';
 import { state, sizesOf, brainTitle, thinkVariant, on } from '../state.ts';
 import { stored } from '../storage.ts';
 import { live } from '../student-code.ts';
-import { trainingSamples } from '../runs.ts';
-import { propose } from '../variants.ts';
+import { runs, trainingSamples } from '../runs.ts';
+import { propose, yourLessonLeg } from '../variants.ts';
 import { getTrainingTrack, type Track } from '../../engine/track.ts';
 import { withTraffic } from '../../engine/traffic.ts';
 import { fromEvents } from '../signals.ts';
@@ -20,6 +20,33 @@ import { Seg, type Choice } from '../components/controls.tsx';
 
 /** Трасса урока — та, где ты ездишь: на ней (и ещё на одной) вариант едет контрольный заезд */
 export const lessonTrack = (): Track => withTraffic(getTrainingTrack(state.drive.trackId), state.drive.traffic);
+
+const sec = (s: number) => `${s.toFixed(1).replace('.', ',')} с`;
+
+/**
+ * Ты против мозга на трассе урока: твой лучший финиш из «Моих заездов» (та же трасса и те же машины)
+ * и мозг на контрольном — там тот же трафик с первого тика. Нечего сравнивать — пустая строка.
+ */
+export const duel = fromEvents(['save', 'champion', 'config', 'car', 'reset'], (): string => {
+  const track = lessonTrack();
+  const finished = runs.filter((r) => r.status === 'finished' && r.trackName === track.name && r.traffic === state.drive.traffic);
+  const you = finished.length ? Math.min(...finished.map((r) => r.ticks)) / 60 : null;
+  let leg;
+  try {
+    leg = yourLessonLeg(track);
+  } catch {
+    return ''; // think.js сломан — мозг не поедет; что не так, скажет вкладка «Код»
+  }
+  if (you === null && !leg) return '';
+  const youText = you === null ? 'ты: ещё не доезжал' : `ты: ${sec(you)}`;
+  if (!leg) return `${youText} · мозга пока нет`;
+  if (leg.seconds === null) return `${youText} · мозг: ${leg.status === 'crashed' ? `разбивается на ${leg.lap}-м круге` : 'не доезжает'}`;
+  const brainText = `${youText} · мозг: ${sec(leg.seconds)}`;
+  if (you === null) return brainText;
+  const diff = you - leg.seconds;
+  if (Math.abs(diff) < 0.1) return `${brainText} — поровну`;
+  return `${brainText} — ${diff < 0 ? 'ты' : 'мозг'} быстрее на ${sec(Math.abs(diff))}`;
+});
 
 /** Меньше примеров — учить не на чем: это пара заездов по «Разминке» */
 export const MIN_SAMPLES = 200;

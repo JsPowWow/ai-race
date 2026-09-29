@@ -6,8 +6,10 @@ import { autoTake, dismiss, feed, offer, take, type Attempt, type Source } from 
 const WORDS: Record<Attempt['mark'], string> = { better: 'лучше', worse: 'хуже', same: 'так же', first: 'первый мозг' };
 const describe = (a: Attempt) => `${a.label}: ${a.mark === 'first' ? a.text : `${WORDS[a.mark]} — ${a.text}`}. Контрольный: ${a.result}${a.taken ? '. Взят' : ''}`;
 
-export function Tries({ source, empty, control }: {
+export function Tries({ source, empty, control, duel }: {
   source: Source;
+  /** Ты против мозга одной строкой («ты: 42,3 с · мозг: 45,1 с — ты быстрее на 2,8 с»); пусто — строки нет */
+  duel?: () => string;
   /** Что написать, пока попыток нет: откуда они возьмутся */
   empty: string;
   /** На каких трассах контрольный заезд — словами */
@@ -42,6 +44,9 @@ export function Tries({ source, empty, control }: {
           Брать лучшее само
         </label>
       </div>
+      <Show when={() => !!duel?.()}>
+        {() => <p className="tries-duel" id={`${source}Duel`}>{() => duel?.()}</p>}
+      </Show>
       <Show when={waiting}>
         {() => (
           <div className="offer" aria={{ role: 'group', ariaLabel: 'Новый вариант лучше твоего мозга' }}>

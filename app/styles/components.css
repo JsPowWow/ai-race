@@ -190,6 +190,7 @@ details .btn { margin-block-start: 6px; }
 .tries-marks { display: flex; gap: 4px; margin: 0; padding: 0; list-style: none; }
 .tries-last { flex: 1 1 220px; min-inline-size: 0; margin: 0; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
 .tries-auto { margin-inline-start: auto; }
+.tries-duel { margin: 0; font-size: 14px; font-variant-numeric: tabular-nums; }
 
 .try-mark {
   display: inline-grid; place-items: center; flex: none;

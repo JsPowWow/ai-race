@@ -21,7 +21,7 @@ import { BrainLibrary } from '../components/brain-library.tsx';
 import { DriveBar } from './teach-toolbar.tsx';
 import type { Mode } from './teach-toolbar.tsx';
 import { Runs } from './teach-runs.tsx';
-import { trainStep, redrawLoss, lessonTrack } from './teach-learn.tsx';
+import { trainStep, redrawLoss, lessonTrack, duel } from './teach-learn.tsx';
 import { createMicroscope } from './network-editor.tsx';
 import { Tries } from '../components/tries.tsx';
 import { controlNames } from '../variants.ts';
@@ -44,7 +44,7 @@ const microscope = createMicroscope({
 mount(element('#teachToolbar'), () => <DriveBar mode={() => mode.value} onMode={setMode} onRestart={resetCar} />);
 mount(element('#teachTries'), () => (
   <Tries source="teach" empty="Научи мозг на своих заездах: новый вариант проедет контрольный заезд против твоего мозга, и будет видно, стал ли он лучше."
-    control={() => controlNames(lessonTrack())} />
+    control={() => controlNames(lessonTrack())} duel={duel} />
 ));
 mount(element('#teachPanel'), () => (
   <>
