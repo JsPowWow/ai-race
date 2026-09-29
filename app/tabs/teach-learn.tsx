@@ -10,7 +10,7 @@ import { drawSeries } from '../../engine/netviz.ts';
 import { state, sizesOf, brainTitle, thinkVariant, on } from '../state.ts';
 import { stored } from '../storage.ts';
 import { live } from '../student-code.ts';
-import { runs, trainingSamples } from '../runs.ts';
+import { bestRun, trainingSamples } from '../runs.ts';
 import { propose, yourLessonLeg } from '../variants.ts';
 import { getTrainingTrack, type Track } from '../../engine/track.ts';
 import { withTraffic } from '../../engine/traffic.ts';
@@ -29,8 +29,8 @@ const sec = (s: number) => `${s.toFixed(1).replace('.', ',')} с`;
  */
 export const duel = fromEvents(['save', 'champion', 'config', 'car', 'reset'], (): string => {
   const track = lessonTrack();
-  const finished = runs.filter((r) => r.status === 'finished' && r.trackName === track.name && r.traffic === state.drive.traffic);
-  const you = finished.length ? Math.min(...finished.map((r) => r.ticks)) / 60 : null;
+  const best = bestRun(track.name, state.drive.traffic);
+  const you = best ? best.ticks / 60 : null;
   let leg;
   try {
     leg = yourLessonLeg(track);

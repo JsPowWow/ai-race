@@ -92,6 +92,12 @@ export function clearRuns(): void {
   saveRuns();
 }
 
+/** Твой лучший финиш на трассе с такими же машинами (null — ещё не доезжал) */
+export function bestRun(trackName: string, traffic: TrafficLevel): Run | null {
+  const finished = runs.filter((r) => r.status === 'finished' && r.trackName === trackName && r.traffic === traffic);
+  return finished.reduce<Run | null>((best, r) => (!best || r.ticks < best.ticks ? r : best), null);
+}
+
 /** Примеры из отмеченных заездов, записанных с тем же числом входов, что у сети сейчас */
 export function trainingSamples(inputs: number): { runs: Run[]; samples: Sample[] } {
   const usable = runs.filter((r) => r.on && r.inputs === inputs);

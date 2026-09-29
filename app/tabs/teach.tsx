@@ -24,6 +24,7 @@ import { Runs } from './teach-runs.tsx';
 import { trainStep, redrawLoss, lessonTrack, duel } from './teach-learn.tsx';
 import { createMicroscope } from './network-editor.tsx';
 import { Tries } from '../components/tries.tsx';
+import { makeGhost, stepGhost, paintGhost, ghostGap, type Ghost } from './teach-ghost.ts';
 import { controlNames } from '../variants.ts';
 
 /** После финиша или аварии машина постоит столько (мс) — видно, чем кончилось, — и поедет заново */
@@ -32,6 +33,8 @@ const RESTART_DELAY = 1100;
 const mode = signal<Mode>('me');
 let track: Track;
 let car: Car;
+/** Кто едет рядом полупрозрачным: мозг, пока рулишь ты, или твой лучший заезд, пока рулит мозг */
+let ghost: Ghost | null = null;
 let restartAt = 0;
 let recording: Sample[] | null = null; // идущий заезд — начинается, как только машина тронулась
 let trace: Trace | null = null; // что «горит» в сети на этом кадре (когда едет мозг)
@@ -92,10 +95,12 @@ function drive(): void {
     if (byBrain) live.think.feedForward.lastTrace = null;
     car.step(track, Infinity, traffic);
     trace = byBrain ? (live.think.feedForward.lastTrace ?? null) : null;
+    stepGhost(ghost, track, traffic, car); // с тем же трафиком, что видела твоя машина на этом тике
     if (!byBrain) record();
     traffic = trafficOn(track, car.ticks);
   }
   drawScene(track, { camera: 'follow', follow: car, traffic, tick: car.ticks });
+  paintGhost(ghost);
   const me = mode.peek() === 'me';
   paintCar(car, { color: me ? state.profile.color : cssColor('--brain'), sensors: true, number: 1 }); // едет мозг — машина синяя, цвета мозга
   setHud([
@@ -104,7 +109,8 @@ function drive(): void {
     lapText(track, car.bestS),
     `пройдено <b>${pct(carReport(car, track).progressPct)}</b>`,
     `время <b>${secs(car.ticks)}</b>`,
-  ]);
+    ghostGap(ghost),
+  ].filter(Boolean));
 }
 
 /** Машина на старт. Недоеханный заезд записываем как «прервал» */
@@ -113,6 +119,7 @@ function resetCar(): void {
   track = lessonTrack();
   const byBrain = mode.peek() === 'brain' && state.champion;
   car = new Car(track, { ...(byBrain ? { brain: state.champion, think: thinkFn() } : {}), sensors: state.config.sensors });
+  ghost = makeGhost(track, mode.peek() === 'brain');
   restartAt = 0;
   recording = null;
   trace = null;
