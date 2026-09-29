@@ -13,7 +13,7 @@
     "seal": "node tools/seal.mjs",
     "test": "node --test \"test/**/*.test.mjs\"",
     "test:engine": "node --test \"test/engine/*.test.mjs\"",
-    "typecheck": "tsc -p . && tsc -p tsconfig.strict.json",
+    "typecheck": "tsc -p .",
     "dev:vite": "vite"
   },
   "devDependencies": {

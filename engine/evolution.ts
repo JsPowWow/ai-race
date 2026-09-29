@@ -86,6 +86,17 @@ export class Evolution {
     this.errors = [];
   }
 
+  /**
+   * Продолжить с мозга, который пришёл снаружи (научили на примерах, вернули из «Истории», поправили руками).
+   * Он — единственный родитель следующего поколения: старый пул забываем, иначе дети рождаются от лучших
+   * прошлого роя, а новый мозг едет одной машиной из ста и через поколение пропадает.
+   */
+  startFrom(brain: Brain): void {
+    this.parent = cloneBrain(brain);
+    this.parent2 = null;
+    this.pool = null;
+  }
+
   spawn(track: Track): void {
     this.track = track;
     this.maxTicks = maxTicksFor(track);

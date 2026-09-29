@@ -1,5 +1,5 @@
 // Сервер для разработки на Vite (#15): npm run dev:vite.
-// Браузер грузит исходники (app/main.js, app/styles.css) как есть, без бандла, и страница обновляется при сохранении.
+// Браузер грузит исходники (app/main.ts, app/styles.css) как есть, без бандла, и страница обновляется при сохранении.
 // Сайт для GitHub Pages по-прежнему собирает tools/build.mjs (npm run build) — Vite пока только для разработки.
 import { readFileSync } from 'node:fs';
 import { defineConfig, type Plugin } from 'vite';
@@ -20,7 +20,7 @@ function devPage(): Plugin {
 <title>AI Race — разработка</title>
 <link rel="icon" href="/app/icon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/app/styles.css">
-<script type="module" src="/app/main.js"></script>
+<script type="module" src="/app/main.ts"></script>
 </head>
 <body>
 ${readFileSync('app/markup.html', 'utf8')}

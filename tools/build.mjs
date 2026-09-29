@@ -37,10 +37,10 @@ function writeDataModules() {
 
 // Web Worker финала и запись гаража собираем в строки: так он работает и на GitHub Pages, и в однофайловой сборке
 async function writeWorker() {
-  const worker = await esbuild.build({ entryPoints: ['app/final/worker.js'], bundle: true, format: 'iife', minify: true, write: false, target: 'es2020', legalComments: 'none' });
-  w('app/generated/race-worker.js', `// Сгенерировано tools/build.mjs из app/final/worker.js: код Web Worker для расчёта финала.\nexport const WORKER_SOURCE = ${JSON.stringify(worker.outputFiles[0].text)};\n`);
-  const writer = await esbuild.build({ entryPoints: ['app/car-writer.js'], bundle: true, format: 'iife', minify: true, write: false, target: 'es2020', legalComments: 'none' });
-  w('app/generated/car-writer.js', `// Сгенерировано tools/build.mjs из app/car-writer.js: Web Worker, который пишет файлы гаража.\nexport const WRITER_SOURCE = ${JSON.stringify(writer.outputFiles[0].text)};\n`);
+  const worker = await esbuild.build({ entryPoints: ['app/final/worker.ts'], bundle: true, format: 'iife', minify: true, write: false, target: 'es2020', legalComments: 'none' });
+  w('app/generated/race-worker.js', `// Сгенерировано tools/build.mjs из app/final/worker.ts: код Web Worker для расчёта финала.\nexport const WORKER_SOURCE = ${JSON.stringify(worker.outputFiles[0].text)};\n`);
+  const writer = await esbuild.build({ entryPoints: ['app/car-writer.ts'], bundle: true, format: 'iife', minify: true, write: false, target: 'es2020', legalComments: 'none' });
+  w('app/generated/car-writer.js', `// Сгенерировано tools/build.mjs из app/car-writer.ts: Web Worker, который пишет файлы гаража.\nexport const WRITER_SOURCE = ${JSON.stringify(writer.outputFiles[0].text)};\n`);
 }
 
 const common = { bundle: true, minify: true, target: 'es2022', legalComments: 'none', logLevel: 'warning' };
@@ -48,7 +48,7 @@ const common = { bundle: true, minify: true, target: 'es2022', legalComments: 'n
 /** Сайт: модули с отложенной загрузкой, карта исходников (в DevTools видны настоящие файлы) */
 const siteOptions = {
   ...common,
-  entryPoints: [{ in: 'app/main.js', out: 'app' }, { in: 'app/styles.css', out: 'app' }],
+  entryPoints: [{ in: 'app/main.ts', out: 'app' }, { in: 'app/styles.css', out: 'app' }],
   outdir: 'app/generated',
   entryNames: '[name]',
   chunkNames: 'chunks/[name]-[hash]',
@@ -90,7 +90,7 @@ const eagerChunks = (metafile) => metafile.outputs['app/generated/app.js'].impor
 
 /**
  * Применить сохранённую тему до первой отрисовки — иначе при светлой теме страница на миг мигнёт тёмной.
- * Ключ — как в app/storage.js (префикс ai-race:), значения — как в app/theme.js.
+ * Ключ — как в app/storage.ts (префикс ai-race:), значения — как в app/theme.ts.
  */
 const THEME_SCRIPT = `<script>try{const t=JSON.parse(localStorage.getItem('ai-race:theme'));if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch{}</script>`;
 
@@ -117,7 +117,7 @@ function writeIndex(metafile) {
 /** Один файл без сервера: скрипт — iife (финал подгружается из того же файла), шрифты и иконка — внутри */
 async function writeSingleFile() {
   const [js, css] = await Promise.all([
-    esbuild.build({ ...common, entryPoints: ['app/main.js'], format: 'iife', write: false }),
+    esbuild.build({ ...common, entryPoints: ['app/main.ts'], format: 'iife', write: false }),
     esbuild.build({ ...common, entryPoints: ['app/styles.css'], loader: { '.woff2': 'dataurl' }, write: false }),
   ]);
   const script = js.outputFiles[0].text.replace(/<\/script/gi, '<\\/script');

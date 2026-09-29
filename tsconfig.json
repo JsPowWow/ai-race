@@ -1,11 +1,9 @@
 {
-  // Проверка типов. Код переезжает с JS на TypeScript по файлу (#15), поэтому проверок две:
-  //   tsconfig.json        — JS с типами в JSDoc (мягко, как раньше) и .ts/.tsx — для редактора;
-  //   tsconfig.strict.json — .ts/.tsx строго (strict), это и есть проверка для нового кода.
-  // npm run typecheck запускает обе (входит в npm run lint).
+  // Проверка типов (npm run typecheck, входит в npm run lint): engine/ и app/ — TypeScript, строго.
+  // Сгенерированные app/generated/*.js дают типы тем, кто их импортирует, но сами не проверяются.
   "compilerOptions": {
     "allowJs": true,
-    "checkJs": true,
+    "checkJs": false,
     "noEmit": true,
     "target": "es2022",
     "module": "esnext",
@@ -18,9 +16,15 @@
     // JSX собирается в вызовы @reely/dommy — настоящие DOM-элементы, без виртуального DOM (#20)
     "jsx": "react-jsx",
     "jsxImportSource": "@reely/dommy",
-    "strict": false,
+    "strict": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    // Только то, что можно просто стереть (без enum, namespace, параметров-свойств):
+    // так Node запускает .ts без сборки, а esbuild и Vite собирают каждый файл отдельно
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
     "skipLibCheck": true
   },
-  "include": ["engine/**/*", "app/**/*", "app/globals.d.ts"],
-  "exclude": ["app/generated"]
+  "include": ["engine/**/*.ts", "app/**/*.ts", "app/**/*.tsx", "app/globals.d.ts"]
 }

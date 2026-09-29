@@ -1,6 +1,6 @@
 // «Профиль», облик машины: имя, цвет и аватар. Их видно на всех трассах, в таблице гонки и на стриме финала.
 import { signal } from '@reely/dommy';
-import { state, persist, CAR_COLORS, on } from '../state.js';
+import { state, persist, CAR_COLORS, on } from '../state.ts';
 import { checkAvatar, avatarUrl, NAME_MAX } from '../../engine/car-file.ts';
 import { fromEvents } from '../signals.ts';
 

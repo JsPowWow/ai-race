@@ -13,9 +13,9 @@
 <script>try{const t=JSON.parse(localStorage.getItem('ai-race:theme'));if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch{}</script>
 <link rel="icon" href="app/icon.svg" type="image/svg+xml">
 <link rel="preload" href="app/fonts/rubik-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="modulepreload" href="app/generated/chunks/chunk-WJM7GZO5.js">
-<link rel="stylesheet" href="app/generated/app.css?v=20737ae88a">
-<script type="module" src="app/generated/app.js?v=99ed4d1437"></script>
+<link rel="modulepreload" href="app/generated/chunks/chunk-433W7CUN.js">
+<link rel="stylesheet" href="app/generated/app.css?v=e0526e23e8">
+<script type="module" src="app/generated/app.js?v=bb8d89ed45"></script>
 </head>
 <body>
 <a class="skip-link" href="#content">К содержимому</a>
@@ -105,7 +105,7 @@
       <div class="brain-board">
         <div class="brain-board-bar">
           <span>Табло мозга</span>
-          <div class="zoom" role="group" aria-label="Масштаб табло"><button class="btn" data-z="in" aria-label="Приблизить">+</button><button class="btn" data-z="out" aria-label="Отдалить" disabled>−</button><button class="btn" data-z="reset" aria-label="Обычный масштаб" hidden>1:1</button></div>
+          <div class="zoom" role="group" aria-label="Масштаб табло"></div>
         </div>
         <div class="brain-board-screen">
           <canvas id="brainBoard" aria-label="Схема нейросети: сигнал идёт от сенсоров к кнопкам пульта"></canvas>
@@ -120,10 +120,8 @@
         <p>Каждая линия — это <b>вес</b>, одно число. Нейрон складывает входы, умноженные на веса, и решает, «загореться» ли ему. Чем сильнее сигнал, тем ярче горит линия. Наведи на нейрон или нажми на него — увидишь его формулу с настоящими числами.</p>
         <p>Заметил? Перед стеной «Торетто» сбрасывает газ и уходит влево — как от бордюра в повороте. А остановиться и развернуться не пробует. <b>Мозг умеет только то, что видел</b>: стен поперёк дороги в его учёбе не было.</p>
       </div>
-      <div class="brain-file">
-        <p>Весь «мозг» машины — это маленький файл: <b id="brainSize">—</b>, в нём <b id="brainCount">—</b>. Обучение — это поиск правильных чисел. Этот файл вы и приносите на гонку.</p>
-        <pre id="brainJson" tabindex="0" aria-label="Фрагмент файла с весами"></pre>
-      </div>
+      <!-- файл мозга: строится из файла бота — app/tabs/intro.tsx -->
+      <div class="brain-file" id="brainFile"></div>
     </div>
   </section>
 
@@ -169,56 +167,17 @@
       </div>
     </div>
 
-    <div class="editor" id="editor" hidden>
-      <div class="filetabs" id="fileTabs" role="tablist" aria-label="Файлы студента"></div>
-      <div class="code-error" id="codeError" role="alert" hidden></div>
-      <div class="code-box">
-        <pre class="gutter" id="codeGutter" aria-hidden="true"></pre>
-        <textarea id="codeEditor" spellcheck="false" autocomplete="off" autocapitalize="off" wrap="off" aria-label="Код" aria-describedby="codeError"></textarea>
-      </div>
-      <div class="row">
-        <button class="btn primary" id="codeApply">Применить</button>
-        <button class="btn" id="codeReset">Вернуть исходный</button>
-        <span class="note" id="codeMsg" role="status"></span>
-      </div>
-    </div>
+    <!-- КОД: редактор рисует app/tabs/code.tsx -->
+    <div class="editor" id="editor" hidden></div>
 
-    <div class="toolbar" data-for="teach" hidden>
-      <div class="seg" role="group" aria-label="Кто рулит">
-        <button id="dMe" aria-pressed="true">Еду я</button>
-        <button id="dBrain" aria-pressed="false">Едет мозг</button>
-      </div>
-      <button class="btn" id="dRestart">Заново</button>
-      <label class="inline">Трасса <select id="dTrack"></select></label>
-      <label class="inline">Машины <select id="dTraffic"></select></label>
-    </div>
+    <!-- «Я учу»: кто рулит, трасса, машины — рисует app/tabs/teach-toolbar.tsx -->
+    <div class="toolbar" data-for="teach" id="teachToolbar" hidden></div>
 
-    <div class="toolbar" data-for="train" hidden>
-      <button class="btn primary" id="tToggle">Старт</button>
-      <button class="btn small" id="tEndGen" title="Не ждать, пока доедут все: оценить машины сейчас">Закончить поколение</button>
-      <div class="seg" role="group" aria-label="Скорость">
-        <button data-speed="1" aria-pressed="true">×1</button>
-        <button data-speed="4" aria-pressed="false">×4</button>
-        <button data-speed="16" aria-pressed="false">×16</button>
-        <button data-speed="turbo" aria-pressed="false">Турбо</button>
-      </div>
-      <label class="inline">Трасса <select id="tTrack"></select></label>
-      <label class="inline" id="tSeedRow" hidden>Seed <input type="text" id="tSeed" maxlength="40"></label>
-      <label class="inline" title="На гонке будут попутные и встречные. Если рой не учится, начни без машин, потом включи их">Машины <select id="tTraffic"></select></label>
-      <div class="seg" role="group" aria-label="Камера">
-        <button data-cam="fit" aria-pressed="true">Вся трасса</button>
-        <button data-cam="follow" aria-pressed="false">За лидером</button>
-      </div>
-    </div>
+    <!-- кнопки роя рисует app/tabs/train-controls.tsx -->
+    <div class="toolbar" data-for="train" hidden></div>
 
-    <section class="block swarm-now" data-panel="train" hidden aria-label="Рой сейчас">
-      <ol class="swarm-cycle" aria-label="Как учится рой: одно поколение">
-        <li data-phase="drive"><span class="n">1</span><span><b>Едут <span id="cycPop">100</span> машин</b>мозги у всех чуть разные</span></li>
-        <li data-phase="pick"><span class="n">2</span><span><b>Отбор</b>лучшие 10% по фитнесу — родители</span></li>
-        <li data-phase="mutate"><span class="n">3</span><span><b>Дети</b>нейроны от родителей и немного мутации</span></li>
-      </ol>
-      <p class="swarm-say" id="swarmSay" role="status"></p>
-    </section>
+    <!-- «Рой сейчас» рисует app/tabs/train-controls.tsx -->
+    <section class="block swarm-now" data-panel="train" id="swarmNow" hidden aria-label="Рой сейчас"></section>
 
     <details class="block brain-fold leader-brain" data-panel="train" hidden open>
       <summary><h2>Мозг лидера</h2></summary>
@@ -226,7 +185,7 @@
       <div class="brain-board">
         <div class="brain-board-bar">
           <span>Табло мозга</span>
-          <div class="zoom" role="group" aria-label="Масштаб табло"><button class="btn" data-z="in" aria-label="Приблизить">+</button><button class="btn" data-z="out" aria-label="Отдалить" disabled>−</button><button class="btn" data-z="reset" aria-label="Обычный масштаб" hidden>1:1</button></div>
+          <div class="zoom" role="group" aria-label="Масштаб табло"></div>
         </div>
         <div class="brain-board-screen">
           <canvas id="leaderBoard" aria-label="Схема нейросети лидера роя: что он видит и что жмёт"></canvas>
@@ -241,7 +200,7 @@
       <div class="brain-board">
         <div class="brain-board-bar">
           <span>Табло мозга</span>
-          <div class="zoom" role="group" aria-label="Масштаб табло"><button class="btn" data-z="in" aria-label="Приблизить">+</button><button class="btn" data-z="out" aria-label="Отдалить" disabled>−</button><button class="btn" data-z="reset" aria-label="Обычный масштаб" hidden>1:1</button></div>
+          <div class="zoom" role="group" aria-label="Масштаб табло"></div>
         </div>
         <div class="brain-board-screen">
           <canvas id="profileBoard" aria-label="Схема нейросети с этой сборкой: что видят сенсоры и что жмёт мозг"></canvas>
@@ -250,292 +209,33 @@
       </div>
     </details>
 
-    <div class="toolbar" data-for="exam" hidden>
-      <button class="btn primary" id="eRun">Проверить чемпиона</button>
-      <span class="note" id="eReplayNote">Щёлкни строку в таблице, чтобы посмотреть заезд</span>
-    </div>
+    <div class="toolbar" data-for="exam" id="examToolbar" hidden></div>
 
-    <div class="toolbar" data-for="race" hidden>
-      <button class="btn primary" id="rStart">Старт гонки</button>
-      <div class="seg" role="group" aria-label="Скорость гонки">
-        <button data-rspeed="1" aria-pressed="true">×1</button>
-        <button data-rspeed="2" aria-pressed="false">×2</button>
-        <button data-rspeed="4" aria-pressed="false">×4</button>
-        <button data-rspeed="8" aria-pressed="false">×8</button>
-      </div>
-      <span class="note">Время считается в тиках: 60 тиков = 1 секунда, от мощности ноутбука не зависит</span>
-    </div>
+    <div class="toolbar" data-for="race" id="raceToolbar" hidden></div>
 
-    <div class="toolbar" data-for="final" hidden>
-      <div class="seg" id="fStages" role="group" aria-label="Этап"></div>
-      <button class="btn primary" id="fPlay" disabled>Старт этапа</button>
-      <div class="seg" role="group" aria-label="Скорость показа">
-        <button data-fspeed="1" aria-pressed="true">×1</button>
-        <button data-fspeed="2" aria-pressed="false">×2</button>
-        <button data-fspeed="4" aria-pressed="false">×4</button>
-      </div>
-      <div class="seg" role="group" aria-label="Камера">
-        <button data-fcam="follow" aria-pressed="true">За лидером</button>
-        <button data-fcam="fit" aria-pressed="false">Вся трасса</button>
-      </div>
-      <button class="btn" id="fBroadcast" aria-pressed="false">Трансляция</button>
-    </div>
+    <div class="toolbar" data-for="final" hidden></div>
   </section>
 
   <aside class="panel">
-    <!-- Я УЧУ -->
-    <div data-panel="teach" class="parts" hidden>
-      <h2 class="parts-title">Детали набора</h2>
-      <section class="block">
-        <h2>Мои заезды</h2>
-        <p class="hint" id="runsHint">Просто езди: заезд записывается сам — от старта до финиша или аварии. Каждый тик — пример «что видят сенсоры → что ты нажал».</p>
-        <ol class="runs" id="runsList"></ol>
-        <button class="btn primary" id="teachGo" disabled>Учить на заездах</button>
-        <p class="note" id="teachStatus" role="status"></p>
-        <details class="learn-box">
-          <summary>Как учится</summary>
-          <canvas id="lossChart" class="chart" aria-label="Ошибка по эпохам"></canvas>
-          <p class="note" id="lrSummary"></p>
-          <div class="field"><label for="epochs">Эпох</label><input type="range" id="epochs" min="5" max="100" step="5"><output id="epochsOut"></output></div>
-          <div class="field wide"><span class="lbl">Шаг обучения</span>
-            <div class="seg" role="group" aria-label="Шаг обучения">
-              <button data-lr="0.01">0,01</button><button data-lr="0.05">0,05</button><button data-lr="0.2">0,2</button><button data-lr="1">1</button>
-            </div>
-          </div>
-          <p class="hint">Эпоха — один проход по всем примерам. Шаг — насколько сильно двигать веса за раз. Учёба продолжается с текущего мозга: его веса чуть-чуть подвигаются под твои заезды. Вариант мозга станет «Плавный» — обучение на примерах работает с плавными кривыми.</p>
-        </details>
-        <p class="hint" id="exMemory"></p>
-      </section>
-      <section class="block library" data-library></section>
-      <details class="block fold">
-        <summary><h2>Мозг под микроскопом</h2></summary>
-        <canvas id="netCanvas" class="net" aria-label="Схема нейросети: щёлкни связь или нейрон, чтобы поменять вес"></canvas>
-        <p class="legend"><span class="sw pos"></span>положительный вес <span class="sw neg"></span>отрицательный <span class="sw act"></span>нейрон сработал</p>
-        <div class="wedit" id="wEdit">
-          <p id="wLabel" class="hint">Щёлкни связь или нейрон на схеме, чтобы поменять вес руками. Попробуй: удали скрытый слой, нажми «Все веса в ноль», опусти порог «Газа» ниже нуля — и научи машину отворачивать от бордюров.</p>
-          <div class="field" id="wRow" hidden>
-            <label for="wVal" id="wName">Вес</label>
-            <input type="range" id="wVal" min="-1" max="1" step="0.01">
-            <output id="wValOut"></output>
-          </div>
-          <p class="hint" id="wExplain" hidden></p>
-          <div class="row">
-            <button class="btn small" id="wZero">Все веса в ноль</button>
-            <button class="btn small" id="wRandom">Случайные веса</button>
-          </div>
-        </div>
-        <p class="hint" id="netNote"></p>
-      </details>
-    </div>
+    <!-- Я УЧУ: панель рисует app/tabs/teach.tsx -->
+    <div data-panel="teach" id="teachPanel" class="parts" hidden></div>
 
     <!-- ПРОФИЛЬ: панель рисует app/tabs/profile.tsx -->
     <div data-panel="profile" id="profilePanel" hidden></div>
 
-    <!-- УЧИТСЯ САМО -->
-    <div data-panel="train" hidden>
-      <section class="block recipe">
-        <h2>Рецепт роя</h2>
-        <fieldset class="parts">
-          <legend>За что хвалим</legend>
-          <p class="hint">Основа — сколько проехал. Галочки добавляют поправки.</p>
-          <div id="tParts"></div>
-        </fieldset>
-        <div class="field wide"><label for="tMutation">Как меняем детей</label><select id="tMutation"></select></div>
-        <p class="hint" id="tMutationHint"></p>
-        <div class="field wide"><label for="tThink">Как думает мозг</label><select id="tThink"></select></div>
-        <p class="hint" id="tThinkHint"></p>
-        <div class="field wide"><span class="lbl">Родителей</span>
-          <div class="seg" role="group" aria-label="Сколько родителей">
-            <button data-parents="1" aria-pressed="false">1</button>
-            <button data-parents="2" aria-pressed="true">2</button>
-          </div>
-        </div>
-        <p class="hint">Родители — лучшие 10% поколения. С двумя ребёнок берёт нейроны от обоих (кроссовер), с одним — копия одного. Лучший всегда едет дальше без изменений — на трассе он с номером 1.</p>
-        <p class="hint">Новый рецепт действует со следующего поколения.</p>
-      </section>
-      <section class="block">
-        <h2>Поколение</h2>
-        <div class="field"><label for="tPop">Машин</label><input type="range" id="tPop" min="10" max="300" step="10"><output id="tPopOut"></output></div>
-        <div class="field"><label for="tRate">Сила мутации</label><input type="range" id="tRate" min="0" max="0.5" step="0.01"><output id="tRateOut"></output></div>
-        <p class="hint">Сила мутации — сколько чисел у детей меняется (у «Лёгкого шума» — насколько сильно).</p>
-        <div class="pending" id="pickedBar" hidden>
-          <p id="pickedText">Выбрана машина вручную: она станет родителем следующего поколения.</p>
-          <button class="btn small" id="pickedCancel">Отменить выбор</button>
-        </div>
-        <div class="error" id="tError" hidden></div>
-      </section>
-      <section class="block">
-        <h2>Обучение</h2>
-        <dl class="stats">
-          <div><dt>Лучший</dt><dd id="stBest">—</dd></div>
-          <div><dt>Доехали</dt><dd id="stFin">—</dd></div>
-        </dl>
-        <canvas id="chart" class="chart" aria-label="График фитнеса по поколениям"></canvas>
-        <p class="legend" id="chartLegend"><span class="sw line"></span>лучший фитнес <span class="sw dash"></span>середина роя <span class="sw dot"></span>лучший доехал</p>
-        <p class="hint">Одна точка — одно поколение. Линия ползёт вверх — рой учится. Ровная — рою нечему учиться при таком фитнесе.</p>
-      </section>
-      <section class="block library" data-library></section>
-      <section class="block">
-        <h2>Рекорды роя</h2>
-        <ol class="hall" id="hall"></ol>
-      </section>
-    </div>
+    <!-- УЧИТСЯ САМО: панель рисует app/tabs/train-panel.tsx -->
+    <div data-panel="train" id="trainPanel" hidden></div>
 
-    <!-- КОД -->
-    <div data-panel="code" hidden>
-      <section class="block">
-        <h2 id="codeTitle">Задание</h2>
-        <p id="codeTask"></p>
-        <p class="error" id="evalNote" hidden>Здесь нельзя запускать отредактированный код. Правьте файлы в папке <code>student/</code> и обновите страницу.</p>
-      </section>
-      <section class="block">
-        <h2>Проверки</h2>
-        <ul class="tests" id="testList"></ul>
-        <p class="legend"><span class="badge pass">OK</span> работает <span class="badge advice">Совет</span> можно лучше <span class="badge fail">Ошибка</span> надо чинить</p>
-      </section>
-    </div>
+    <!-- КОД: панель рисует app/tabs/code.tsx -->
+    <div data-panel="code" id="codePanel" hidden></div>
 
     <!-- ЭКЗАМЕН -->
-    <div data-panel="exam" hidden>
-      <section class="block">
-        <h2>Результаты</h2>
-        <div class="table-wrap">
-          <table class="results" id="examTable">
-            <thead><tr><th>Трасса</th><th>Итог</th><th class="num">Время</th></tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-        <p id="examVerdict" class="verdict"></p>
-      </section>
-      <section class="block">
-        <h2>На гонку</h2>
-        <p class="hint">Имя, цвет и аватар машины — на вкладке «Профиль».</p>
-        <div class="field wide"><label for="pLogin">Логин GitHub</label><input type="text" id="pLogin" maxlength="39" placeholder="например, JsPowWow" autocomplete="username" autocapitalize="off" spellcheck="false"></div>
-        <div class="gh-check" id="pLoginCheck" role="status"></div>
-        <div class="row">
-          <button class="btn primary" id="pSeal">Скачать для сдачи</button>
-        </div>
-        <p class="hint">Файл для сдачи запечатан ключом курса: открыть его могут только кураторы. Поэтому его можно спокойно выкладывать в пул-реквест — никто не подсмотрит твои веса и код.</p>
-        <details>
-          <summary>Открытый файл — для себя</summary>
-          <p class="hint">Обычный JSON: чтобы после финала перепроверить свой заезд на вкладке «Гонка» или поделиться с кем-то нарочно.</p>
-          <div class="row">
-            <button class="btn small" id="pCopy">Скопировать JSON</button>
-            <button class="btn small" id="pDownload">Скачать car.json</button>
-          </div>
-        </details>
-        <p class="note" id="pMsg" role="status"></p>
-        <details>
-          <summary>Что внутри файла</summary>
-          <textarea id="pJson" readonly rows="8" aria-label="JSON машины"></textarea>
-        </details>
-      </section>
-    </div>
+    <div data-panel="exam" id="examPanel" hidden></div>
 
     <!-- ГОНКА -->
-    <div data-panel="race" hidden>
-      <section class="block final-link">
-        <h2>Финал курса</h2>
-        <p class="hint">Здесь — гонка на несколько машин. Для общего финала на сотни участников (этапы, суперфинал, живая таблица, стрим) есть отдельный режим.</p>
-        <button class="btn small" data-open="final">Открыть финал</button>
-      </section>
-      <section class="block">
-        <h2>Секретная трасса</h2>
-        <div class="field"><label for="rSeed">Seed</label><input type="text" id="rSeed" maxlength="80"></div>
-        <div class="field wide"><label for="rTraffic">Машины</label><select id="rTraffic"></select></div>
-        <p class="hint">Один и тот же seed даёт одну и ту же трассу на любом компьютере. Объявите его в час X.</p>
-      </section>
-      <section class="block">
-        <h2>Участники</h2>
-        <ul class="entrants" id="rList"></ul>
-        <div class="row">
-          <button class="btn small" id="rAddMine">+ Мой чемпион</button>
-          <label class="btn small file">Загрузить .json<input type="file" id="rFiles" accept=".json,application/json" multiple></label>
-          <button class="btn small" id="rCross" disabled>Скрестить</button>
-        </div>
-        <p class="hint" id="rCrossNote"></p>
-        <div class="review" id="rReview" hidden>
-          <h3 id="rReviewTitle">Код участника</h3>
-          <p class="hint">Участник написал свой вариант мозга. Этот код выполнится у тебя в браузере, поэтому сначала прочитай его. Без разрешения машина в гонке не участвует.</p>
-          <pre class="review-code" id="rReviewCode"></pre>
-          <p class="hint" id="rReviewFlags"></p>
-          <div class="row">
-            <button class="btn small primary" id="rReviewAllow">Разрешить</button>
-            <button class="btn small danger" id="rReviewReject">Отклонить и убрать</button>
-          </div>
-        </div>
-        <details>
-          <summary>Вставить JSON текстом</summary>
-          <textarea id="rPaste" rows="5" placeholder='{"format":"ai-race/car@3", ...}' aria-label="JSON участника"></textarea>
-          <button class="btn small" id="rPasteAdd">Добавить</button>
-        </details>
-        <p class="hint">Файлы можно перетащить прямо на трассу.</p>
-        <div class="error" id="rError" hidden></div>
-      </section>
-      <section class="block">
-        <h2>Таблица</h2>
-        <ol class="board" id="rBoard"></ol>
-        <div class="awards" id="rAwards"></div>
-      </section>
-    </div>
+    <div data-panel="race" id="racePanel" hidden></div>
     <!-- ФИНАЛ -->
-    <div data-panel="final" hidden>
-      <section class="block setup">
-        <h2>1 · Работы</h2>
-        <div class="row">
-          <label class="btn small file">Открыть папку<input type="file" id="fFolder" webkitdirectory multiple></label>
-          <label class="btn small file">Файлы .json<input type="file" id="fFiles" accept=".json,application/json" multiple></label>
-          <label class="btn small file">🔑 Секретный ключ<input type="file" id="fKey" accept=".json,application/json"></label>
-        </div>
-        <p class="note" id="fKeyNote" role="status"></p>
-        <p class="hint">Папка с работами: после <code>tools/collect-entries.mjs</code> или <code>gh classroom clone</code> — «ник/car.sealed.json». Можно перетащить её прямо на трассу. Запечатанные работы откроются, когда выберете секретный ключ курса.</p>
-        <dl class="stats">
-          <div><dt>Участников</dt><dd id="fCount">0</dd></div>
-          <div><dt>Свой код</dt><dd id="fCode">0</dd></div>
-          <div><dt>Одинаковых</dt><dd id="fTwins">0</dd></div>
-        </dl>
-        <div id="fNotes"></div>
-        <label class="check"><input type="checkbox" id="fAvatars" checked> Показывать аватары</label>
-        <details class="notes">
-          <summary>Ключи курса</summary>
-          <p class="hint">Студенты запечатывают файл для сдачи открытым ключом курса из <code>course-key.json</code> в репозитории. Открыть его можно только секретным ключом — он хранится у кураторов, в репозиторий его не кладут. Секретный ключ используется только здесь, в браузере, и никуда не отправляется.</p>
-          <p class="hint">Новые ключи нужны, только если секретный потерялся или утёк. После этого замените <code>course-key.json</code>, пересоберите сайт (<code>npm run build</code>), а студенты пересдают работы.</p>
-          <button class="btn small" id="fNewKeys">Создать новые ключи курса</button>
-          <p class="note" id="fNewKeysNote" role="status"></p>
-        </details>
-        <details id="fGalleryBox" hidden>
-          <summary>Аватары — проверить перед стримом</summary>
-          <p class="hint">Щёлкни картинку, чтобы скрыть её на трансляции.</p>
-          <div class="gallery" id="fGallery"></div>
-        </details>
-      </section>
-      <section class="block setup">
-        <h2>2 · Секретная фраза</h2>
-        <div class="field wide"><label for="fSecret">Фраза</label><input type="text" id="fSecret" maxlength="60" placeholder="Придумайте и никому не говорите" autocomplete="off"></div>
-        <p class="hint">Из неё получаются трассы трёх этапов и суперфинала. Объявите фразу после гонки — любой сможет перепроверить свой результат.</p>
-        <button class="btn primary" id="fCompute" disabled>Посчитать финал</button>
-        <progress id="fProgress" max="1" value="0" hidden></progress>
-        <p class="note" id="fComputeNote" role="status"></p>
-        <div id="fDq"></div>
-      </section>
-      <section class="block board-block">
-        <h2 id="fBoardTitle">Таблица</h2>
-        <div class="field wide"><label for="fSearch">Найти</label><input type="search" id="fSearch" list="fNames" placeholder="ник или имя машины" autocomplete="off"></div>
-        <datalist id="fNames"></datalist>
-        <p class="note" id="fCounts"></p>
-        <ol class="board fboard" id="fBoard"></ol>
-      </section>
-      <section class="block setup" id="fResults" hidden>
-        <h2>Итоги</h2>
-        <div class="awards" id="fAwards"></div>
-        <div class="row">
-          <button class="btn small" id="fSaveMd">RESULTS.md</button>
-          <button class="btn small" id="fSaveCsv">Таблица .csv</button>
-          <button class="btn small" id="fSaveJson">results.json</button>
-        </div>
-        <p class="note" id="fSaveNote" role="status"></p>
-      </section>
-    </div>
+    <div data-panel="final" id="finalPanel" hidden></div>
   </aside>
 </main>
 
