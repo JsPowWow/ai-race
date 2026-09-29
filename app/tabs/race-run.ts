@@ -18,8 +18,10 @@ import type { FlapRow } from '../components/flap-board.tsx';
 export const DEFAULT_SEED = 'урок-1';
 /** Как часто обновлять таблицу во время заезда: раз в столько кадров (чаще глаз не успевает) */
 const BOARD_EVERY_FRAMES = 6;
-/** Табло-флапы листаются медленнее: раз в полсекунды, иначе цифры отставания мелькают */
-const FLAPS_EVERY_FRAMES = 30;
+/** Места на табло-флапах — три раза в секунду: флапы успевают долистаться */
+const FLAPS_EVERY_FRAMES = 20;
+/** Отставание едущих — раз в секунду: чаще цифры только мельтешат */
+const GAPS_EVERY_FRAMES = 60;
 
 /** Строка таблицы. podium — 'p1'…'p3' у доехавших на пьедестал */
 export type BoardRow = { entrant: Entrant; result: string; podium: string | null };
@@ -58,6 +60,7 @@ export function prepare(): void {
   stopCountdown();
   started.value = false;
   awards.value = [];
+  gaps.clear();
   publishBoard();
   publishFlaps();
 }
@@ -82,7 +85,7 @@ export function tickRace(frameNo: number): void {
   if (!race.running) return;
   advance();
   if (frameNo % BOARD_EVERY_FRAMES === 0) publishBoard();
-  if (frameNo % FLAPS_EVERY_FRAMES === 0) publishFlaps();
+  if (frameNo % FLAPS_EVERY_FRAMES === 0) publishFlaps(frameNo % GAPS_EVERY_FRAMES === 0);
 }
 
 /** Несколько тиков за кадр: все машины видят один и тот же трафик */
@@ -144,8 +147,14 @@ function tickLeaderPassed(s: number): number {
   return lo;
 }
 
-/** Правая колонка: у лидера — его время, у остальных — «+отставание», у сошедших — почему */
-function gapText({ car }: Racer<Entrant>, place: number, winnerTicks: number | null): string {
+/** Последнее показанное отставание едущих (по id участника): между пересчётами табло держит его */
+const gaps = new Map<number, string>();
+
+/**
+ * Правая колонка. Щёлкает только по событию: время на финише, авария, сход, медленная зона.
+ * Бегущее время не показываем; у едущих — отставание от лидера, пересчёт — когда fresh.
+ */
+function gapText({ entrant, car }: Racer<Entrant>, place: number, winnerTicks: number | null, fresh: boolean): string {
   if (car.status === 'finished') {
     const ticks = car.finishTick ?? car.ticks;
     return place === 0 || winnerTicks === null ? short(ticks) : `+${short(ticks - winnerTicks)}`;
@@ -153,10 +162,14 @@ function gapText({ car }: Racer<Entrant>, place: number, winnerTicks: number | n
   if (car.status === 'crashed') return car.crashedInto === 'car' ? 'АВАРИЯ' : 'БОРДЮР';
   if (car.status !== 'driving') return 'СОШЁЛ';
   if (!race.tick) return '';
-  return place === 0 ? short(race.tick) : `+${short(race.tick - tickLeaderPassed(car.bestS))}`;
+  if (car.slow) return 'ПОЛЗЁТ'; // свернул на путь с медленной зоной
+  if (place === 0) return 'ЛИДЕР';
+  if (fresh || !gaps.has(entrant.id)) gaps.set(entrant.id, `+${short(race.tick - tickLeaderPassed(car.bestS))}`);
+  return gaps.get(entrant.id) ?? '';
 }
 
-function publishFlaps(): void {
+/** Табло-флапы сейчас; freshGaps — пересчитать и отставания */
+function publishFlaps(freshGaps = true): void {
   const { track } = race;
   if (!track) return;
   const order = standings(race.cars);
@@ -165,13 +178,14 @@ function publishFlaps(): void {
   flaps.value = order.map((racer, i) => ({
     id: racer.entrant.id,
     color: racer.entrant.color,
+    avatar: racer.entrant.avatar,
     rank: i + 1,
     you: racer.entrant.source === 'mine',
     cells: {
       place: String(i + 1),
       name: racer.entrant.name,
       lap: racer.car.status === 'finished' ? 'ФИН' : `${lapOf(track, racer.car.bestS)}/${track.laps}`,
-      gap: gapText(racer, i, winnerTicks),
+      gap: gapText(racer, i, winnerTicks, freshGaps),
     },
   }));
 }

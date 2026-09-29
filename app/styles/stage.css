@@ -67,7 +67,7 @@
   :where(.stage:has(> .flap-board:not([hidden]))) > * { grid-column: 1 / -1; }
   :where(.stage) > .viewport { grid-column: 1; grid-row: 1; }
   /* contain: size — табло не растит строку сетки: высоту задаёт трасса, а табло берёт столько строк, сколько влезло */
-  :where(.stage) > .flap-board { grid-column: 2; grid-row: 1; contain: size; inline-size: 318px; }
+  :where(.stage) > .flap-board { grid-column: 2; grid-row: 1; contain: size; inline-size: 342px; }
 }
 
 @media (max-width: 700px) {

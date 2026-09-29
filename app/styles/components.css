@@ -140,6 +140,8 @@ details .btn { margin-block-start: 6px; }
 .flap-cell { flex: none; inline-size: calc(var(--w) * var(--tile-w) + (var(--w) - 1) * 1px); display: flex; }
 .flap-cell.end { justify-content: flex-end; }
 .flap-dot { flex: none; inline-size: 6px; block-size: 16px; border-radius: 2px; background: var(--dot, transparent); }
+.flap-logo { flex: none; inline-size: 18px; block-size: 18px; }
+.flap-logo img { display: block; inline-size: 100%; block-size: 100%; object-fit: contain; border-radius: 50%; background: var(--hud-tile); }
 .flap-tiles { display: inline-flex; gap: 1px; }
 .flap-tile {
   inline-size: var(--tile-w); block-size: 20px;
@@ -154,9 +156,9 @@ details .btn { margin-block-start: 6px; }
 @keyframes flap-a { from { transform: perspective(40px) rotateX(-75deg); } }
 @keyframes flap-b { from { transform: perspective(40px) rotateX(-75deg); } }
 /* первые три места — золото, серебро, бронза; ты — жёлтая полоса и жёлтые буквы */
-.flap-row[data-rank="1"] .flap-dot + .flap-cell { color: var(--hud-digit); }
-.flap-row[data-rank="2"] .flap-dot + .flap-cell { color: var(--hud-silver); }
-.flap-row[data-rank="3"] .flap-dot + .flap-cell { color: var(--hud-bronze); }
+.flap-row[data-rank="1"] .flap-logo + .flap-cell { color: var(--hud-digit); }
+.flap-row[data-rank="2"] .flap-logo + .flap-cell { color: var(--hud-silver); }
+.flap-row[data-rank="3"] .flap-logo + .flap-cell { color: var(--hud-bronze); }
 .flap-row.you { background: color-mix(in srgb, var(--you) 22%, transparent); box-shadow: inset 3px 0 var(--you); }
 .flap-row.you .flap-tile { color: var(--hud-digit); }
 @media (prefers-reduced-motion: reduce) {
