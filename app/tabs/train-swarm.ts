@@ -1,6 +1,6 @@
 // Рой «Учится само»: поколения, отбор, рекорды. Без разметки — её рисуют train-*.tsx по сигналам отсюда.
 // Рой учится в фоне на любой вкладке: updateTraining() зовёт кадровый цикл app/main.ts.
-import { batch, signal } from '@reely/dommy';
+import { batch, effect, signal, untracked } from '@reely/dommy';
 import { TRAINING_TRACKS, getTrainingTrack, forksPassed, withCoins } from '../../engine/track.ts';
 import type { Track } from '../../engine/track.ts';
 import type { Car, CarReport } from '../../engine/car.ts';
@@ -17,6 +17,7 @@ import { seedTrack } from '../tracks.ts';
 import { fromEvents } from '../signals.ts';
 import { train, setTrain } from './train-settings.ts';
 import type { TrainSettings } from './train-settings.ts';
+import { rivals } from './train-rivals.tsx';
 
 /** Сколько миллисекунд кадра рой может думать: остальное — на рисование, чтобы страница не тормозила */
 const FRAME_BUDGET_MS = 22;
@@ -96,6 +97,7 @@ function recipe(): Omit<EvolutionOptions, 'parent' | 'parent2'> {
     parents: t.parents,
     population: t.population,
     rate: t.rate,
+    rivals: rivals.peek().map((r) => r.rival),
   };
 }
 
@@ -203,6 +205,15 @@ export function setTrackSetting<K extends 'trackId' | 'traffic' | 'seed'>(key: K
   const evo = evolution.peek();
   if (evo && !running.peek()) startGeneration(evo);
 }
+
+// Соперники поменялись. На паузе — сразу на старт с ними, на ходу — со следующего поколения (как рецепт)
+effect(() => {
+  void rivals.value;
+  untracked(() => {
+    const evo = evolution.peek();
+    if (evo && !running.peek()) startGeneration(evo);
+  });
+});
 
 /** Сколько родителей; выбранных щелчком машин не больше, чем родителей */
 export function setParents(parents: 1 | 2): void {

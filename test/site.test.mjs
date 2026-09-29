@@ -469,6 +469,22 @@ test('«Гонка»: чужой код едет только после «Ра�
   assert.deepEqual(problems, []);
 });
 
+test('«Учится само»: боты-соперники едут рядом с роем и видны на табло', async () => {
+  const { page, problems, close } = await openPage(SCREENS[1]);
+  await page.goto(`${base}#train`);
+  await page.waitForFunction(() => document.body.dataset.tab === 'train');
+  const [first] = await page.$$('[aria-label="Боты-соперники"] input');
+  await first.check();
+  const name = (await first.evaluate((input) => input.parentElement.textContent)).trim();
+  await page.click('#tToggle');
+  await page.waitForFunction((n) => [...document.querySelectorAll('#trainFlaps [data-col="name"] .sr-only')].some((el) => el.textContent === n), name, { timeout: 5000 });
+  const { scroll, width } = await page.evaluate(() => ({ scroll: document.documentElement.scrollWidth, width: innerWidth }));
+  assert.ok(scroll <= width, `горизонтальная прокрутка (${scroll} > ${width})`);
+  await page.click('#tToggle'); // пауза: рой не учится дальше, пока закрываем страницу
+  await close();
+  assert.deepEqual(problems, []);
+});
+
 test('Табло-флапы: имя участника — только текст, даже если в нём HTML', async () => {
   const { page, problems, close } = await openPage(SCREENS[1]);
   await page.goto(`${base}#race`);

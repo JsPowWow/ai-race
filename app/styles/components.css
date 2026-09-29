@@ -125,6 +125,10 @@ details .btn { margin-block-start: 6px; }
   .btn, .seg button { transition: none; }
 }
 
+/* Галочка с подписью: «Показывать аватары», боты-соперники */
+.check { display: flex; gap: 8px; align-items: center; font-size: 13px; cursor: pointer; }
+.check input { width: 16px; height: 16px; accent-color: var(--brain); }
+
 /* ── табло-флапы «как в аэропорту» (app/components/flap-board.tsx) ──
    Чёрный пластик, у каждой буквы своя плитка с тёмной «петлёй» посередине. Всё табло — JetBrains Mono:
    плитки одной ширины, буквы и цифры не прыгают (исключение из «Правила одного шрифта», DESIGN.md) */

@@ -11,6 +11,7 @@ import { train, setTrain } from './train-settings.ts';
 import { results, pickedCars, clearPicked, errorText } from './train-swarm.ts';
 import type { HallEntry, HistoryEntry } from '../state.ts';
 import { Recipe } from './train-recipe.tsx';
+import { Rivals } from './train-rivals.tsx';
 
 // ── поколение ──
 
@@ -133,6 +134,7 @@ export function TrainPanel(): Node {
     <>
       <Recipe />
       <Generation />
+      <Rivals />
       <Learning />
       <section className="block library"><BrainLibrary /></section>
       <Hall />

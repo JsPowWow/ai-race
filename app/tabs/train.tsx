@@ -13,6 +13,8 @@ import { currentSwarm, currentTrack, pickedCars, togglePick, results, trackForGe
 import { TrainToolbar, SwarmNow } from './train-controls.tsx';
 import { TrainPanel, drawSwarmChart } from './train-panel.tsx';
 import { showLeaderBrain } from './train-leader.ts';
+import { updateTrainFlaps } from './train-flaps.tsx';
+import { rivalInfo } from './train-rivals.tsx';
 
 export { isRunning as isTraining, updateTraining } from './train-swarm.ts';
 export { redrawLeaderBrain } from './train-leader.ts';
@@ -46,6 +48,7 @@ function drawIdle(): void {
   paintCar(car, { color: state.profile.color });
   setHud([`<b>${esc(track.name)}</b>`, state.champion ? `продолжим с поколения ${results().generation}` : 'нажми «Старт»']);
   showLeaderBrain(null);
+  updateTrainFlaps(null, null, results().generation);
 }
 
 export const trainTab = {
@@ -66,9 +69,15 @@ export const trainTab = {
       if (car !== lead && car !== elite && !picked.includes(car)) paintCar(car, { color, alpha: car.done ? 0.18 : 0.35, ghost: true });
     }
     if (elite && elite !== lead && !picked.includes(elite)) paintCar(elite, { color, alpha: elite.done ? 0.4 : 0.8, number: 1 });
+    // соперники — своим цветом и с именем: в отбор они не идут, просто едут рядом
+    evo.rivalCars.forEach((car, i) => {
+      const info = evo.rivals[i] && rivalInfo(evo.rivals[i]);
+      paintCar(car, { color: info?.color ?? color, alpha: car.status === 'crashed' ? 0.5 : 1, label: info?.name ?? null });
+    });
     for (const car of picked) if (car !== lead) paintCar(car, { color, highlight: true });
     if (lead) paintCar(lead, { color, sensors: true, highlight: picked.includes(lead), number: lead === elite ? 1 : null });
     showLeaderBrain(lead);
+    updateTrainFlaps(evo, lead, results().generation);
     setHud([
       `поколение <b>${results().generation + 1}</b>`,
       `едут <b>${evo.cars.filter((c) => !c.done).length}</b>/${evo.cars.length}`,

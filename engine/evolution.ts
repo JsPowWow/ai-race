@@ -10,6 +10,9 @@ export type Crossover = (mom: Brain, dad: Brain) => unknown;
 /** Оценка заезда (функция студента): чем больше, тем лучше */
 export type Fitness = (report: CarReport) => number;
 
+/** Соперник: чужая машина со своим мозгом, «глазами» и think. Едет рядом с роем, но в отборе не участвует */
+export type Rival = { brain: Brain; think: Think; sensors: Sensors };
+
 /** Настройки роя. think/mutate/fitness/crossover — функции студента: их можно подменять между поколениями */
 export type EvolutionOptions = {
   /** размеры слоёв сети */
@@ -31,6 +34,8 @@ export type EvolutionOptions = {
   /** лучший мозг прошлого поколения и второй родитель */
   parent?: Brain | null;
   parent2?: Brain | null;
+  /** соперники: едут в том же мире (тот же тик, тот же трафик), но родителями не становятся */
+  rivals?: readonly Rival[];
 };
 
 /** Строка графика: как прошло поколение */
@@ -60,10 +65,13 @@ export class Evolution {
   pool: Brain[] | null;
   generation: number; history: GenerationEntry[];
   cars: Car[]; errors: string[]; lastError: unknown = null;
+  rivals: readonly Rival[];
+  /** машины соперников этого поколения — отдельно от cars: отбор смотрит только на рой */
+  rivalCars: Car[] = [];
   // заезд поколения — появляется в spawn
   track!: Track; maxTicks = 0; tick = 0; traffic: TrafficSpot[] | null = null;
 
-  constructor({ sizes, sensors, think, mutate, fitness, crossover = null, parents = 2, population, rate, parent = null, parent2 = null }: EvolutionOptions) {
+  constructor({ sizes, sensors, think, mutate, fitness, crossover = null, parents = 2, population, rate, parent = null, parent2 = null, rivals = [] }: EvolutionOptions) {
     // форма сети и «глаза»
     this.sizes = sizes;
     this.sensors = sensors;
@@ -79,6 +87,7 @@ export class Evolution {
     // с кого начинаем
     this.parent = parent;
     this.parent2 = parent2;
+    this.rivals = rivals;
     this.pool = null; // из кого берём родителей для детей: лучшие прошлого поколения
     this.generation = 0;
     this.history = [];
@@ -122,6 +131,8 @@ export class Evolution {
       }
       this.cars.push(new Car(track, { brain, think: this.safeThink(), sensors: this.sensors }));
     }
+    // копия мозга: соперник едет каждое поколение одинаково, что бы ни делал с мозгом его think
+    this.rivalCars = this.rivals.map((r) => new Car(track, { brain: cloneBrain(r.brain), think: r.think, sensors: r.sensors }));
   }
 
   /** Ребёнок двух родителей через crossover() студента, с проверкой формы */
@@ -155,7 +166,7 @@ export class Evolution {
     };
   }
 
-  /** Один тик для всех машин. Возвращает, сколько ещё едут. */
+  /** Один тик для всех машин. Возвращает, сколько машин роя ещё едут: поколение кончается, когда доехал рой */
   step(): number {
     let alive = 0;
     // трафик один на всех — считаем один раз за тик
@@ -165,6 +176,7 @@ export class Evolution {
       car.step(this.track, this.maxTicks, traffic);
       if (!car.done) alive++;
     }
+    for (const car of this.rivalCars) car.step(this.track, this.maxTicks, traffic);
     this.tick++;
     return alive;
   }

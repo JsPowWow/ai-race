@@ -76,3 +76,22 @@ test('рой по умолчанию учится: на «Змейке» со в
     Math.random = saved;
   }
 });
+
+// «Учится само» (#8): рядом с роем можно пустить соперников — ботов и чужие машины. Они только едут рядом.
+test('соперники едут в том же мире, но родителями не становятся, даже если они лучше всех', () => {
+  const rivalBrain = createBrain(sizes, mulberry32(9));
+  const evo = swarm((report) => report.progressPct); // фитнес — кто дальше уехал
+  evo.rivals = [{ brain: rivalBrain, think: () => [1, 0, 0, 0, 0, 0, 0], sensors: SENSORS }];
+  const track = getTrainingTrack('warmup');
+  evo.spawn(track);
+  assert.equal(evo.cars.length, 5, 'в рое столько машин, сколько задано');
+  assert.equal(evo.rivalCars.length, 1);
+  for (let t = 0; t < 120 && evo.step() > 0; t++);
+  assert.equal(evo.rivalCars[0].ticks, evo.cars[0].ticks, 'соперник едет тик в тик с роем');
+  evo.rivalCars[0].bestS = track.finishS; // соперник уехал дальше всех…
+  const { parentCar } = evo.evaluate();
+  assert.ok(evo.cars.includes(parentCar), '…но родитель — из роя');
+  const rival = JSON.stringify(rivalBrain);
+  assert.ok(![evo.parent, evo.parent2, ...evo.pool].some((b) => JSON.stringify(b) === rival), 'мозга соперника нет среди родителей');
+  assert.equal(JSON.stringify(evo.rivals[0].brain), rival, 'мозг соперника не тронут');
+});
