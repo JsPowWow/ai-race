@@ -20,6 +20,7 @@ import { raceTab } from './tabs/race.tsx';
 import { introTab, redrawIntro } from './tabs/intro.tsx';
 import { teachTab, redrawLoss, renderNetwork } from './tabs/teach.tsx';
 import { profileTab, redrawProfileBrain } from './tabs/profile.tsx';
+import { listen } from '@reely/dommy/kit';
 
 /** Вкладка: enter() — её открыли, frame() — нарисовать кадр (зовётся, пока она открыта) */
 export type Tab = { enter(): void; frame(frameNo: number): void };
@@ -68,21 +69,21 @@ async function openTab(id: TabId): Promise<void> {
 }
 
 for (const b of $$('.tabs button')) {
-  b.addEventListener('click', () => {
+  listen(b, 'click', () => {
     const id = tabId(b.dataset.tab);
     if (id) openTab(id);
   });
 }
-element('[data-home]').addEventListener('click', (e) => {
+listen(element('[data-home]'), 'click', (e) => {
   e.preventDefault();
   openTab('intro');
 });
-window.addEventListener('hashchange', () => {
+listen(window, 'hashchange', () => {
   const id = tabId(location.hash.slice(1));
   if (id && id !== state.tab) openTab(id);
 });
 // Кнопки «открыть вкладку» внутри панелей и титульной: data-open, data-go, data-start
-document.addEventListener('click', (e) => {
+listen(document, 'click', (e) => {
   const button = e.target instanceof Element ? e.target.closest<HTMLElement>('.panel [data-open], #introPage [data-start], #introPage [data-go]') : null;
   if (!button) return;
   const id = tabId(button.dataset.open ?? button.dataset.go ?? 'teach');
@@ -92,7 +93,7 @@ document.addEventListener('click', (e) => {
 });
 // Файл, брошенный мимо «Гонки» и финала, браузер открыл бы вместо сайта — и всё несохранённое пропало бы.
 // Там, где файлы ждут, их ловят свои обработчики раньше (они сами отменяют действие браузера)
-for (const type of ['dragover', 'drop']) window.addEventListener(type, (e) => e.preventDefault());
+for (const type of ['dragover', 'drop'] as const) listen(window, type, (e) => e.preventDefault());
 
 onStorageFull(() => showBanner('Память браузера переполнена: новое не сохранится. Удали лишние заезды на вкладке «Я учу».', 6000));
 

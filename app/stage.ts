@@ -6,6 +6,7 @@ import type { Point } from '../engine/turtle.ts';
 import { clamp } from '../engine/utils.ts';
 import { liveSize } from './ui.ts';
 import { element } from './dom.ts';
+import { listen } from '@reely/dommy/kit';
 
 export const canvas = element<HTMLCanvasElement>('#stage');
 const ctx = context2d(canvas);
@@ -34,6 +35,28 @@ function fitViewport(track: Track, camera: string): void {
   const b = track.bbox;
   const ratio = camera === 'fit' && phone.matches ? clamp((b.maxX - b.minX + 80) / (b.maxY - b.minY + 80), 0.9, 2.2).toFixed(2) : '';
   if (ratio !== viewportRatio) viewport.style.aspectRatio = viewportRatio = ratio;
+}
+
+/**
+ * Файлы, брошенные на трассу. active() — наша ли сейчас вкладка: трасса одна на все вкладки.
+ * Пока файл несут над трассой — пунктирная рамка. Перешёл на кнопку пульта поверх трассы —
+ * это всё ещё трасса: рамка не гаснет и не мигает.
+ */
+export function onTrackDrop(active: () => boolean, drop: (data: DataTransfer) => void): void {
+  listen(viewport, 'dragover', (e) => {
+    if (!active()) return;
+    e.preventDefault(); // иначе браузер не даст бросить файл сюда
+    viewport.classList.add('drop');
+  });
+  listen(viewport, 'dragleave', (e) => {
+    if (!viewport.contains(e.relatedTarget as Node | null)) viewport.classList.remove('drop');
+  });
+  listen(viewport, 'drop', (e) => {
+    if (!active() || !e.dataTransfer) return;
+    e.preventDefault();
+    viewport.classList.remove('drop');
+    drop(e.dataTransfer);
+  });
 }
 
 /** Что показать на трассе: камера ('fit' — вся трасса, 'follow' — за машиной follow), трафик и тик */

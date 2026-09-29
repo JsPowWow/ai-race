@@ -11,6 +11,7 @@
 import { mount } from '@reely/dommy';
 import { state } from '../state.ts';
 import { element } from '../dom.ts';
+import { onTrackDrop } from '../stage.ts';
 import { readDrop } from '../final/entries.ts';
 import { loadFiles } from '../final/works.ts';
 import { frame } from '../final/stream.ts';
@@ -30,21 +31,7 @@ const flapsHost = element('#finalFlaps');
 mount(flapsHost, () => <FinalFlaps host={flapsHost} />);
 
 // Папку с работами можно перетащить прямо на трассу
-const viewport = element('#viewport');
-const onFinal = (e: DragEvent) => {
-  if (state.tab !== 'final') return false;
-  e.preventDefault(); // иначе браузер откроет файл сам
-  return true;
-};
-viewport.addEventListener('dragover', (e) => {
-  if (onFinal(e)) viewport.classList.add('drop');
-});
-viewport.addEventListener('dragleave', () => viewport.classList.remove('drop'));
-viewport.addEventListener('drop', (e) => {
-  if (!onFinal(e)) return;
-  viewport.classList.remove('drop');
-  if (e.dataTransfer) loadFiles(readDrop(e.dataTransfer));
-});
+onTrackDrop(() => state.tab === 'final', (data) => loadFiles(readDrop(data)));
 
 export const finalTab = {
   enter() {

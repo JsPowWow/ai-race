@@ -17,6 +17,7 @@ import { drawFire, readSkin } from './fire-skin.ts';
 import { FormulaCard } from './formula-card.tsx';
 import { ZoomButtons } from './zoom-buttons.tsx';
 import type { ZoomStep } from './zoom-buttons.tsx';
+import { listen } from '@reely/dommy/kit';
 
 const MAX_ZOOM = 4;
 const FORMULA_MS = 100; // формула под указателем обновляется 10 раз в секунду, как числа у узлов
@@ -108,7 +109,7 @@ export function createBrainBoard({ canvas, card, zoomBar = null, brain, act = SM
     };
 
     canvas.style.touchAction = 'pan-y';
-    canvas.addEventListener('pointerdown', (e) => {
+    listen(canvas, 'pointerdown', (e) => {
       const m = local(e);
       const i = sensorUnder(m);
       if (onSensor && i >= 0) { // держишь кружок сенсора — он «видит» стену, пока не отпустишь
@@ -119,7 +120,7 @@ export function createBrainBoard({ canvas, card, zoomBar = null, brain, act = SM
       if (touches.size === 2) { pinch = { d: spread().d, s: view.s }; drag = null; }
       else if (view.s > 1) { drag = { at: m, x: view.x, y: view.y }; canvas.setPointerCapture(e.pointerId); }
     });
-    canvas.addEventListener('pointermove', (e) => {
+    listen(canvas, 'pointermove', (e) => {
       const m = local(e);
       mouse = m;
       canvas.style.cursor = sensorUnder(m) >= 0 ? 'pointer' : 'crosshair';
@@ -138,15 +139,15 @@ export function createBrainBoard({ canvas, card, zoomBar = null, brain, act = SM
       if (touches.size < 2) pinch = null;
       if (!touches.size) drag = null;
     };
-    canvas.addEventListener('pointerup', up);
-    canvas.addEventListener('pointercancel', up);
-    canvas.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') { mouse = null; formula.value = null; } });
+    listen(canvas, 'pointerup', up);
+    listen(canvas, 'pointercancel', up);
+    listen(canvas, 'pointerleave', (e) => { if (e.pointerType === 'mouse') { mouse = null; formula.value = null; } });
     // колесо зумит только с Ctrl/⌘ — иначе страница перестанет прокручиваться
-    canvas.addEventListener('wheel', (e) => {
+    listen(canvas, 'wheel', (e) => {
       if (!e.ctrlKey && !e.metaKey) return;
       e.preventDefault(); zoomAt(Math.exp(-e.deltaY * 0.002), ...local(e));
     }, { passive: false });
-    canvas.addEventListener('dblclick', (e) => zoomAt(view.s > 1 ? 1 / view.s : 2, ...local(e)));
+    listen(canvas, 'dblclick', (e) => zoomAt(view.s > 1 ? 1 / view.s : 2, ...local(e)));
   }
 
   /** Формула нейрона под указателем: сбоку, если влезает между слоями, иначе — под или над ним */

@@ -6,6 +6,7 @@ import { load, save } from './storage.ts';
 import { cssColor } from '../engine/render.ts';
 import { $$ } from './ui.ts';
 import { element } from './dom.ts';
+import { listen } from '@reely/dommy/kit';
 
 type Theme = 'system' | 'light' | 'dark';
 const THEMES: Theme[] = ['system', 'light', 'dark'];
@@ -34,13 +35,13 @@ export function initTheme(onChange: () => void): void {
     // Шапка браузера на телефоне: в «Авто» — свой цвет для светлой и тёмной системы, иначе — фон выбранной темы
     for (const meta of themeColors) meta.content = theme === 'system' ? (meta.dataset.auto ?? '') : cssColor('--bg');
   };
-  button.addEventListener('click', () => {
+  listen(button, 'click', () => {
     theme = THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length];
     save('theme', theme);
     apply();
     onChange();
   });
-  systemDark.addEventListener('change', () => {
+  listen(systemDark, 'change', () => {
     if (theme !== 'system') return;
     apply();
     onChange();

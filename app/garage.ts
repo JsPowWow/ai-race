@@ -17,6 +17,7 @@ import { openCarStore, bytes } from './car-store.ts';
 import { runs, setRuns, legacyRuns } from './runs.ts';
 import { diskSupported, savedFolder, pickFolder, folderAccess, forgetFolder, diskStore } from './car-disk.ts';
 import { load, save, remove, compactJson, usedBytes } from './storage.ts';
+import { listen } from '@reely/dommy/kit';
 
 export const MAX_CARS = 12;
 const CAR_FORMAT = 'ai-race/garage-car@1';  // car.json: машина без «Истории»
@@ -283,8 +284,8 @@ function rescue(): void {
   save(PENDING, { id: garage.id, files: filesOf(current(), summary?.created ?? Date.now()) });
   flush();
 }
-document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && rescue());
-addEventListener('pagehide', rescue);
+listen(document, 'visibilitychange', () => document.visibilityState === 'hidden' && rescue());
+listen(window, 'pagehide', rescue);
 
 /** Дописать то, что не успели записать в прошлый раз */
 async function writePending(): Promise<void> {

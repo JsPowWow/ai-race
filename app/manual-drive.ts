@@ -4,6 +4,7 @@ import { live } from './student-code.ts';
 import { showBanner } from './stage.ts';
 import { $$, isTyping } from './ui.ts';
 import type { Controls } from '../engine/car.ts';
+import { listen } from '@reely/dommy/kit';
 
 let target: Controls | null = null; // пульт машины, которой рулят руками
 let onPadTouch: (() => void) | null = null;
@@ -24,15 +25,15 @@ function press(key: string, down: boolean): boolean {
   }
 }
 
-window.addEventListener('keydown', (e) => {
+listen(window, 'keydown', (e) => {
   if (isTyping(e.target)) return;
   const handled = e.repeat ? !!target && e.key.startsWith('Arrow') : press(e.key, true);
   if (handled) e.preventDefault();
 });
-window.addEventListener('keyup', (e) => {
+listen(window, 'keyup', (e) => {
   if (!isTyping(e.target)) press(e.key, false);
 });
-window.addEventListener('blur', () => {
+listen(window, 'blur', () => {
   if (target) Object.assign(target, { gas: 0, brake: 0, left: 0, right: 0 }); // отпустили окно — отпустили и кнопки
 });
 
@@ -42,12 +43,12 @@ for (const button of $$('.pad button')) {
     button.classList.remove('on');
     press(key, false);
   };
-  button.addEventListener('pointerdown', (e) => {
+  listen(button, 'pointerdown', (e) => {
     e.preventDefault();
     button.setPointerCapture(e.pointerId);
     button.classList.add('on');
     if (!target) onPadTouch?.();
     press(key, true);
   });
-  for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) button.addEventListener(type, release);
+  for (const type of ['pointerup', 'pointercancel', 'lostpointercapture'] as const) listen(button, type, release);
 }

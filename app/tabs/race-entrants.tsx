@@ -5,8 +5,7 @@ import type { Think } from '../../engine/car.ts';
 import { state, thinkVariant, emit, CAR_COLORS } from '../state.ts';
 import { toCarFile, fromCarFile, approveCode, type Entrant as CarEntrant } from '../car-file.ts';
 import { BOTS } from '../generated/bots.js';
-import { showBanner } from '../stage.ts';
-import { element } from '../dom.ts';
+import { showBanner, onTrackDrop } from '../stage.ts';
 import { Avatar } from '../components/avatar.tsx';
 import { Review } from './race-review.tsx';
 import { canCross, childFile, crossNote } from './race-cross.ts';
@@ -138,21 +137,7 @@ function cross(): void {
 
 // ── перетащить файлы на трассу ──
 
-const viewport = element('#viewport');
-viewport.addEventListener('dragover', (e) => {
-  if (state.tab !== 'race') return;
-  e.preventDefault();
-  viewport.classList.add('drop');
-});
-viewport.addEventListener('dragleave', (e) => {
-  if (!viewport.contains(e.relatedTarget as Node | null)) viewport.classList.remove('drop'); // ушли с трассы, а не на её кнопку
-});
-viewport.addEventListener('drop', (e) => {
-  if (state.tab !== 'race') return;
-  e.preventDefault();
-  viewport.classList.remove('drop');
-  addFiles(e.dataTransfer?.files ?? null);
-});
+onTrackDrop(() => state.tab === 'race', (data) => addFiles(data.files));
 
 // ── вид ──
 

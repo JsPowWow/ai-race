@@ -8,6 +8,7 @@ import { getTrainingTrack, pointAt } from '../engine/track.ts';
 import { parseCarFile } from '../engine/car-file.ts';
 import { thinkVariants, feedForward } from '../student/think.js';
 import { liveSize } from './ui.ts';
+import { listen } from '@reely/dommy/kit';
 
 const SECTION = 150; // шаг швов игрушечной трассы: перескок на секцию назад незаметен
 const LOOP_FROM = 1100; // участок «Разминки» от 1100 до 1250 — длинная прямая напротив старта, черта за кадром
@@ -118,7 +119,7 @@ export function createStand(canvas: HTMLCanvasElement, file: { color: string }):
 
   // сенсор можно зажать и прямо на стенде: ближайший к пальцу
   let holding: { id: number; i: number } | null = null;
-  canvas.addEventListener('pointerdown', (e) => {
+  listen(canvas, 'pointerdown', (e) => {
     const i = sensorAt(e);
     if (i < 0) return;
     holding = { id: e.pointerId, i };
@@ -130,8 +131,8 @@ export function createStand(canvas: HTMLCanvasElement, file: { color: string }):
     pressed.delete(holding.i);
     holding = null;
   };
-  canvas.addEventListener('pointerup', release);
-  canvas.addEventListener('pointercancel', release);
+  listen(canvas, 'pointerup', release);
+  listen(canvas, 'pointercancel', release);
 
   return {
     brain: bot.brain,

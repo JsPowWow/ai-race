@@ -15,6 +15,7 @@ import { TrainPanel, drawSwarmChart } from './train-panel.tsx';
 import { showLeaderBrain } from './train-leader.ts';
 import { updateTrainFlaps } from './train-flaps.tsx';
 import { rivalInfo } from './train-rivals.tsx';
+import { listen } from '@reely/dommy/kit';
 
 export { isRunning as isTraining, updateTraining } from './train-swarm.ts';
 export { redrawLeaderBrain } from './train-leader.ts';
@@ -90,7 +91,7 @@ export const trainTab = {
 };
 
 // Щелчок по машине на трассе — выбрать её в родители следующего поколения
-canvas.addEventListener('click', (e: MouseEvent) => {
+listen(canvas, 'click', (e: MouseEvent) => {
   const evo = currentSwarm();
   if (state.tab !== 'train' || !evo) return;
   const car: Car | null = carAt(e, evo.cars);

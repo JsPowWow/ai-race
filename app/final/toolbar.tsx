@@ -5,6 +5,7 @@ import { stageLabel } from '../../engine/rally.ts';
 import { calc, STAGE_COUNT } from './calc.ts';
 import { stage, phase, speed, camera, watched, play, selectStage } from './stream.ts';
 import type { CameraMode } from './stream.ts';
+import { listen } from '@reely/dommy/kit';
 
 // ── режим трансляции: только трасса и таблица, на весь экран ──
 
@@ -19,10 +20,10 @@ export function setBroadcast(on: boolean): void {
   else if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
 }
 // Вышли из полноэкранного режима (Esc браузера) — выходим и из трансляции
-document.addEventListener('fullscreenchange', () => {
+listen(document, 'fullscreenchange', () => {
   if (!document.fullscreenElement) setBroadcast(false);
 });
-document.addEventListener('keydown', (e) => {
+listen(document, 'keydown', (e) => {
   if (e.key === 'Escape') setBroadcast(false);
 });
 

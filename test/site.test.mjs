@@ -485,6 +485,30 @@ test('«Учится само»: боты-соперники едут рядом
   assert.deepEqual(problems, []);
 });
 
+test('Файлы машин можно бросить прямо на трассу: рамка не мигает над кнопками, участник добавляется', async () => {
+  const { page, problems, close } = await openPage(SCREENS[0]);
+  await page.goto(`${base}#race`);
+  await page.waitForFunction(() => document.body.dataset.tab === 'race');
+  const { BOTS: bots } = await import(new URL('../app/generated/bots.js', import.meta.url));
+  const json = JSON.stringify({ ...bots[0], name: 'С трассы' });
+  const framed = await page.evaluate((text) => {
+    const viewport = document.querySelector('#viewport');
+    const data = new DataTransfer();
+    data.items.add(new File([text], 'car.json', { type: 'application/json' }));
+    const fire = (type, init = {}) => viewport.dispatchEvent(new DragEvent(type, { bubbles: true, cancelable: true, dataTransfer: data, ...init }));
+    fire('dragover');
+    const on = viewport.classList.contains('drop');
+    fire('dragleave', { relatedTarget: viewport.querySelector('#hud') }); // перешли на табло поверх трассы — это всё ещё трасса
+    const stays = viewport.classList.contains('drop');
+    fire('drop');
+    return { on, stays, off: !viewport.classList.contains('drop') };
+  }, json);
+  assert.deepEqual(framed, { on: true, stays: true, off: true });
+  await page.waitForFunction(() => [...document.querySelectorAll('#rList li')].some((li) => li.textContent.includes('С трассы')), null, { timeout: 5000 });
+  await close();
+  assert.deepEqual(problems, []);
+});
+
 test('Табло-флапы: имя участника — только текст, даже если в нём HTML', async () => {
   const { page, problems, close } = await openPage(SCREENS[1]);
   await page.goto(`${base}#race`);
