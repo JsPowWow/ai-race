@@ -156,9 +156,7 @@ function Board(): Node {
       <h2 id="fBoardTitle">{() => view().title}</h2>
       <div className="field wide">
         <label htmlFor="fSearch">Найти</label>
-        {/* list — атрибут: свойство input.list в DOM только для чтения */}
-        <input type="search" id="fSearch" placeholder="ник или имя машины" autocomplete="off"
-          elementRef={(input) => input.setAttribute('list', 'fNames')}
+        <input type="search" id="fSearch" placeholder="ник или имя машины" autocomplete="off" list="fNames"
           value={query} onInput={(e) => {
             query.value = e.currentTarget.value;
             scrollToFound(); // таблица уже обновилась: сигналы пишут в DOM сразу

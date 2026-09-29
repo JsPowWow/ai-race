@@ -58,7 +58,7 @@ const editor = textarea({
   aria: { ariaLabel: () => `Код: ${file.value.file}`, ariaDescribedby: 'codeError' },
   onInput: () => edited(),
   onScroll: () => syncGutter(),
-  onKeydown: (e) => onKey(e),
+  onKeyDown: (e) => onKey(e),
 });
 const gutter = pre({ className: 'gutter', id: 'codeGutter', aria: { ariaHidden: 'true' } });
 /** Номера строк: у строки с ошибкой — красная плашка */

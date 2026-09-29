@@ -55,7 +55,7 @@ export function Results(): Node {
                 const result = () => row().result;
                 return (
                   <tr className={() => (selected.value === row().index ? 'sel' : null)} tabIndex={0}
-                    onClick={() => (selected.value = row().index)} onKeydown={(e) => showOnEnter(e, row().index)}>
+                    onClick={() => (selected.value = row().index)} onKeyDown={(e) => showOnEnter(e, row().index)}>
                     <td>{() => result().title}</td>
                     <td><span className={() => statusOf(result()).className}>{() => statusOf(result()).text}</span></td>
                     <td className="num">{() => (result().status === 'finished' ? secs(result().ticks) : '—')}</td>

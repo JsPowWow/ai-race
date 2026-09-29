@@ -131,7 +131,7 @@ export function createMicroscope({ trace, onEdit }: MicroscopeOptions) {
         <canvas id="netCanvas" className={() => (canPick.value ? 'net can-pick' : 'net')}
           aria={{ ariaLabel: 'Схема нейросети: щёлкни связь или нейрон, чтобы поменять вес' }}
           elementRef={(el) => (net = el)}
-          onPointermove={hover} onPointerleave={() => hover(null)} onClick={pick} />
+          onPointerMove={hover} onPointerLeave={() => hover(null)} onClick={pick} />
         <p className="legend"><span className="sw pos" />положительный вес <span className="sw neg" />отрицательный <span className="sw act" />нейрон сработал</p>
         <div className="wedit" id="wEdit">
           <p id="wLabel" className="hint" hidden={() => value.value !== null}>Щёлкни связь или нейрон на схеме, чтобы поменять вес руками. Попробуй: удали скрытый слой, нажми «Все веса в ноль», опусти порог «Газа» ниже нуля — и научи машину отворачивать от бордюров.</p>

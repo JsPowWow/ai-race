@@ -1,7 +1,8 @@
 // Табло «как в аэропорту»: у каждой буквы своя плитка. Поменялся текст — плитки перелистываются
 // через пару случайных на вид букв и встают на новую. Строки стоят на местах (1-е, 2-е…),
 // а меняются надписи на них: обогнал — имя переехало строкой выше, как на настоящем табло.
-import { effect, onCleanup, untracked, For, Show } from '@reely/dommy';
+import { effect, For, Show } from '@reely/dommy';
+import { later } from '@reely/dommy/kit';
 import { avatarUrl } from '../../engine/car-file.ts';
 
 /** Колонка табло: заголовок, сколько плиток, по какому краю прижать текст. Колонка с ключом place красится по месту (1–3) */
@@ -49,16 +50,6 @@ const drumAfter = (target: string, step: number): string =>
  */
 export function FlapText({ text, width, align = 'start' }: { text: () => string; width: number; align?: 'start' | 'end' }): Node {
   const tiles = Array.from({ length: width }, () => <span className="flap-tile"> </span>) as HTMLElement[];
-  const timers = new Set<number>();
-  const later = (ms: number, fn: () => void) => {
-    const id = window.setTimeout(() => (timers.delete(id), fn()), ms);
-    timers.add(id);
-  };
-  const stopAll = () => {
-    for (const id of timers) clearTimeout(id);
-    timers.clear();
-  };
-  onCleanup(stopAll);
 
   /** Плитка показывает букву и перелистывается: два класса по очереди перезапускают анимацию */
   const show = (tile: HTMLElement, char: string) => {
@@ -67,21 +58,20 @@ export function FlapText({ text, width, align = 'start' }: { text: () => string;
     tile.classList.toggle('turn-b', !odd);
   };
 
+  // Таймеры later() принадлежат этому запуску эффекта: пришёл новый текст раньше, чем долистался старый, —
+  // эффект запустится снова, и недолистанные щелчки отменятся сами (как и когда строку убрали со страницы)
   let shown = fit('', width, align);
   effect(() => {
     const next = fit(text(), width, align);
-    untracked(() => {
-      stopAll(); // новый текст пришёл раньше, чем долистался старый, — сразу к новому
-      const before = shown;
-      shown = next;
-      [...next].forEach((char, i) => {
-        const tile = tiles[i];
-        if (!tile) return;
-        // буква та же — но плитка могла не долистаться до неё, пока её не прервали: ставим сразу
-        if (before[i] === char || calm.matches) return void (tile.textContent !== char && (tile.textContent = char));
-        for (let step = 0; step < STEPS; step++) later(i * WAVE_MS + step * STEP_MS, () => show(tile, char === ' ' ? ' ' : drumAfter(char, step)));
-        later(i * WAVE_MS + STEPS * STEP_MS, () => show(tile, char));
-      });
+    const before = shown;
+    shown = next;
+    [...next].forEach((char, i) => {
+      const tile = tiles[i];
+      if (!tile) return;
+      // буква та же — но плитка могла не долистаться до неё, пока её не прервали: ставим сразу
+      if (before[i] === char || calm.matches) return void (tile.textContent !== char && (tile.textContent = char));
+      for (let step = 0; step < STEPS; step++) later(i * WAVE_MS + step * STEP_MS, () => show(tile, char === ' ' ? ' ' : drumAfter(char, step)));
+      later(i * WAVE_MS + STEPS * STEP_MS, () => show(tile, char));
     });
   });
 

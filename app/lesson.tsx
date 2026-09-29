@@ -8,7 +8,7 @@ import type { LessonTab } from './lessons.ts';
 import { load, save } from './storage.ts';
 import { on } from './state.ts';
 import { element } from './dom.ts';
-import { Keyed } from './components/keyed.tsx';
+import { Keyed } from '@reely/dommy';
 import { TextWithCode } from './components/text-with-code.tsx';
 
 /** Выполненные шаги: { v: 3, teach: [0, 2], … } — версия шагов и номера по вкладкам */
