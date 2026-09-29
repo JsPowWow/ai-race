@@ -5,7 +5,7 @@
 import { mount, signal } from '@reely/dommy';
 import { LESSONS, LESSONS_VERSION } from './lessons.ts';
 import type { LessonTab } from './lessons.ts';
-import { load, save } from './storage.ts';
+import { stored } from './storage.ts';
 import { on } from './state.ts';
 import { element } from './dom.ts';
 import { Keyed } from '@reely/dommy';
@@ -16,18 +16,12 @@ type Done = { v: number } & Partial<Record<LessonTab, number[]>>;
 
 const isLessonTab = (tab: string): tab is LessonTab => Object.hasOwn(LESSONS, tab);
 
-/** Отметки из браузера. Другая версия шагов или что-то непонятное — начинаем с чистого листа */
-function loadDone(): Done {
-  const saved: unknown = load('lessonDone', null);
-  const done: Done = { v: LESSONS_VERSION };
-  if (typeof saved !== 'object' || saved === null || !('v' in saved) || saved.v !== LESSONS_VERSION) return done;
-  for (const [tab, steps] of Object.entries(saved)) {
-    if (isLessonTab(tab) && Array.isArray(steps)) done[tab] = steps.filter(Number.isInteger);
-  }
-  return done;
-}
+/** Отметки из браузера годятся: та же версия шагов, у вкладок — номера шагов. Нет — начинаем с чистого листа */
+const isDone = (saved: unknown): saved is Done =>
+  typeof saved === 'object' && saved !== null && 'v' in saved && saved.v === LESSONS_VERSION &&
+  Object.entries(saved).every(([tab, steps]) => tab === 'v' || (isLessonTab(tab) && Array.isArray(steps) && steps.every(Number.isInteger)));
 
-const done = signal<Done>(loadDone());
+const done = stored<Done>('lessonDone', { v: LESSONS_VERSION }, isDone);
 /** Какой шаг открыт на вкладке; если не выбирали — первый невыполненный */
 const picked = signal<Partial<Record<LessonTab, number>>>({});
 /** Раскрыт ли «Что изучаем и зачем» — помним для каждой вкладки, пока открыта страница */
@@ -42,7 +36,6 @@ function setDone(tab: LessonTab, step: number, isDone: boolean): void {
   if (isDone) steps.add(step);
   else steps.delete(step);
   done.value = { ...done.value, [tab]: [...steps].sort((a, b) => a - b) };
-  save('lessonDone', done.value);
 }
 
 /** Показать шаг step (null — снова «первый невыполненный») */

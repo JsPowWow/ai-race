@@ -7,7 +7,7 @@ import { trainEpoch, agreement, TEACH_THINK } from '../../engine/imitation.ts';
 import type { Sample } from '../../engine/imitation.ts';
 import { drawSeries } from '../../engine/netviz.ts';
 import { state, sizesOf, brainTitle, thinkVariant, on } from '../state.ts';
-import { load, save } from '../storage.ts';
+import { stored } from '../storage.ts';
 import { live } from '../student-code.ts';
 import { trainingSamples } from '../runs.ts';
 import { setBrain } from '../library.ts';
@@ -19,11 +19,10 @@ export const MIN_SAMPLES = 200;
 
 /** Сколько эпох и какой шаг — помним между заходами */
 type Settings = { epochs: number; rate: number };
-const settings = signal<Settings>({ epochs: 20, rate: 0.05, ...load('teach', {}) });
-function change(next: Partial<Settings>): void {
-  settings.value = { ...settings.peek(), ...next };
-  save('teach', settings.peek());
-}
+const isSettings = (v: unknown): v is Settings =>
+  typeof v === 'object' && v !== null && 'epochs' in v && typeof v.epochs === 'number' && 'rate' in v && typeof v.rate === 'number';
+const settings = stored<Settings>('teach', { epochs: 20, rate: 0.05 }, isSettings);
+const change = (next: Partial<Settings>) => (settings.value = { ...settings.peek(), ...next });
 const RATES = [0.01, 0.05, 0.2, 1];
 
 /** Идёт обучение: чему учим (копию мозга — на странице он не меняется, пока не доучится) и на чём */

@@ -166,7 +166,7 @@ test('финал не грузится, пока его не открыли', as
   await close();
 });
 
-test('переключатель темы: авто → светлая → тёмная, выбор помнится после перезагрузки', async () => {
+test('переключатель темы: авто → светлая → тёмная, выбор помнится после перезагрузки и доходит до другой вкладки', async () => {
   const { page, problems, close } = await openPage({ ...SCREENS[0], colorScheme: 'dark' });
   await page.goto(`${base}#intro`);
   const theme = () => page.evaluate(() => document.documentElement.dataset.theme ?? 'system');
@@ -181,8 +181,12 @@ test('переключатель темы: авто → светлая → тё�
   await page.reload();
   assert.equal(await theme(), 'light', 'после перезагрузки — та же тема');
 
+  // вторая вкладка того же браузера: сменили тему здесь — сменилась и там (событие storage)
+  const other = await page.context().newPage();
+  await other.goto(`${base}#intro`);
   await page.click('#themeToggle');
   assert.equal(await theme(), 'dark');
+  await other.waitForFunction(() => document.documentElement.dataset.theme === 'dark');
   await page.click('#themeToggle');
   assert.equal(await theme(), 'system');
   await close();
