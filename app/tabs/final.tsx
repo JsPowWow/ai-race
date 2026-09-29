@@ -7,7 +7,7 @@
 //   app/final/works.ts  — шаг 1: файлы, ключ курса, допуск чужих файлов, аватары
 //   app/final/calc.ts   — шаг 2: расчёт (pool.ts → Web Worker worker.ts → job.ts)
 //   app/final/stream.ts — шаг 3: шоу, запись на холсте (show.ts)
-//   setup.tsx, board.tsx, toolbar.tsx — как это выглядит; export.ts — итоги в файлы
+//   setup.tsx, board.tsx, flaps.tsx, toolbar.tsx — как это выглядит; export.ts — итоги в файлы
 import { mount } from '@reely/dommy';
 import { state } from '../state.ts';
 import { element } from '../dom.ts';
@@ -17,6 +17,7 @@ import { frame } from '../final/stream.ts';
 import { Setup } from '../final/setup.tsx';
 import { Standings } from '../final/board.tsx';
 import { Toolbar, setBroadcast } from '../final/toolbar.tsx';
+import { FinalFlaps } from '../final/flaps.tsx';
 
 mount(element('#finalPanel'), () => (
   <>
@@ -25,6 +26,8 @@ mount(element('#finalPanel'), () => (
   </>
 ));
 mount(element('.toolbar[data-for="final"]'), () => <Toolbar />);
+const flapsHost = element('#finalFlaps');
+mount(flapsHost, () => <FinalFlaps host={flapsHost} />);
 
 // Папку с работами можно перетащить прямо на трассу
 const viewport = element('#viewport');

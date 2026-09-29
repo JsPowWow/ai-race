@@ -13,9 +13,9 @@
 <script>try{const t=JSON.parse(localStorage.getItem('ai-race:theme'));if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch{}</script>
 <link rel="icon" href="app/icon.svg" type="image/svg+xml">
 <link rel="preload" href="app/fonts/rubik-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="modulepreload" href="app/generated/chunks/chunk-SCKVW2JG.js">
-<link rel="stylesheet" href="app/generated/app.css?v=f460172663">
-<script type="module" src="app/generated/app.js?v=a8356a1ac3"></script>
+<link rel="modulepreload" href="app/generated/chunks/chunk-LL7DVE2I.js">
+<link rel="stylesheet" href="app/generated/app.css?v=1b63051068">
+<script type="module" src="app/generated/app.js?v=697418dd17"></script>
 </head>
 <body>
 <a class="skip-link" href="#content">К содержимому</a>
@@ -152,6 +152,8 @@
   <section class="stage">
     <!-- табло-флапы «Гонки» рисует app/tabs/race-flaps.tsx: сбоку от трассы или над ней -->
     <aside class="flap-board" data-panel="race" id="raceFlaps" hidden></aside>
+    <!-- табло-флапы «Финала» — app/final/flaps.tsx (грузится лениво, вместе с финалом) -->
+    <aside class="flap-board" data-panel="final" id="finalFlaps" hidden></aside>
     <div class="viewport" id="viewport">
       <canvas id="stage" aria-label="Трасса"></canvas>
       <div class="hud" id="hud"></div>

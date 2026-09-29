@@ -545,6 +545,7 @@ test('финал: работы → расчёт → этап идёт, табл�
 
   await page.fill('#fSearch', 'vera');
   assert.equal(await page.textContent('#fBoard .found .kind'), '@vera', 'найденный подсвечен');
+  await page.waitForSelector('#finalFlaps .flap-row.you', { timeout: 5000 }); // и на табло-флапах
 
   await page.click('#fPlay');
   assert.equal(await page.textContent('#fPlay'), '3… 2… 1…');
@@ -555,6 +556,9 @@ test('финал: работы → расчёт → этап идёт, табл�
   await page.click('#fStages button:nth-child(2)');
   assert.equal(await page.textContent('#fBoardTitle'), 'Общий зачёт после 1 этапа');
   assert.equal(await page.$$eval('#fBoard .pos', (list) => list.length), 4);
+  const flapPlaces = await page.$$eval('#finalFlaps [data-col="place"] .sr-only', (cells) => cells.map((c) => c.textContent).filter(Boolean));
+  assert.equal(flapPlaces.length, 4, 'табло-флапы показывают общий зачёт');
+  assert.equal(flapPlaces[0], '1'); // anna и gleb — один бот: у них одно время и одно место
   const { scroll, width } = await page.evaluate(() => ({ scroll: document.documentElement.scrollWidth, width: innerWidth }));
   assert.ok(scroll <= width, 'без горизонтальной прокрутки');
   await close();

@@ -48,3 +48,5 @@ body.broadcast .board-block { height: calc(100vh - 24px); }
 }
 .award { border: 1px solid var(--line); border-radius: var(--r-m); padding: 8px 10px; font-size: 13px; background: var(--surface-2); }
 .award b { display: block; font: 600 13px var(--font); color: var(--brain-text); margin-bottom: 3px; }
+/* табло-флапы сбоку от трассы: в трансляции трасса занимает всю высоту, строка сетки — тоже */
+body.broadcast .stage { grid-template-rows: minmax(0, 1fr); }

@@ -156,9 +156,12 @@ details .btn { margin-block-start: 6px; }
 @keyframes flap-a { from { transform: perspective(40px) rotateX(-75deg); } }
 @keyframes flap-b { from { transform: perspective(40px) rotateX(-75deg); } }
 /* первые три места — золото, серебро, бронза; ты — жёлтая полоса и жёлтые буквы */
-.flap-row[data-rank="1"] .flap-logo + .flap-cell { color: var(--hud-digit); }
-.flap-row[data-rank="2"] .flap-logo + .flap-cell { color: var(--hud-silver); }
-.flap-row[data-rank="3"] .flap-logo + .flap-cell { color: var(--hud-bronze); }
+.flap-row[data-rank="1"] .flap-cell[data-col="place"] { color: var(--hud-digit); }
+.flap-row[data-rank="2"] .flap-cell[data-col="place"] { color: var(--hud-silver); }
+.flap-row[data-rank="3"] .flap-cell[data-col="place"] { color: var(--hud-bronze); }
+/* ▲ поднялся — зелёный, ▼ опустился — красный */
+.flap-cell[data-tone="up"] { color: var(--hud-up); }
+.flap-cell[data-tone="down"] { color: var(--hud-down); }
 .flap-row.you { background: color-mix(in srgb, var(--you) 22%, transparent); box-shadow: inset 3px 0 var(--you); }
 .flap-row.you .flap-tile { color: var(--hud-digit); }
 @media (prefers-reduced-motion: reduce) {
