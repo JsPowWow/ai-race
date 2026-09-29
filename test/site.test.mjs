@@ -106,6 +106,7 @@ test('«Я учу»: заезд с другими глазами виден, о�
   assert.match(await page.textContent('#champChip'), /обучен на 1 заезде/);
 
   // «Мозг под микроскопом»: щёлкаем по схеме, пока не попадём в нейрон или связь, и правим вес руками
+  await page.click('summary:has-text("Мозг под микроскопом")'); // свёрнут, пока не раскроют
   await page.locator('#netCanvas').scrollIntoViewIfNeeded();
   const box = await page.locator('#netCanvas').boundingBox();
   for (let x = box.width - 60; x > 0 && await page.isHidden('#wRow'); x -= 4) {

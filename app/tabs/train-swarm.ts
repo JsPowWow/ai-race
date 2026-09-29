@@ -1,5 +1,5 @@
 // Рой «Учится само»: поколения, отбор, рекорды. Без разметки — её рисуют train-*.tsx по сигналам отсюда.
-// Рой учится в фоне на любой вкладке: updateTraining() зовёт кадровый цикл app/main.js.
+// Рой учится в фоне на любой вкладке: updateTraining() зовёт кадровый цикл app/main.ts.
 import { batch, signal } from '@reely/dommy';
 import { TRAINING_TRACKS, getTrainingTrack, forksPassed, withCoins } from '../../engine/track.ts';
 import type { Track } from '../../engine/track.ts';

@@ -2,7 +2,7 @@
 //
 // Два места, у обоих одни и те же вызовы — остальной код не знает, какое сейчас:
 //  • 'opfs'  — личная папка сайта в браузере (navigator.storage.getDirectory): места много, другие сайты её не видят.
-//              Пишем через Web Worker (app/car-writer.js) — так работает и в старом Safari;
+//              Пишем через Web Worker (app/car-writer.ts) — так работает и в старом Safari;
 //  • 'local' — localStorage, если папки нет (старый браузер, приватное окно, файл открыт с диска): места ~5 МБ.
 //
 import { WRITER_SOURCE } from './generated/car-writer.js';

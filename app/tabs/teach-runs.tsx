@@ -1,5 +1,5 @@
 // «Я учу», блок «Мои заезды»: записанные заезды выбранной машины, галочка «учить на этом»
-// и кнопка «Учить на заездах». Что такое заезд и где он лежит — app/runs.js; здесь только вид.
+// и кнопка «Учить на заездах». Что такое заезд и где он лежит — app/runs.ts; здесь только вид.
 import { untracked, For, Show } from '@reely/dommy';
 import { sensorsOf } from '../../engine/brain.ts';
 import { state, sizesOf } from '../state.ts';

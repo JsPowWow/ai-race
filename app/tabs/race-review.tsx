@@ -1,7 +1,7 @@
 // «Гонка», проверка чужого кода.
 // Свой вариант мозга из чужого файла — это код, который выполнится у тебя в браузере.
 // Поэтому он не запускается сам: преподаватель читает его и нажимает «Разрешить».
-// Здесь только показ и подсказки; разрешает (компилирует код) — app/car-file.js, approveCode().
+// Здесь только показ и подсказки; разрешает (компилирует код) — app/car-file.ts, approveCode().
 
 /** Чему в честном мозге делать нечего: страница, сеть, хранилище, подмена Math, вечные циклы */
 const SUSPICIOUS = /\b(window|self|globalThis|document|localStorage|sessionStorage|indexedDB|fetch|XMLHttpRequest|WebSocket|navigator|location|eval|Function|constructor|prototype|__proto__|import|setTimeout|setInterval|postMessage)\b|while\s*\(\s*(true|1)\s*\)|for\s*\(\s*;\s*;\s*\)|Math\.\w+\s*=[^=]/;

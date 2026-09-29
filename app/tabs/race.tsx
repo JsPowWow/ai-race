@@ -20,7 +20,7 @@ function FinalLink(): Node {
     <section className="block final-link">
       <h2>Финал курса</h2>
       <p className="hint">Здесь — гонка на несколько машин. Для общего финала на сотни участников (этапы, суперфинал, живая таблица, стрим) есть отдельный режим.</p>
-      {/* data-open ловит app/main.js: финал грузится, только когда его открыли */}
+      {/* data-open ловит app/main.ts: финал грузится, только когда его открыли */}
       <button className="btn small" data-open="final">Открыть финал</button>
     </section>
   );
@@ -91,7 +91,7 @@ export const raceTab = {
       paintCar(car, { color: entrant.color, alpha: car.status === 'crashed' ? 0.5 : 1, label: isLeader ? entrant.name : null });
     }
     if (leader && !leader.car.done) paintSensors(leader.car);
-    // табло — HTML-строки (app/stage.js): имя трассы из seed пишет человек, поэтому через esc()
+    // табло — HTML-строки (app/stage.ts): имя трассы из seed пишет человек, поэтому через esc()
     setHud([
       `<b>${esc(track.name)}</b>`,
       `время <b>${secs(race.tick)}</b>`,

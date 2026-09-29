@@ -1,11 +1,10 @@
-// Мост между событиями app/state.js и сигналами @reely/dommy (#20).
+// Мост между событиями app/state.ts и сигналами @reely/dommy (#20).
 // Вкладки на dommy не перерисовывают себя целиком: пришло событие — сигнал перечитал данные,
 // и страница обновила ровно те узлы, что от них зависят.
 import { signal } from '@reely/dommy';
-import { on } from './state.ts';
+import { on, type AppEvent } from './state.ts';
 
-/** События state.js (что каждое значит — там же) */
-export type AppEvent = 'champion' | 'reset' | 'code' | 'config' | 'library' | 'car' | 'garage' | 'save';
+export type { AppEvent };
 
 /**
  * Значение из общего состояния, которое само обновляется по событиям: read() перечитывается,

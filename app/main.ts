@@ -1,5 +1,4 @@
 // AI Race — точка входа: вкладки, строка чемпиона и кадровый цикл.
-import { mount } from '@reely/dommy';
 import { readPalette } from '../engine/render.ts';
 import { drawChart } from '../engine/netviz.ts';
 import { checkBrain, type Brain } from '../engine/brain.ts';
@@ -14,7 +13,6 @@ import { startGarage } from './garage.ts';
 import { $$, secs, pct } from './ui.ts';
 import { element } from './dom.ts';
 import { initTheme } from './theme.ts';
-import { BrainLibrary } from './library-view.tsx';
 import { trainTab, updateTraining, isTraining, redrawLeaderBrain } from './tabs/train.tsx';
 import { codeTab, runAllTests } from './tabs/code.tsx';
 import { examTab } from './tabs/exam.tsx';
@@ -95,9 +93,6 @@ document.addEventListener('click', (e) => {
 // Файл, брошенный мимо «Гонки» и финала, браузер открыл бы вместо сайта — и всё несохранённое пропало бы.
 // Там, где файлы ждут, их ловят свои обработчики раньше (они сами отменяют действие браузера)
 for (const type of ['dragover', 'drop']) window.addEventListener(type, (e) => e.preventDefault());
-
-// Блок «Мозг» с «Историей» — на «Я учу» и «Учится само»
-for (const root of $$('[data-library]')) mount(root, BrainLibrary);
 
 onStorageFull(() => showBanner('Память браузера переполнена: новое не сохранится. Удали лишние заезды на вкладке «Я учу».', 6000));
 

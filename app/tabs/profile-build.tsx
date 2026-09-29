@@ -22,8 +22,8 @@ function currentShape(): Shape {
   if (!all[state.config.think]) state.config.think = all.step ? 'step' : Object.keys(all)[0];
   return state.config;
 }
-/** Сборка в машине. save — вариант мозга могли сменить на «Учится само» */
-export const config = fromEvents(['config', 'car', 'code', 'save'], currentShape);
+/** Сборка в машине (вариант мозга на «Учится само» тоже меняют через changeShape — придёт config) */
+export const config = fromEvents(['config', 'car', 'code'], currentShape);
 /** Обученный мозг (или null) */
 export const champion = fromEvents(['champion', 'car', 'reset'], () => state.champion);
 

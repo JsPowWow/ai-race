@@ -68,7 +68,7 @@ export const examTab = {
     }
     drawScene(track, { traffic: trafficOn(track, car.ticks), tick: car.ticks });
     paintCar(car, { color: state.profile.color, sensors: true, number: 1 });
-    // табло — HTML-строки (app/stage.js): имя трассы из seed — через esc()
+    // табло — HTML-строки (app/stage.ts): имя трассы из seed — через esc()
     setHud([
       `<b>${esc(result.title)}</b>`,
       `время <b>${secs(car.ticks)}</b>`,

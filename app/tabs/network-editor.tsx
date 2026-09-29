@@ -27,8 +27,7 @@ export function createMicroscope({ trace, onEdit }: MicroscopeOptions) {
   let layout: NetLayout | null = null;
   let picked: NetPick | null = null; // что выбрали щелчком
   let hovered: NetPick | null = null; // что под курсором
-  // на телефоне «микроскоп» свёрнут: панель и так длинная
-  const open = signal(!matchMedia('(max-width: 700px)').matches);
+  const open = signal(false); // свёрнут, пока не раскроют: схема — для тех, кому интересно
   const canPick = signal(false);
   const note = signal('');
   // выбранный вес: значение (null — ничего не выбрано), имя и что он значит

@@ -17,7 +17,7 @@ type Summary = {
   id: string; created: number; profile: Profile; shape: string; generation: number; trained: boolean;
   bytes: { car: number; history: number; runs?: number };
 };
-/** Гараж, каким его видит полка: см. app/garage.js */
+/** Гараж, каким его видит полка: см. app/garage.ts */
 type Shelf = Omit<typeof garage, 'cars'> & { cars: Summary[] };
 
 /**

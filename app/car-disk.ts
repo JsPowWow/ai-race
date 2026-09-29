@@ -60,7 +60,7 @@ export async function pickFolder(): Promise<DiskFolder> {
   return handle;
 }
 
-/** Хранилище гаража в этой папке — с тем же интерфейсом, что и в app/car-store.js */
+/** Хранилище гаража в этой папке — с тем же интерфейсом, что и в app/car-store.ts */
 export function diskStore(root: FileSystemDirectoryHandle): CarStore {
   let queue = Promise.resolve(); // пишем по одному, как в Worker
   const write: WriteFile = (path, text) => (queue = queue.catch(() => {}).then(async () => {

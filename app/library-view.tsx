@@ -1,11 +1,11 @@
 // Блок «Мозг»: какой мозг сейчас, «Сбросить мозг» и его «История». Одинаковый на «Я учу» и «Учится само».
-// Что делают кнопки — в app/library.js; здесь только вид.
+// Что делают кнопки — в app/library.ts; здесь только вид.
 import { signal, For, Show } from '@reely/dommy';
 import { state, sizesOf, thinkVariant, brainTitle } from './state.ts';
 import { HISTORY_MAX, resetBrain, restoreVersion, togglePin, removeVersion } from './library.ts';
 import { fromEvents } from './signals.ts';
 
-/** Версия мозга в «Истории» (см. remember() в app/library.js) */
+/** Версия мозга в «Истории» (см. remember() в app/library.ts) */
 type Version = { id: string; at: string; config: typeof state.config; brainNote: string; pinned: boolean };
 
 /** Текущий мозг и «История»: перечитываем, когда меняется мозг, форма или сама история */
