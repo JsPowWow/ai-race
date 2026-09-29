@@ -1,23 +1,23 @@
-// Сборка сайта.
+// Сборка сайта на Vite (#15).
 //
-//   npm run build        — один раз
-//   npm run dev          — пересобирать при каждом сохранении (и смотреть через npm start)
+//   npm run build        — собрать сайт
+//   npm run dev          — сервер Vite для разработки: исходники без сборки, страница обновляется при сохранении
 //
 // Что получается:
-//   app/generated/*.js   — данные для кода: исходники student/*.js, боты, открытый ключ курса, код Worker финала;
-//   app/generated/app.js — весь код сайта одним файлом (+ chunks/ — то, что грузится позже, например финал);
-//   app/generated/app.css — стили вместе со шрифтами;
-//   index.html           — страница, которую раздаёт GitHub Pages;
-//   dist/ai-race.html    — всё в одном файле: можно открыть без интернета и без сервера.
-//
-// Исходники остаются обычными ES-модулями: сборка нужна, чтобы браузер скачал один файл, а не полсотни.
-import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync } from 'fs';
+//   app/generated/*.js       — данные для кода и Workers строкой (tools/generate.mjs);
+//   app/generated/app.js     — код сайта (+ chunks/ — то, что грузится позже, например финал), app.css — стили,
+//   app/generated/assets/    — шрифты с меткой версии в имени;
+//   index.html               — страница, которую раздаёт GitHub Pages (она в корне репозитория — пишем её сами);
+//   dist/ai-race.html        — всё в одном файле: можно открыть без интернета и без сервера.
+import { readFileSync, writeFileSync, mkdirSync, rmSync } from 'fs';
 import { createHash } from 'crypto';
-import * as esbuild from 'esbuild';
+import { build } from 'vite';
+import { writeDataModules, writeWorkers } from './generate.mjs';
 
-const r = (p) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
-const w = (p, s) => writeFileSync(new URL(`../${p}`, import.meta.url), s);
-const watch = process.argv.includes('--watch');
+const ROOT = new URL('../', import.meta.url);
+const r = (p) => readFileSync(new URL(p, ROOT), 'utf8');
+const w = (p, s) => writeFileSync(new URL(p, ROOT), s);
+const OUT = 'app/generated';
 
 const TITLE = 'AI Race — научи машину ездить без водителя';
 const DESCRIPTION = 'Курс JavaScript: машинка с сенсорами и маленькой нейросетью учится ездить — на твоих примерах и сама, эволюцией. В конце — гонка на секретной трассе.';
@@ -26,52 +26,45 @@ const THEME_COLOR = { light: '#eef0f3', dark: '#0b0d12' };
 /** Шрифты первого экрана: заголовок и основной текст — качаем сразу, не дожидаясь CSS */
 const PRELOAD_FONTS = ['rubik-cyrillic'];
 
-function writeDataModules() {
-  const SOURCES = Object.fromEntries(['controls', 'think', 'mutate', 'fitness', 'crossover'].map((id) => [id, r(`student/${id}.js`)]));
-  w('app/generated/sources.js', `// Сгенерировано tools/build.mjs: исходники student/*.js для вкладки «Код».\nexport const SOURCES = ${JSON.stringify(SOURCES, null, 1)};\n`);
-  // Открытый ключ курса: им «Экзамен» запечатывает файл для сдачи (секретный ключ есть только у кураторов)
-  const courseKey = existsSync(new URL('../course-key.json', import.meta.url)) ? r('course-key.json').trim() : 'null';
-  w('app/generated/course-key.js', `// Сгенерировано tools/build.mjs из course-key.json: открытый ключ курса.\nexport const COURSE_KEY = ${courseKey};\n`);
-  w('app/generated/bots.js', `// Сгенерировано из tools/bots.json (tools/train-bots.mjs): боты-соперники для гонки.\nexport const BOTS = ${r('tools/bots.json')};\n`);
+/** Общее для обеих сборок: Vite без vite.config.ts (там — только сервер разработки) */
+const vite = (options) => build({ configFile: false, root: ROOT.pathname, logLevel: 'warn', ...options, build: { target: 'es2022', copyPublicDir: false, ...options.build } });
+
+/** Сайт: код с отложенной загрузкой, стили, шрифты; карты исходников — в DevTools видны настоящие файлы */
+async function buildSite() {
+  for (const old of ['chunks', 'assets', 'app.css.map']) rmSync(new URL(`${OUT}/${old}`, ROOT), { recursive: true, force: true });
+  const out = await vite({
+    base: './', // пути от самого файла: сайт живёт не в корне сервера, а в jspowwow.github.io/ai-race/
+    build: {
+      outDir: OUT,
+      emptyOutDir: false, // рядом лежат данные из tools/generate.mjs
+      sourcemap: true,
+      modulePreload: { polyfill: false }, // что качать сразу, index.html говорит сам (modulepreload ниже)
+      rolldownOptions: {
+        input: { app: 'app/main.ts', styles: 'app/styles.css' },
+        output: {
+          entryFileNames: '[name].js',
+          chunkFileNames: 'chunks/[name]-[hash].js',
+          assetFileNames: (asset) => (asset.names.some((n) => n.endsWith('.css')) ? 'app.css' : 'assets/[name]-[hash][extname]'),
+          sourcemapExcludeSources: true, // исходники и так лежат рядом, в репозитории
+        },
+      },
+    },
+  });
+  return (Array.isArray(out) ? out[0] : out).output;
 }
 
-// Web Worker финала и запись гаража собираем в строки: так он работает и на GitHub Pages, и в однофайловой сборке
-async function writeWorker() {
-  const worker = await esbuild.build({ entryPoints: ['app/final/worker.ts'], bundle: true, format: 'iife', minify: true, write: false, target: 'es2020', legalComments: 'none' });
-  w('app/generated/race-worker.js', `// Сгенерировано tools/build.mjs из app/final/worker.ts: код Web Worker для расчёта финала.\nexport const WORKER_SOURCE = ${JSON.stringify(worker.outputFiles[0].text)};\n`);
-  const writer = await esbuild.build({ entryPoints: ['app/car-writer.ts'], bundle: true, format: 'iife', minify: true, write: false, target: 'es2020', legalComments: 'none' });
-  w('app/generated/car-writer.js', `// Сгенерировано tools/build.mjs из app/car-writer.ts: Web Worker, который пишет файлы гаража.\nexport const WRITER_SOURCE = ${JSON.stringify(writer.outputFiles[0].text)};\n`);
-}
-
-const common = { bundle: true, minify: true, target: 'es2022', legalComments: 'none', logLevel: 'warning' };
-
-/** Сайт: модули с отложенной загрузкой, карта исходников (в DevTools видны настоящие файлы) */
-const siteOptions = {
-  ...common,
-  entryPoints: [{ in: 'app/main.ts', out: 'app' }, { in: 'app/styles.css', out: 'app' }],
-  outdir: 'app/generated',
-  entryNames: '[name]',
-  chunkNames: 'chunks/[name]-[hash]',
-  format: 'esm',
-  splitting: true,
-  sourcemap: 'linked',
-  sourcesContent: false, // исходники и так лежат рядом, в репозитории
-  external: ['*.woff2'], // шрифты остаются в app/fonts: путь ../fonts/… верен и из исходника, и из сборки
-  metafile: true,
-};
-
-/** Общая шапка страницы; links — ссылки на файлы (иконка, шрифты, стили) */
-function pageHead(links) {
-  return `<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>${TITLE}</title>
-<meta name="description" content="${DESCRIPTION}">
-<meta name="theme-color" content="${THEME_COLOR.light}" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="${THEME_COLOR.dark}" media="(prefers-color-scheme: dark)">
-<meta property="og:title" content="${TITLE}">
-<meta property="og:description" content="${DESCRIPTION}">
-<meta property="og:type" content="website">
-${links.join('\n')}`;
+/** Один файл без сервера: скрипт — iife (финал внутри него же), шрифты и иконка — внутри */
+async function buildSingleFile() {
+  const [js, css] = await Promise.all([
+    // iife — всё в одном скрипте, финал тоже. Vite всё равно оборачивает ленивый импорт финала помощником предзагрузки,
+    // а в нём import.meta, которого у iife нет: грузить заранее тут нечего, пустой import.meta ему не мешает
+    vite({ build: { write: false, modulePreload: false, rolldownOptions: { input: 'app/main.ts', checks: { emptyImportMeta: false }, output: { format: 'iife' } } } }),
+    vite({ build: { write: false, assetsInlineLimit: () => true, rolldownOptions: { input: 'app/styles.css' } } }),
+  ]);
+  const output = (res) => (Array.isArray(res) ? res[0] : res).output;
+  const script = output(js).find((f) => f.type === 'chunk').code.replace(/<\/script/gi, '<\\/script');
+  const style = output(css).find((f) => f.type === 'asset' && f.fileName.endsWith('.css')).source;
+  return { script, style };
 }
 
 const page = (head, body) => `<!doctype html>
@@ -85,8 +78,17 @@ ${body}
 </html>
 `;
 
-/** Куски кода, которые app.js импортирует сразу: браузер начнёт качать их вместе с ним */
-const eagerChunks = (metafile) => metafile.outputs['app/generated/app.js'].imports.filter((i) => i.kind === 'import-statement').map((i) => i.path);
+/** Общая шапка страницы; links — ссылки на файлы (иконка, шрифты, стили) */
+const pageHead = (links) => `<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>${TITLE}</title>
+<meta name="description" content="${DESCRIPTION}">
+<meta name="theme-color" content="${THEME_COLOR.light}" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="${THEME_COLOR.dark}" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="${TITLE}">
+<meta property="og:description" content="${DESCRIPTION}">
+<meta property="og:type" content="website">
+${links.join('\n')}`;
 
 /**
  * Применить сохранённую тему до первой отрисовки — иначе при светлой теме страница на миг мигнёт тёмной.
@@ -98,62 +100,37 @@ const THEME_SCRIPT = `<script>try{const t=JSON.parse(localStorage.getItem('ai-ra
  * Метка версии в адресе: у app.js и app.css имена постоянные, а Pages разрешает кэшировать их 10 минут.
  * Без метки после выкладки браузер берёт новый index.html со старым скриптом — и новые блоки страницы пустые.
  */
-const version = (file) => createHash('sha256').update(readFileSync(file)).digest('hex').slice(0, 10);
+const version = (file) => createHash('sha256').update(readFileSync(new URL(file, ROOT))).digest('hex').slice(0, 10);
 
-function writeIndex(metafile) {
+function writeIndex(output) {
+  const app = output.find((f) => f.type === 'chunk' && f.fileName === 'app.js');
+  const fonts = output.filter((f) => f.type === 'asset' && PRELOAD_FONTS.some((name) => f.names.includes(`${name}.woff2`)));
   const preload = [
-    ...PRELOAD_FONTS.map((f) => `<link rel="preload" href="app/fonts/${f}.woff2" as="font" type="font/woff2" crossorigin>`),
-    ...eagerChunks(metafile).map((path) => `<link rel="modulepreload" href="${path}">`),
+    ...fonts.map((f) => `<link rel="preload" href="${OUT}/${f.fileName}" as="font" type="font/woff2" crossorigin>`),
+    // куски кода, которые app.js импортирует сразу: браузер начнёт качать их вместе с ним
+    ...app.imports.map((path) => `<link rel="modulepreload" href="${OUT}/${path}">`),
   ];
   w('index.html', page(pageHead([
     THEME_SCRIPT,
     '<link rel="icon" href="app/icon.svg" type="image/svg+xml">',
     ...preload,
-    `<link rel="stylesheet" href="app/generated/app.css?v=${version('app/generated/app.css')}">`,
-    `<script type="module" src="app/generated/app.js?v=${version('app/generated/app.js')}"></script>`,
+    `<link rel="stylesheet" href="${OUT}/app.css?v=${version(`${OUT}/app.css`)}">`,
+    `<script type="module" src="${OUT}/app.js?v=${version(`${OUT}/app.js`)}"></script>`,
   ]), r('app/markup.html')));
 }
 
-/** Один файл без сервера: скрипт — iife (финал подгружается из того же файла), шрифты и иконка — внутри */
-async function writeSingleFile() {
-  const [js, css] = await Promise.all([
-    esbuild.build({ ...common, entryPoints: ['app/main.ts'], format: 'iife', write: false }),
-    esbuild.build({ ...common, entryPoints: ['app/styles.css'], loader: { '.woff2': 'dataurl' }, write: false }),
-  ]);
-  const script = js.outputFiles[0].text.replace(/<\/script/gi, '<\\/script');
+function writeSingleFile({ script, style }) {
   const icon = `data:image/svg+xml,${encodeURIComponent(r('app/icon.svg'))}`;
-  mkdirSync(new URL('../dist', import.meta.url), { recursive: true });
-  w('dist/ai-race.html', page(pageHead([
-    THEME_SCRIPT,
-    `<link rel="icon" href="${icon}">`,
-    `<style>\n${css.outputFiles[0].text}</style>`,
-  ]), `${r('app/markup.html')}\n<script>\n${script}</script>`));
-  return script.length;
+  mkdirSync(new URL('dist', ROOT), { recursive: true });
+  w('dist/ai-race.html', page(pageHead([THEME_SCRIPT, `<link rel="icon" href="${icon}">`, `<style>\n${style}</style>`]),
+    `${r('app/markup.html')}\n<script>\n${script}</script>`));
 }
 
-async function buildAll() {
-  writeDataModules();
-  await writeWorker();
-  rmSync(new URL('../app/generated/chunks', import.meta.url), { recursive: true, force: true });
-  const { metafile } = await esbuild.build(siteOptions);
-  writeIndex(metafile);
-  const size = await writeSingleFile();
-  console.log('ok', `${(size / 1024).toFixed(0)} KB js`);
-}
-
-if (!watch) {
-  await buildAll();
-} else {
-  // Пересобираем всё целиком: это меньше секунды, зато никаких «забыл пересобрать»
-  const { watch: watchFiles } = await import('fs');
-  await buildAll();
-  let timer = 0;
-  for (const dir of ['app', 'engine', 'student', 'tools']) {
-    watchFiles(new URL(`../${dir}`, import.meta.url), { recursive: true }, (_event, file) => {
-      if (!file || file.startsWith('generated') || (dir === 'tools' && !file.endsWith('.json'))) return;
-      clearTimeout(timer);
-      timer = setTimeout(() => buildAll().catch((e) => console.error(e.message)), 100);
-    });
-  }
-  console.log('Слежу за файлами. Открой сайт: npm start');
-}
+writeDataModules();
+await writeWorkers();
+const output = await buildSite();
+writeIndex(output);
+const single = await buildSingleFile();
+writeSingleFile(single);
+const size = (name) => readFileSync(new URL(`${OUT}/${name}`, ROOT)).length / 1024;
+console.log('ok', `app.js ${size('app.js').toFixed(0)} KB, один файл ${(single.script.length / 1024).toFixed(0)} KB js`);

@@ -1,4 +1,4 @@
-// Сгенерировано tools/build.mjs из course-key.json: открытый ключ курса.
+// Сгенерировано tools/generate.mjs из course-key.json: открытый ключ курса.
 export const COURSE_KEY = {
   "format": "ai-race/course-key@1",
   "kid": "8e7b925c6607",

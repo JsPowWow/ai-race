@@ -1,6 +1,6 @@
 // Web Worker: записывает файлы гаража в OPFS — личную папку сайта в браузере.
 // Почему в Worker: в старом Safari со страницы в OPFS писать нельзя, а отсюда можно всегда —
-// через createSyncAccessHandle. Собирается в строку (tools/build.mjs → app/generated/car-writer.js).
+// через createSyncAccessHandle. Собирается в строку (tools/generate.mjs → app/generated/car-writer.js).
 // Сообщение: { id, path: ['cars', '<машина>', 'car.json'], text } → ответ { id } или { id, error }.
 
 /** В описаниях TypeScript для страницы этого вызова нет: он есть только в Worker */

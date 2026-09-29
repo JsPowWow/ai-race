@@ -1,8 +1,10 @@
-// Сервер для разработки на Vite (#15): npm run dev:vite.
+// Сервер для разработки на Vite (#15): npm run dev.
 // Браузер грузит исходники (app/main.ts, app/styles.css) как есть, без бандла, и страница обновляется при сохранении.
-// Сайт для GitHub Pages по-прежнему собирает tools/build.mjs (npm run build) — Vite пока только для разработки.
+// Сайт для GitHub Pages собирает tools/build.mjs (npm run build) — тоже Vite, но с настройками там.
 import { readFileSync } from 'node:fs';
 import { defineConfig, type Plugin } from 'vite';
+// @ts-expect-error — обычный JS-модуль из tools/, без описаний типов
+import { writeDataModules, writeWorkers } from './tools/generate.mjs';
 
 /** Страница для разработки: та же разметка, что у сайта (app/markup.html), но вместо бандла — исходники */
 function devPage(): Plugin {
@@ -34,6 +36,28 @@ ${readFileSync('app/markup.html', 'utf8')}
   };
 }
 
+/**
+ * app/generated/*.js (исходники student/, боты, ключ, Workers строкой) — свежие с первой минуты:
+ * пишем их при старте и заново, когда поменялось то, из чего они сделаны
+ */
+function generated(): Plugin {
+  const sources = /\/(student|engine)\/|\/tools\/bots\.json$|\/course-key\.json$|\/app\/(final\/worker|car-writer)\.ts$/;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const regenerate = () => Promise.all([writeDataModules(), writeWorkers()]).catch((e: Error) => console.error(e.message));
+  return {
+    name: 'ai-race-generated',
+    async configureServer(server) {
+      await regenerate();
+      server.watcher.add(['tools/bots.json', 'course-key.json']);
+      server.watcher.on('change', (file) => {
+        if (!sources.test(file)) return;
+        clearTimeout(timer);
+        timer = setTimeout(regenerate, 100);
+      });
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [devPage()],
+  plugins: [devPage(), generated()],
 });

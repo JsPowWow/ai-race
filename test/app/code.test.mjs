@@ -1,5 +1,5 @@
 // Вкладка «Код» и уроки без браузера: проверки кода студентов, отступы в редакторе, тексты уроков.
-// Нужны app/generated/* (npm run build): проверки берут номер строки ошибки у app/student-code.js.
+// Нужны app/generated/* (npm run build или npm run dev): проверки берут номер строки ошибки у app/student-code.ts.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { runTests } from '../../app/tests.ts';

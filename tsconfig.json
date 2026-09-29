@@ -20,7 +20,7 @@
     "noImplicitOverride": true,
     "noFallthroughCasesInSwitch": true,
     // Только то, что можно просто стереть (без enum, namespace, параметров-свойств):
-    // так Node запускает .ts без сборки, а esbuild и Vite собирают каждый файл отдельно
+    // так Node запускает .ts без сборки, а Vite собирает каждый файл отдельно
     "erasableSyntaxOnly": true,
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
