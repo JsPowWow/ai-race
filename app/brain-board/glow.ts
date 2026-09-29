@@ -85,15 +85,21 @@ export function stepGlow(glow: Glow, brain: Brain, trace: Trace, dt: number, now
   smoothNumbers(glow, trace, dt, now);
 }
 
-/** Импульсы бегут по сильным связям: чем сильнее сигнал, тем чаще */
+/** Сколько импульсов в секунду рождает связь с самым сильным сигналом (слабее — реже) */
+const PULSES_PER_SECOND = 0.72;
+
+/**
+ * Импульсы бегут по сильным связям: чем сильнее сигнал, тем чаще. Рождаются по времени, а не по кадрам:
+ * на экране 120 Гц их не вдвое больше, а на паузе (dt = 0) — ни одного нового, и бегущие стоят
+ */
 function movePulses(glow: Glow, dt: number, motion: boolean, rnd: () => number): void {
   const list = glow.pulses;
-  if (motion) {
+  if (motion && dt > 0) {
     glow.signal.forEach((signal, k) => {
       const cols = glow.sizes[k + 1];
       for (let e = 0; e < signal.length && list.length < MAX_PULSES; e++) {
         const v = signal[e];
-        if (Math.abs(v) > 0.5 && rnd() < Math.abs(v) * 0.012) list.push({ k, i: Math.floor(e / cols), j: e % cols, t: 0, v });
+        if (Math.abs(v) > 0.5 && rnd() < Math.abs(v) * PULSES_PER_SECOND * dt) list.push({ k, i: Math.floor(e / cols), j: e % cols, t: 0, v });
       }
     });
   }

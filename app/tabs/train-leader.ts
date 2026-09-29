@@ -16,8 +16,11 @@ const screen = element('.leader-brain .brain-board');
 let board: BrainBoard | null = null;
 let boardAt = performance.now();
 
-/** Показать мозг лидера (null — рой стоит). Зовётся каждый кадр, поэтому страницу трогает, только если что-то поменялось */
-export function showLeaderBrain(lead: Car | null): void {
+/**
+ * Показать мозг лидера (null — роя нет). Зовётся каждый кадр, поэтому страницу трогает, только если что-то поменялось.
+ * running = false — рой на паузе: табло замирает, как стоп-кадр (время для него не идёт, импульсы стоят)
+ */
+export function showLeaderBrain(lead: Car | null, running = true): void {
   if (!fold.open) return; // табло свёрнуто — не считаем и не рисуем
   if (lead && !lead.lastInputs && board) return; // новое поколение ещё не тронулось: держим прошлый кадр, иначе табло мигнёт и страница прыгнет
   const brain = lead?.brain, inputs = lead?.lastInputs, think = lead?.think;
@@ -35,7 +38,7 @@ export function showLeaderBrain(lead: Car | null): void {
   think(inputs, brain);
   const trace = feed.lastTrace as number[][] | null; // TypeScript не знает, что вызов выше его поменял
   const now = performance.now();
-  if (trace) board.frame(trace, [], (now - boardAt) / 1000);
+  if (trace) board.frame(trace, [], running ? (now - boardAt) / 1000 : 0);
   boardAt = now;
 }
 

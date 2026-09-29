@@ -99,3 +99,31 @@ test('теплота: подписи — «+.42» у нейронов, проц�
   stepGlow(glow, brain, trace.map((l) => l.map((v) => -v)), 1 / 60, 50, true, mulberry32(1));
   assert.equal(glow.readout[1][0], before, 'через 50 мс подпись ещё прежняя');
 });
+
+// На паузе роя табло зовут каждый кадр с тем же ходом мысли, но время для него стоит (dt = 0):
+// импульсы не должны рождаться и бежать — иначе кажется, что мозг думает, хотя машина стоит.
+test('импульсы: время стоит — ни новых, ни бегущих; рождаются по времени, а не по кадрам', () => {
+  const glow = createGlow(sizes);
+  const lit = trace.map((layer) => layer.map(() => 1));
+  const random = mulberry32(3);
+  for (let f = 0; f < 30; f++) stepGlow(glow, brain, lit, 1 / 60, f * 16, true, random);
+  const running = glow.pulses.map((p) => p.t);
+  assert.ok(running.length > 0, 'пока время идёт, импульсы бегут');
+  for (let f = 0; f < 300; f++) stepGlow(glow, brain, lit, 0, 500 + f * 16, true, random);
+  assert.deepEqual(glow.pulses.map((p) => p.t), running, 'пауза: те же импульсы на тех же местах');
+  // одна секунда — одинаково импульсов при 60 и 120 кадрах в секунду (в среднем)
+  const perSecond = (fps) => {
+    let born = 0;
+    for (let run = 0; run < 20; run++) {
+      const g = createGlow(sizes), r = mulberry32(run + 1);
+      for (let f = 0; f < fps; f++) {
+        const before = g.pulses.length;
+        stepGlow(g, brain, lit, 1 / fps, f, true, r);
+        born += Math.max(0, g.pulses.length - before);
+      }
+    }
+    return born / 20;
+  };
+  const [at60, at120] = [perSecond(60), perSecond(120)];
+  assert.ok(Math.abs(at120 - at60) < at60 * 0.35, `60 Гц: ${at60}, 120 Гц: ${at120}`);
+});

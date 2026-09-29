@@ -9,7 +9,7 @@ import { canvas, drawScene, paintCar, trafficOn, carAt, setHud, lapText } from '
 import { esc, secs } from '../ui.ts';
 import { element } from '../dom.ts';
 import { train } from './train-settings.ts';
-import { currentSwarm, currentTrack, pickedCars, togglePick, results, trackForGeneration, isYours } from './train-swarm.ts';
+import { currentSwarm, currentTrack, pickedCars, togglePick, results, trackForGeneration, isYours, isRunning } from './train-swarm.ts';
 import { TrainToolbar, SwarmNow } from './train-controls.tsx';
 import { TrainPanel, drawSwarmChart } from './train-panel.tsx';
 import { showLeaderBrain } from './train-leader.ts';
@@ -87,7 +87,7 @@ export const trainTab = {
     });
     for (const car of picked) if (car !== lead) paintCar(car, { color, highlight: true });
     if (lead) paintCar(lead, { color, sensors: true, highlight: picked.includes(lead), number: lead === elite ? 1 : null });
-    showLeaderBrain(lead);
+    showLeaderBrain(lead, isRunning());
     updateTrainFlaps(evo, lead, results().generation);
     setHud([
       `поколение <b>${results().generation + 1}</b>`,
