@@ -125,7 +125,7 @@ export const sizesOf = (config: Pick<Shape, 'sensors' | 'hidden'> = state.config
 export const sameSizes = (a: Shape, b: Shape): boolean => sizesOf(a).join() === sizesOf(b).join();
 
 /** Как называть текущий мозг людям */
-export const brainTitle = (): string => state.brainNote || (state.generation ? `рой, поколение ${state.generation}` : 'свой мозг');
+export const brainTitle = (): string => state.brainNote || 'свой мозг'; // номер поколения — про рой, а не про мозг: рой идёт, а мозг меняют «Взять»
 
 export type { ThinkVariant };
 /** Варианты «мозга» из think.js (студент мог их сломать — тогда пусто) */
@@ -145,6 +145,8 @@ type Events = {
   champion: { by: string };
   /** Обучение сброшено */
   reset: undefined;
+  /** Рой закончил поколение: график, рекорды и номер поколения поменялись (мозг — нет, его берут «Взять») */
+  generation: undefined;
   /** Применён код студента: id файла */
   code: string;
   /** Поменялись сенсоры, слои или вариант мозга */

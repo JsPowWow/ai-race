@@ -9,13 +9,15 @@ import { canvas, drawScene, paintCar, trafficOn, carAt, setHud, lapText } from '
 import { esc, secs } from '../ui.ts';
 import { element } from '../dom.ts';
 import { train } from './train-settings.ts';
-import { currentSwarm, currentTrack, pickedCars, togglePick, results, trackForGeneration } from './train-swarm.ts';
+import { currentSwarm, currentTrack, pickedCars, togglePick, results, trackForGeneration, isYours } from './train-swarm.ts';
 import { TrainToolbar, SwarmNow } from './train-controls.tsx';
 import { TrainPanel, drawSwarmChart } from './train-panel.tsx';
 import { showLeaderBrain } from './train-leader.ts';
 import { updateTrainFlaps } from './train-flaps.tsx';
 import { rivalInfo } from './train-rivals.tsx';
 import { listen } from '@reely/dommy/kit';
+import { Tries } from '../components/tries.tsx';
+import { controlNames } from '../variants.ts';
 
 export { isRunning as isTraining, updateTraining } from './train-swarm.ts';
 export { redrawLeaderBrain } from './train-leader.ts';
@@ -23,6 +25,13 @@ export { redrawLeaderBrain } from './train-leader.ts';
 mount(element('.toolbar[data-for="train"]'), () => <TrainToolbar />);
 mount(element('#swarmNow'), () => <SwarmNow />);
 mount(element('#trainPanel'), () => <TrainPanel />);
+mount(element('#trainTries'), () => (
+  <Tries source="train" empty="Нажми «Старт»: после каждого поколения лучший роя едет контрольный заезд против твоего мозга."
+    control={() => controlNames(trackForGeneration(0))} />
+));
+
+/** Как подписать твою машину: имя из «Профиля» или просто «Ты» */
+const yourName = (): string => state.profile.name.trim() || 'Ты';
 
 /** Лидер: живые важнее разбившихся, дальше — кто дальше уехал */
 const leaderOf = (cars: readonly Car[]): Car | null =>
@@ -70,9 +79,10 @@ export const trainTab = {
       if (car !== lead && car !== elite && !picked.includes(car)) paintCar(car, { color, alpha: car.done ? 0.18 : 0.35, ghost: true });
     }
     if (elite && elite !== lead && !picked.includes(elite)) paintCar(elite, { color, alpha: elite.done ? 0.4 : 0.8, number: 1 });
-    // соперники — своим цветом и с именем: в отбор они не идут, просто едут рядом
+    // твой мозг и соперники — своим цветом и с именем: в отбор они не идут, просто едут рядом
     evo.rivalCars.forEach((car, i) => {
-      const info = evo.rivals[i] && rivalInfo(evo.rivals[i]);
+      const rival = evo.rivals[i];
+      const info = rival && (isYours(rival) ? { color, name: yourName() } : rivalInfo(rival));
       paintCar(car, { color: info?.color ?? color, alpha: car.status === 'crashed' ? 0.5 : 1, label: info?.name ?? null });
     });
     for (const car of picked) if (car !== lead) paintCar(car, { color, highlight: true });

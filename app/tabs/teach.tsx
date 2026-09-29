@@ -3,11 +3,9 @@
 // блок «Мозг» с «Историей» и «Мозг под микроскопом» (network-editor). Трасса — холст: машину двигает
 // и рисует кадровый цикл (frame), он же учит мозг по эпохе за кадр.
 import { mount, signal } from '@reely/dommy';
-import { getTrainingTrack } from '../../engine/track.ts';
 import type { Track } from '../../engine/track.ts';
 import { Car, carReport } from '../../engine/car.ts';
 import type { CarStatus } from '../../engine/car.ts';
-import { withTraffic } from '../../engine/traffic.ts';
 import { sampleOf, worthLearning } from '../../engine/imitation.ts';
 import type { Sample } from '../../engine/imitation.ts';
 import type { Trace } from '../../engine/netviz.ts';
@@ -23,8 +21,10 @@ import { BrainLibrary } from '../components/brain-library.tsx';
 import { DriveBar } from './teach-toolbar.tsx';
 import type { Mode } from './teach-toolbar.tsx';
 import { Runs } from './teach-runs.tsx';
-import { trainStep, redrawLoss } from './teach-learn.tsx';
+import { trainStep, redrawLoss, lessonTrack } from './teach-learn.tsx';
 import { createMicroscope } from './network-editor.tsx';
+import { Tries } from '../components/tries.tsx';
+import { controlNames } from '../variants.ts';
 
 /** После финиша или аварии машина постоит столько (мс) — видно, чем кончилось, — и поедет заново */
 const RESTART_DELAY = 1100;
@@ -42,6 +42,10 @@ const microscope = createMicroscope({
 });
 
 mount(element('#teachToolbar'), () => <DriveBar mode={() => mode.value} onMode={setMode} onRestart={resetCar} />);
+mount(element('#teachTries'), () => (
+  <Tries source="teach" empty="Научи мозг на своих заездах: новый вариант проедет контрольный заезд против твоего мозга, и будет видно, стал ли он лучше."
+    control={() => controlNames(lessonTrack())} />
+));
 mount(element('#teachPanel'), () => (
   <>
     <h2 className="parts-title">Детали набора</h2>
@@ -57,10 +61,10 @@ export const teachTab = {
     microscope.render();
   },
   frame(frameNo: number) {
-    const trained = trainStep();
-    if (trained) {
-      setMode('brain');
-      showBanner(trained, 3200);
+    const learned = trainStep();
+    if (learned) {
+      if (learned.taken) setMode('brain'); // поехал новый мозг — смотри, как он едет
+      showBanner(learned.text, 4200);
     }
     drive();
     if (mode.peek() === 'brain' && frameNo % 3 === 0) microscope.render();
@@ -106,7 +110,7 @@ function drive(): void {
 /** Машина на старт. Недоеханный заезд записываем как «прервал» */
 function resetCar(): void {
   if (recording && car && !car.done) finishRun({ interrupted: true });
-  track = withTraffic(getTrainingTrack(state.drive.trackId), state.drive.traffic);
+  track = lessonTrack();
   const byBrain = mode.peek() === 'brain' && state.champion;
   car = new Car(track, { ...(byBrain ? { brain: state.champion, think: thinkFn() } : {}), sensors: state.config.sensors });
   restartAt = 0;

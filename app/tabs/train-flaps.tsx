@@ -1,5 +1,5 @@
-// «Учится само», табло-флапы у трассы: не весь рой (сто одинаковых машин), а лучший в этом поколении,
-// № 1 прошлого поколения — это ты — и соперники. Новое поколение — табло перещёлкивается заново.
+// «Учится само», табло-флапы у трассы: не весь рой (сто одинаковых машин), а лучший роя в этом поколении,
+// твой мозг (он едет рядом, в отбор не идёт) и соперники. Новое поколение — табло перещёлкивается заново.
 import { mount, signal } from '@reely/dommy';
 import { carReport, type Car } from '../../engine/car.ts';
 import type { Evolution } from '../../engine/evolution.ts';
@@ -9,6 +9,7 @@ import { StageFlaps } from '../components/stage-flaps.tsx';
 import { state } from '../state.ts';
 import { element } from '../dom.ts';
 import { rivalInfo } from './train-rivals.tsx';
+import { isYours } from './train-swarm.ts';
 
 type Key = 'place' | 'name' | 'lap' | 'result';
 const COLUMNS: readonly FlapColumn<Key>[] = [
@@ -53,12 +54,15 @@ export function updateTrainFlaps(evo: Evolution | null, lead: Car | null, genera
   }
   const { track } = evo;
   const me = state.profile;
-  const elite = evo.parent ? evo.cars[0] : null; // № 1 прошлого поколения едет без изменений
   const shown: Shown[] = [];
-  if (elite) shown.push({ id: 'elite', car: elite, name: me.name.trim() || 'Ты', color: me.color, avatar: me.avatar, you: true });
-  if (lead && lead !== elite) shown.push({ id: 'lead', car: lead, name: 'Лучший роя', color: me.color });
+  if (lead) shown.push({ id: 'lead', car: lead, name: 'Лучший роя', color: me.color });
   evo.rivalCars.forEach((car, i) => {
-    const info = evo.rivals[i] && rivalInfo(evo.rivals[i]);
+    const rival = evo.rivals[i];
+    if (rival && isYours(rival)) {
+      shown.push({ id: 'you', car, name: me.name.trim() || 'Ты', color: me.color, avatar: me.avatar, you: true });
+      return;
+    }
+    const info = rival && rivalInfo(rival);
     shown.push({ id: `rival-${info?.id ?? i}`, car, name: info?.name ?? 'Соперник', color: info?.color ?? me.color, avatar: info?.avatar });
   });
   shown.sort((a, b) => ahead(a.car, b.car));

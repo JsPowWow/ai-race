@@ -83,7 +83,7 @@ export function Runs(): Node {
   return (
     <section className="block">
       <h2>Мои заезды</h2>
-      <p className="hint" id="runsHint">Просто езди: заезд записывается сам — от старта до финиша или аварии. Каждый тик — пример «что видят сенсоры → что ты нажал».</p>
+      <p className="hint" id="runsHint">Просто езди: заезд записывается сам — от старта до финиша или аварии. Каждое мгновение (1/60 секунды) — пример «что видят сенсоры → что ты нажал».</p>
       <ol className="runs" id="runsList">
         <For each={rows} by={(run) => run.id}>{(run) => <RunRow run={run} />}</For>
         <Show when={() => !rows().length}>{() => <li className="empty">Пока пусто. Нажми газ — запись начнётся сама.</li>}</Show>

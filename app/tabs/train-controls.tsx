@@ -18,7 +18,7 @@ const SPEEDS: Choice<Speed>[] = [
 const CAMERAS: Choice<Camera>[] = [{ id: 'fit', title: 'Вся трасса' }, { id: 'follow', title: 'За лидером' }];
 const TRACKS: Choice[] = [
   ...TRAINING_TRACKS.map(({ id, name }) => ({ id, title: name })),
-  { id: 'seed', title: 'По seed' },
+  { id: 'seed', title: 'По кодовому слову' },
   { id: 'mix', title: 'Микс: каждый раз новая' },
 ];
 
@@ -35,7 +35,7 @@ export function TrainToolbar(): Node {
       <label className="inline">Трасса{' '}
         <Select id="tTrack" items={TRACKS} value={() => train().trackId} pick={(id) => setTrackSetting('trackId', id)} />
       </label>
-      <label className="inline" id="tSeedRow" hidden={() => train().trackId !== 'seed'}>Seed{' '}
+      <label className="inline" id="tSeedRow" hidden={() => train().trackId !== 'seed'}>Кодовое слово{' '}
         <input type="text" id="tSeed" maxLength={40} value={() => train().seed}
           onChange={(e) => {
             const seed = e.currentTarget.value.trim() || 'тренировка';

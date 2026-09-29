@@ -1,5 +1,6 @@
 // «Я учу», обучение на заездах: мозг учится повторять за тобой — по эпохе за кадр, чтобы было видно,
-// как падает ошибка. Учёба всегда продолжает текущий мозг; готовый ставим через setBrain(), прежний уходит в «Историю».
+// как падает ошибка. Учёба продолжает копию твоего мозга; выученное — новый вариант: контрольный заезд
+// против твоего мозга, и если лучше — «Взять» (app/variants.ts). Сам мозг учёба не меняет.
 import { signal, effect, canvas } from '@reely/dommy';
 import { createBrain, cloneBrain, checkBrain } from '../../engine/brain.ts';
 import type { Brain } from '../../engine/brain.ts';
@@ -10,20 +11,30 @@ import { state, sizesOf, brainTitle, thinkVariant, on } from '../state.ts';
 import { stored } from '../storage.ts';
 import { live } from '../student-code.ts';
 import { trainingSamples } from '../runs.ts';
-import { setBrain } from '../library.ts';
+import { propose } from '../variants.ts';
+import { getTrainingTrack, type Track } from '../../engine/track.ts';
+import { withTraffic } from '../../engine/traffic.ts';
 import { fromEvents } from '../signals.ts';
 import { plural } from './teach-words.ts';
+import { Seg, type Choice } from '../components/controls.tsx';
+
+/** Трасса урока — та, где ты ездишь: на ней (и ещё на одной) вариант едет контрольный заезд */
+export const lessonTrack = (): Track => withTraffic(getTrainingTrack(state.drive.trackId), state.drive.traffic);
 
 /** Меньше примеров — учить не на чем: это пара заездов по «Разминке» */
 export const MIN_SAMPLES = 200;
 
-/** Сколько эпох и какой шаг — помним между заходами */
+/** Сколько раз пройти по всем примерам (эпох) — простыми словами */
+const REPEATS: Choice<number>[] = [{ id: 10, title: 'Мало' }, { id: 20, title: 'Средне' }, { id: 50, title: 'Много' }];
+/** Насколько сильно двигать веса за раз (шаг обучения) */
+const RATES: Choice<number>[] = [{ id: 0.01, title: 'Чуть-чуть' }, { id: 0.05, title: 'Обычно' }, { id: 0.2, title: 'Сильно' }, { id: 1, title: 'Очень' }];
+
+/** Сколько эпох и какой шаг — помним между заходами. Чего нет среди кнопок (старые настройки) — по умолчанию */
 type Settings = { epochs: number; rate: number };
 const isSettings = (v: unknown): v is Settings =>
-  typeof v === 'object' && v !== null && 'epochs' in v && typeof v.epochs === 'number' && 'rate' in v && typeof v.rate === 'number';
+  typeof v === 'object' && v !== null && 'epochs' in v && REPEATS.some((r) => r.id === v.epochs) && 'rate' in v && RATES.some((r) => r.id === v.rate);
 const settings = stored<Settings>('teach', { epochs: 20, rate: 0.05 }, isSettings);
 const change = (next: Partial<Settings>) => (settings.value = { ...settings.peek(), ...next });
-const RATES = [0.01, 0.05, 0.2, 1];
 
 /** Идёт обучение: чему учим (копию мозга — на странице он не меняется, пока не доучится) и на чём */
 type Lesson = { brain: Brain; samples: Sample[]; total: number; runs: number; fresh: boolean; before: string };
@@ -79,11 +90,14 @@ on('config', () => {
   if (now && checkBrain(now.brain, sizesOf())) stop('Обучение остановлено: поменялась форма сети, выученное к ней не подходит.');
 });
 
+/** Что показать, когда доучился: текст баннера и стал ли вариант твоим мозгом */
+export type Learned = { text: string; taken: boolean };
+
 /**
- * Одна эпоха (зовёт кадровый цикл, пока идёт обучение). Доучился — ставим мозг
- * и возвращаем текст для баннера; иначе null.
+ * Одна эпоха (зовёт кадровый цикл, пока идёт обучение). Доучился — вариант идёт на контрольный заезд,
+ * возвращаем, чем кончилось; иначе null.
  */
-export function trainStep(): string | null {
+export function trainStep(): Learned | null {
   const now = lesson.peek();
   if (!now) return null;
   losses.value = [...losses.peek(), trainEpoch(now.brain, now.samples, settings.peek().rate)];
@@ -92,13 +106,19 @@ export function trainStep(): string | null {
   const match = Math.round(agreement(now.brain, now.samples) * 100);
   const switched = state.config.think !== TEACH_THINK;
   const base = now.before.replace(/ \+ твои заезды.*$/, ''); // «… + твои заезды + твои заезды» не копим
-  setBrain(now.brain, {
+  const runs = `${now.runs} ${plural(now.runs, 'заезде', 'заездах', 'заездах')}`;
+  const attempt = propose({
+    brain: now.brain,
     config: { ...state.config, think: TEACH_THINK },
     by: 'teach',
-    generation: now.fresh ? 0 : state.generation,
-    note: now.fresh ? `обучен на ${now.runs} ${plural(now.runs, 'заезде', 'заездах', 'заездах')}` : `${base} + твои заезды`,
-  });
-  return `Мозг повторяет тебя в ${match}% примеров и едет сам${switched ? `, думает теперь «${titleOf(TEACH_THINK)}»` : ''}. Прежний — в «Истории»`;
+    note: now.fresh ? `обучен на ${runs}` : `${base} + твои заезды`,
+  }, lessonTrack(), `учёба на ${runs}`);
+  const repeats = `Мозг повторяет тебя в ${match}% примеров`;
+  if (!attempt) return { text: `${repeats}. Едет так же, как твой`, taken: false };
+  if (attempt.mark === 'first') return { text: `${repeats} и едет сам${switched ? `, думает теперь «${titleOf(TEACH_THINK)}»` : ''}`, taken: true };
+  if (attempt.taken) return { text: `Новый вариант лучше: ${attempt.text}. Взят — прежний в «Истории»`, taken: true };
+  if (attempt.mark === 'better') return { text: `Новый вариант лучше: ${attempt.text}. «Взять» — под трассой`, taken: false };
+  return { text: `${attempt.mark === 'worse' ? 'Новый вариант хуже' : 'Новый вариант едет так же'}: ${attempt.text}. Твой мозг остался прежним`, taken: false };
 }
 
 // ── «Как учится»: график ошибки, эпохи и шаг ──
@@ -125,23 +145,15 @@ export function LearnBox(): Node {
       <summary>Как учится</summary>
       {chart}
       <p className="note" id="lrSummary">{summary}</p>
-      <div className="field">
-        <label htmlFor="epochs">Эпох</label>
-        <input type="range" id="epochs" min="5" max="100" step="5" value={() => String(settings.value.epochs)}
-          onInput={(e) => change({ epochs: +e.currentTarget.value })} />
-        <output id="epochsOut">{() => settings.value.epochs}</output>
+      <div className="field stack">
+        <span className="lbl">Сколько повторять</span>
+        <Seg label="Сколько повторять" items={REPEATS} value={() => settings.value.epochs} pick={(epochs) => change({ epochs })} />
       </div>
-      <div className="field wide">
-        <span className="lbl">Шаг обучения</span>
-        <div className="seg" aria={{ role: 'group', ariaLabel: 'Шаг обучения' }}>
-          {RATES.map((rate) => (
-            <button aria={{ ariaPressed: () => String(settings.value.rate === rate) }} onClick={() => change({ rate })}>
-              {String(rate).replace('.', ',')}
-            </button>
-          ))}
-        </div>
+      <div className="field stack">
+        <span className="lbl">Как сильно поправлять</span>
+        <Seg label="Как сильно поправлять" items={RATES} value={() => settings.value.rate} pick={(rate) => change({ rate })} />
       </div>
-      <p className="hint">Эпоха — один проход по всем примерам. Шаг — насколько сильно двигать веса за раз. Учёба продолжается с текущего мозга: его веса чуть-чуть подвигаются под твои заезды. Вариант мозга станет «Плавный» — обучение на примерах работает с плавными кривыми.</p>
+      <p className="hint">Повторять — сколько раз пройти по всем твоим примерам (один проход — эпоха). Поправлять — насколько сильно двигать веса за раз: слишком сильно — мозг скачет и не учится. Учится копия твоего мозга: что выйдет — новый вариант. Он проедет контрольный заезд, и под трассой будет видно, лучше он или хуже. Вариант мозга станет «Плавный» — обучение на примерах работает с плавными кривыми.</p>
     </details>
   );
 }

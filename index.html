@@ -13,9 +13,9 @@
 <script>try{const t=JSON.parse(localStorage.getItem('ai-race:theme'));if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch{}</script>
 <link rel="icon" href="app/icon.svg" type="image/svg+xml">
 <link rel="preload" href="app/fonts/rubik-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="modulepreload" href="app/generated/chunks/chunk-EXNODQ73.js">
-<link rel="stylesheet" href="app/generated/app.css?v=a5ebb3cedc">
-<script type="module" src="app/generated/app.js?v=03e7209520"></script>
+<link rel="modulepreload" href="app/generated/chunks/chunk-Z44HZQCW.js">
+<link rel="stylesheet" href="app/generated/app.css?v=60a4213e8f">
+<script type="module" src="app/generated/app.js?v=65dabcc16f"></script>
 </head>
 <body>
 <a class="skip-link" href="#content">К содержимому</a>
@@ -181,6 +181,10 @@
 
     <!-- кнопки роя рисует app/tabs/train-controls.tsx -->
     <div class="toolbar" data-for="train" hidden></div>
+
+    <!-- попытки под трассой и «Взять» — app/components/tries.tsx (#24) -->
+    <section class="block tries" data-panel="teach" id="teachTries" hidden aria-label="Попытки «Я учу»"></section>
+    <section class="block tries" data-panel="train" id="trainTries" hidden aria-label="Попытки роя"></section>
 
     <!-- «Рой сейчас» рисует app/tabs/train-controls.tsx -->
     <section class="block swarm-now" data-panel="train" id="swarmNow" hidden aria-label="Рой сейчас"></section>

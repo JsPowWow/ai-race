@@ -7,11 +7,11 @@ import type { Car, CarReport } from '../../engine/car.ts';
 import { cloneBrain } from '../../engine/brain.ts';
 import type { Brain } from '../../engine/brain.ts';
 import { Evolution } from '../../engine/evolution.ts';
-import type { EvolutionOptions } from '../../engine/evolution.ts';
+import type { EvolutionOptions, Rival } from '../../engine/evolution.ts';
 import { MUTATIONS, crossover, fitnessOf } from '../../engine/recipes.ts';
 import { withTraffic } from '../../engine/traffic.ts';
-import { state, type HistoryEntry, type HallEntry, persist, persistSoon, sizesOf, thinkFn, setChampion, on, emit } from '../state.ts';
-import { remember } from '../library.ts';
+import { state, type HistoryEntry, type HallEntry, persist, persistSoon, sizesOf, thinkFn, on, emit } from '../state.ts';
+import { propose } from '../variants.ts';
 import { live, errorLine } from '../student-code.ts';
 import { seedTrack } from '../tracks.ts';
 import { fromEvents } from '../signals.ts';
@@ -59,9 +59,9 @@ export const generationsShown = (): number => shownEnds.value;
 
 /**
  * Итоги роя в машине: график, рекорды, номер поколения и есть ли мозг вообще. Меняются в конце поколения
- * (событие champion) и снаружи: сброс, другая машина гаража, «Взять» рекорд.
+ * (событие generation) и снаружи: сброс, другая машина гаража, «Взять».
  */
-export const results = fromEvents(['champion', 'reset', 'car'], () => ({
+export const results = fromEvents(['generation', 'champion', 'reset', 'car'], () => ({
   history: state.history,
   hall: state.hall,
   generation: state.generation,
@@ -83,6 +83,16 @@ export function trackForGeneration(gen: number, { trackId, seed, traffic }: Trai
 /** Мутация по id; неизвестная (например, из старых настроек) — «Точечная» */
 export const mutationId = (id: string): string => (id in MUTATIONS ? id : 'spot');
 
+/** Твой мозг едет рядом с роем, как соперник: видно, обогнал ли его рой. В отбор он не идёт */
+const yours = new WeakSet<Rival>();
+export const isYours = (rival: Rival): boolean => yours.has(rival);
+function yourRival(): Rival[] {
+  if (!state.champion) return [];
+  const rival: Rival = { brain: state.champion, think: thinkFn(), sensors: { ...state.config.sensors } };
+  yours.add(rival);
+  return [rival];
+}
+
 /** Рецепт и настройки роя — берутся заново с каждого поколения: новый рецепт действует со следующего */
 function recipe(): Omit<EvolutionOptions, 'parent' | 'parent2'> {
   const t = train();
@@ -97,7 +107,7 @@ function recipe(): Omit<EvolutionOptions, 'parent' | 'parent2'> {
     parents: t.parents,
     population: t.population,
     rate: t.rate,
-    rivals: rivals.peek().map((r) => r.rival),
+    rivals: [...yourRival(), ...rivals.peek().map((r) => r.rival)],
   };
 }
 
@@ -146,7 +156,10 @@ function saveOften(): void {
 /** На трассе есть развилка со знаком */
 export const isMaze = (t: Track | null): boolean => (t?.islands.length ?? 0) > 0;
 
-/** Поколение закончилось (или его закончили кнопкой): отбор, лучший — в текущий мозг, и сразу следующее */
+/**
+ * Поколение закончилось (или его закончили кнопкой): отбор и сразу следующее.
+ * Лучший роя — новый вариант: контрольный заезд против твоего мозга, и если он лучше — карточка «Взять» (app/variants.ts)
+ */
 export function endGeneration(): void {
   const evo = evolution.peek();
   const now = track.peek();
@@ -160,7 +173,10 @@ export function endGeneration(): void {
     addToHall(row, report, best); // до setChampion: по его событию страница перечитает и график, и рекорды
     slowdowns.value = parentCar.slowdowns;
     lastGenerationError = errorOf(evo);
-    setChampion(cloneBrain(best), { by: 'train', generation: evo.generation });
+    state.generation = evo.generation;
+    emit('generation');
+    const brain = cloneBrain(best);
+    propose({ brain, config: state.config, by: 'train', note: `рой, поколение ${evo.generation}` }, trackForGeneration(0), `поколение ${evo.generation}`);
     if (now.id === 'snake') emit('did', 'train:snake'); // шаг 1 урока 2 — рой учится на «Змейке»
     if (isMaze(now) && forksPassed(now, parentCar.bestS) >= 2) emit('did', 'train:maze'); // шаг 3 — рой проехал развилку хотя бы на двух кругах
     saveOften();
@@ -187,7 +203,6 @@ export function updateTraining(): void {
 // ── кнопки ──
 
 function setRunning(on: boolean): void {
-  if (on && !running.peek()) remember(); // рой будет менять мозг — сначала сохраним его в «Историю»
   if (on && !evolution.peek()) {
     const evo = new Evolution({ ...recipe(), parent: state.champion && cloneBrain(state.champion) });
     evolution.value = evo;
@@ -235,7 +250,7 @@ export const clearPicked = (): void => {
 on('champion', ({ by }: { by: string }) => {
   const evo = evolution.peek();
   if (by === 'train' || !evo || !state.champion) return;
-  // мозг обучили на «Я учу», поправили руками, вернули из «Истории» или взяли рекорд — рой продолжает с него
+  // взяли вариант «Я учу», поправили руками, вернули из «Истории» или взяли рекорд — рой продолжает с него
   evo.startFrom(state.champion);
   startGeneration(evo);
 });

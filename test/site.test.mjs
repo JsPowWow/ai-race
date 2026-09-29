@@ -117,6 +117,45 @@ test('«Я учу»: заезд с другими глазами виден, о�
   assert.equal(await page.textContent('#wValOut'), '-0.50');
   assert.match(await page.textContent('#netNote'), /поправлен руками/);
   assert.match(await page.textContent('.library .history summary'), /История · 1/, 'обученный мозг до правки — в «Истории»');
+
+  // #24: первый мозг сразу твой — в ленте попыток он синий и взят
+  const marks = page.locator('#teachTries .tries-marks .try-mark');
+  assert.equal(await marks.count(), 1);
+  assert.deepEqual(await marks.first().evaluate((el) => [el.dataset.mark, el.dataset.taken]), ['first', 'true']);
+  // учим ещё раз: мозг уже есть — выученное только вариант, мозг меняется по «Взять»
+  assert.ok(!(await page.isChecked('#teachAutoTake')), '«Брать лучшее само» выключено');
+  await page.click('#teachGo');
+  await page.waitForFunction(() => document.querySelectorAll('#teachTries .tries-marks .try-mark').length === 2, null, { timeout: 10000 });
+  assert.match(await page.textContent('#champChip'), /поправлен руками/, 'сам вариант мозг не меняет');
+  if (!(await page.isVisible('#teachTries .offer'))) assert.match(await page.textContent('#teachTries .tries-last'), /учёба на 1 заезде — (хуже|так же)/);
+  else {
+    await page.click('#teachTries .offer button:has-text("Взять")');
+    assert.match(await page.textContent('#champChip'), /твои заезды/, '«Взять» — и вариант стал твоим мозгом');
+    assert.ok(await page.isHidden('#teachTries .offer'));
+  }
+  await close();
+  assert.deepEqual(problems, []);
+});
+
+test('«Учится само»: рой приносит варианты, твой мозг едет рядом и меняется только по «Взять»', async () => {
+  const { page, problems, close } = await openPage(SCREENS[0]);
+  await page.goto(`${base}#train`);
+  await page.waitForFunction(() => document.body.dataset.tab === 'train');
+  assert.match(await page.textContent('#trainTries .tries-last'), /Нажми «Старт»/);
+  await page.click('.toolbar[data-for="train"] button:has-text("Турбо")');
+  await page.click('#tToggle');
+  await page.waitForFunction(() => document.querySelectorAll('#trainTries .tries-marks .try-mark').length >= 3, null, { timeout: 30000 });
+  await page.click('#tToggle');
+  const marks = page.locator('#trainTries .tries-marks .try-mark');
+  // мозга не было — первый вариант роя сразу твой, дальше — только сравнение
+  assert.deepEqual(await marks.first().evaluate((el) => [el.dataset.mark, el.dataset.taken]), ['first', 'true']);
+  assert.equal(await page.locator('#trainTries .try-mark[data-taken="true"]').count(), 1, 'без «Взять» больше ничего не взято');
+  assert.match(await page.textContent('#champChip'), /рой, поколение 1(?!\d)/);
+  await page.waitForFunction(() => document.querySelectorAll('#trainFlaps .flap-row.you').length === 1, null, { timeout: 5000 }); // твой мозг едет рядом с роем
+  if (await page.isVisible('#trainTries .offer')) {
+    await page.click('#trainTries .offer button:has-text("Взять")');
+    assert.doesNotMatch(await page.textContent('#champChip'), /рой, поколение 1(?!\d)/, 'взяли — мозг сменился');
+  }
   await close();
   assert.deepEqual(problems, []);
 });
