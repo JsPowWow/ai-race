@@ -14,6 +14,7 @@ import type { Entrant } from './race-entrants.tsx';
 import { standings, resultText, nominations } from './race-results.ts';
 import type { Racer, Award } from './race-results.ts';
 import type { FlapRow } from '../components/flap-board.tsx';
+import { flipRows } from '../components/flip-rows.ts';
 
 export const DEFAULT_SEED = 'урок-1';
 /** Как часто обновлять таблицу во время заезда: раз в столько кадров (чаще глаз не успевает) */
@@ -45,6 +46,8 @@ export const started = signal(false);
 /** Таблица и номинации — для страницы */
 export const board = signal<readonly BoardRow[]>([]);
 export const awards = signal<readonly Award[]>([]);
+/** Строки таблицы (race-board.tsx) при обгоне переезжают плавно: таблицу меняем только через boardRows.run */
+export const boardRows = flipRows();
 /** Колонки табло-флапов над трассой */
 export type FlapKey = 'place' | 'name' | 'lap' | 'gap';
 /** Табло-флапы: все по местам (сколько показать, решает табло) */
@@ -122,11 +125,12 @@ function finish(): void {
 function publishBoard(): void {
   const { track } = race;
   if (!track) return;
-  board.value = standings(race.cars).map(({ entrant, car }, i) => ({
+  const rows = standings(race.cars).map(({ entrant, car }, i) => ({
     entrant,
     result: resultText(car, track),
     podium: car.status === 'finished' && i < 3 ? `p${i + 1}` : null,
   }));
+  boardRows.run(() => (board.value = rows));
 }
 
 // ── табло-флапы ──

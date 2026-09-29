@@ -12,7 +12,7 @@ import type { StageResult } from '../../engine/rally.ts';
 import { calc } from './calc.ts';
 import type { Calc } from './calc.ts';
 import { pool, racers, avatarShown } from './works.ts';
-import { stage, replay, watched, boardOrder, query, found, live } from './stream.ts';
+import { stage, replay, watched, boardOrder, query, found, live, boardRows } from './stream.ts';
 import type { FinalEntry } from './entries.ts';
 
 const LIVE_ROWS = 10; // в живой таблице — первая десятка (и найденный участник, если он ниже)
@@ -166,7 +166,10 @@ function Board(): Node {
         <For each={() => pool.value.entries} by={(e) => e.id}>{(entry) => <option value={() => entry().author}>{() => entry().name}</option>}</For>
       </datalist>
       <p className="note" id="fCounts">{() => view().counts}</p>
-      <ol className="board fboard" id="fBoard" elementRef={(ol) => (list = ol)}>
+      <ol className="board fboard" id="fBoard" elementRef={(ol) => {
+        list = ol;
+        boardRows.attach(ol); // обгоны и переход к общему зачёту — строки переезжают, а не прыгают
+      }}>
         <For each={() => view().lines} by={(line) => line.key}>
           {(line) => {
             const first = untracked(line);

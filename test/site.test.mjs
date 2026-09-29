@@ -593,8 +593,13 @@ test('финал: работы → расчёт → этап идёт, табл�
   await page.click('#fPlay');
   assert.equal(await page.textContent('#fPlay'), 'Дальше', 'пауза посреди этапа');
 
+  const liveOrder = await page.$$eval('#fBoard li .kind', (list) => list.map((k) => k.textContent));
   await page.click('#fStages button:nth-child(2)');
+  const moving = await page.$$eval('#fBoard li', (rows) => rows.filter((li) => li.getAnimations().length).length);
   assert.equal(await page.textContent('#fBoardTitle'), 'Общий зачёт после 1 этапа');
+  const standingsOrder = await page.$$eval('#fBoard li .kind', (list) => list.map((k) => k.textContent));
+  // строки не прыгают, а переезжают: если порядок поменялся, сдвинувшиеся строки анимируются (flip)
+  if (liveOrder.join() !== standingsOrder.join()) assert.ok(moving > 0, 'строки переезжают на новые места');
   assert.equal(await page.$$eval('#fBoard .pos', (list) => list.length), 4);
   const flapPlaces = await page.$$eval('#finalFlaps [data-col="place"] .sr-only', (cells) => cells.map((c) => c.textContent).filter(Boolean));
   assert.equal(flapPlaces.length, 4, 'табло-флапы показывают общий зачёт');

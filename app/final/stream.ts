@@ -1,7 +1,7 @@
 // Финал, шаг 3: шоу. Показываем посчитанную запись этапа: отсчёт, машины на трассе, HUD, баннер в конце.
 // Тик меняется каждый кадр, поэтому он — обычная переменная; таблице раз в BOARD_EVERY кадров
 // отдаём порядок машин (boardOrder), а не перестраиваем её на каждый кадр.
-import { computed, effect, signal, untracked } from '@reely/dommy';
+import { batch, computed, effect, signal, untracked } from '@reely/dommy';
 import { isSuperfinal, stageLabel, trafficSnapshot } from '../../engine/rally.ts';
 import { getTrainingTrack } from '../../engine/track.ts';
 import { startCountdown, stopCountdown, updateCountdown } from '../countdown.ts';
@@ -13,8 +13,12 @@ import { calc } from './calc.ts';
 import type { Calc } from './calc.ts';
 import { pool, racers, avatarsOn, hiddenAvatars } from './works.ts';
 import type { FinalEntry } from './entries.ts';
+import { flipRows } from '../components/flip-rows.ts';
 
 const BOARD_EVERY = 6; // обновлять таблицу раз в столько кадров
+
+/** Строки таблицы финала (board.tsx) переезжают плавно: порядок меняем только через boardRows.run */
+export const boardRows = flipRows();
 
 /** ready — стоим (в начале или после финиша этапа), counting — «3… 2… 1…», running — едут, paused — пауза посреди этапа */
 export type Phase = 'ready' | 'counting' | 'running' | 'paused';
@@ -71,10 +75,12 @@ export function selectStage(i: number, done = calc.peek()): void {
   }
   const next = new StageReplay(done.tracks[i], rows);
   tick = 0;
-  stage.value = i;
-  replay.value = next;
-  phase.value = 'ready';
-  boardOrder.value = next.order(0);
+  boardRows.run(() => batch(() => {
+    stage.value = i;
+    replay.value = next;
+    phase.value = 'ready';
+    boardOrder.value = next.order(0);
+  }));
 }
 
 /** Кнопка «Старт этапа» / «Пауза» / «Дальше» */
@@ -102,10 +108,13 @@ export function play(): void {
 
 function stageEnded(done: Calc, now: StageReplay): void {
   const i = stage.peek();
-  phase.value = 'ready';
-  watched.value = new Set([...watched.peek(), i]);
   const order = now.order(tick);
-  boardOrder.value = order;
+  // этап доехал — таблица переходит к общему зачёту: строки переезжают на свои новые места
+  boardRows.run(() => batch(() => {
+    phase.value = 'ready';
+    watched.value = new Set([...watched.peek(), i]);
+    boardOrder.value = order;
+  }));
   if (isSuperfinal(i)) {
     const winner = done.final[0]?.entry;
     showBanner(winner ? `Победитель финала — ${winner.name} (@${winner.author})!` : 'Финал завершён', 6000);
@@ -127,7 +136,7 @@ export function frame(frameNo: number): void {
   if (phase.peek() === 'running') {
     tick = Math.min(tick + speed.peek(), now.length);
     if (tick >= now.length) stageEnded(done, now);
-    else if (frameNo % BOARD_EVERY === 0) boardOrder.value = now.order(tick);
+    else if (frameNo % BOARD_EVERY === 0) boardRows.run(() => (boardOrder.value = now.order(tick)));
   }
   drawReplay(now);
 }
