@@ -4,6 +4,7 @@ import { createBrain, cloneBrain, brainSizes } from '../engine/brain.ts';
 import type { Brain } from '../engine/brain.ts';
 import type { Controls, CarReport } from '../engine/car.ts';
 import { errorLine, type StudentFiles, type FileId } from './student-code.ts';
+import { messageOf } from '../engine/errors.ts';
 
 export type { StudentFiles, FileId };
 
@@ -194,7 +195,7 @@ export function runTests(id: string, mod: unknown): TestResult[] {
     } catch (e) {
       if (e instanceof Fail) return { name: t.name, status: t.advice ? 'advice' : 'fail', msg: e.message };
       const line = errorLine(e);
-      const text = e instanceof Error ? e.message : String(e); // студент мог бросить и не Error: throw 'упс'
+      const text = messageOf(e); // студент мог бросить и не Error: throw 'упс'
       return { name: t.name, status: 'fail', msg: `ошибка${line ? ` в строке ${line}` : ''}: ${text}` };
     }
   });

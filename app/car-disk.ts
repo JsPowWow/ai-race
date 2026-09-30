@@ -4,6 +4,7 @@
 // Папку выбирает человек (showDirectoryPicker). Доступ к ней браузер помнит через «ручку» —
 // её можно положить только в IndexedDB (в localStorage не влезет: это не текст).
 // После перезапуска браузер может снова спросить разрешение — это можно только по нажатию кнопки.
+import { isSomeFunction } from '@reely/basics';
 import { folderStore, type CarStore, type WriteFile } from './car-store.ts';
 
 /** Разрешение на папку: granted — пишем, prompt — надо спросить (только по нажатию), denied — нет */
@@ -19,7 +20,7 @@ const SHELF = 'handles';
 const KEY = 'garage-folder';
 
 /** Есть ли в браузере выбор папки */
-export const diskSupported = () => typeof win.showDirectoryPicker === 'function';
+export const diskSupported = () => isSomeFunction(win.showDirectoryPicker);
 
 /** Одна маленькая база IndexedDB с одной полкой: ключ → значение */
 function withShelf<T>(mode: IDBTransactionMode, work: (shelf: IDBObjectStore) => IDBRequest<T>): Promise<T> {

@@ -8,6 +8,7 @@ import { driveRecorded, failedResult, stageTrack } from '../../engine/rally.ts';
 import type { StageResult } from '../../engine/rally.ts';
 import type { Track } from '../../engine/track.ts';
 import type { FinalEntry } from './entries.ts';
+import { messageOf } from '../../engine/errors.ts';
 
 /** Что нужно расчёту от участника: мозг, сенсоры и чем он думает */
 export type JobEntry = Pick<FinalEntry, 'id' | 'brain' | 'sensors' | 'thinkId' | 'code'>;
@@ -60,7 +61,7 @@ export function runJob({ entry, seed }: Job, { allowCode }: { allowCode: boolean
   try {
     think = thinkFor(entry, allowCode);
   } catch (e) {
-    return failedResult('error', `код не запустился: ${e instanceof Error ? e.message : String(e)}`, maxTicksFor(track));
+    return failedResult('error', `код не запустился: ${messageOf(e)}`, maxTicksFor(track));
   }
   return driveRecorded(track, { brain: entry.brain, think, sensors: entry.sensors });
 }

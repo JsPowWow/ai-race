@@ -2,6 +2,7 @@
 // Почему в Worker: в старом Safari со страницы в OPFS писать нельзя, а отсюда можно всегда —
 // через createSyncAccessHandle. Собирается в строку (tools/generate.mjs → app/generated/car-writer.js).
 // Сообщение: { id, path: ['cars', '<машина>', 'car.json'], text } → ответ { id } или { id, error }.
+import { messageOf } from '../engine/errors.ts';
 
 /** В описаниях TypeScript для страницы этого вызова нет: он есть только в Worker */
 type SyncFileHandle = FileSystemFileHandle & {
@@ -29,5 +30,5 @@ async function write(path: string[], text: string): Promise<void> {
 
 self.onmessage = ({ data: { id, path, text } }: MessageEvent<WriteRequest>) => {
   queue = queue.then(() => write(path, text))
-    .then(() => self.postMessage({ id }), (e: unknown) => self.postMessage({ id, error: e instanceof Error ? e.message : String(e) }));
+    .then(() => self.postMessage({ id }), (e: unknown) => self.postMessage({ id, error: messageOf(e) }));
 };

@@ -18,6 +18,7 @@ import { runs, setRuns, legacyRuns } from './runs.ts';
 import { diskSupported, savedFolder, pickFolder, folderAccess, forgetFolder, diskStore } from './car-disk.ts';
 import { load, save, remove, compactJson, usedBytes } from './storage.ts';
 import { listen } from '@reely/dommy/kit';
+import { messageOf } from '../engine/errors.ts';
 
 export const MAX_CARS = 12;
 const CAR_FORMAT = 'ai-race/garage-car@1';  // car.json: машина без «Истории»
@@ -64,7 +65,6 @@ function opened(): CarStore {
 }
 
 const newId = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
-const messageOf = (e: unknown): string => (e instanceof Error ? e.message : String(e));
 const CAR_FIELDS = CAR_KEYS.filter((key) => key !== 'versions');
 /** Копия нужных полей машины: в файл и из файла — без общих ссылок с state */
 const pick = (source: Partial<CarData>, keys: (keyof CarData)[]): Partial<CarData> =>

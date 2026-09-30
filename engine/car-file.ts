@@ -1,10 +1,11 @@
 // Файл машины для гонки: сенсоры, слои, вариант мозга, веса — и немного украшений (цвет, аватар).
 // Здесь только проверка: модуль не знает ни про страницу, ни про код студента,
 // поэтому его используют и вкладки, и расчёт финала в Web Worker, и скрипты в tools/.
-import { isPlainObject } from '@reely/basics';
+import { hasSome, isPlainObject, isString } from '@reely/basics';
 import { layerSizes, checkBrain, LIMITS, type Brain } from './brain.ts';
 import { rayCount, BACK_SPREAD, type Sensors } from './car.ts';
 import { BUDGET, cost } from './build.ts';
+import { messageOf } from './errors.ts';
 
 // car@3 — мозг с памятью и дорожным знаком: сенсоры мгновение назад, знак и заметки (см. engine/brain.ts).
 // Мозги car@1 и car@2 к ней не подходят: у них другое число входов.
@@ -25,8 +26,8 @@ export const AVATAR_MAX = 8000; // символов SVG — хватит на п
  * Возвращает строку SVG или null (аватара нет). Бросает Error, если аватар плохой.
  */
 export function checkAvatar(svg: unknown): string | null {
-  if (svg === undefined || svg === null || svg === '') return null;
-  if (typeof svg !== 'string') throw new Error('аватар должен быть строкой с SVG');
+  if (!hasSome(svg) || svg === '') return null;
+  if (!isString(svg)) throw new Error('аватар должен быть строкой с SVG');
   const text = svg.trim();
   if (text.length > AVATAR_MAX) throw new Error(`аватар больше ${AVATAR_MAX} символов — упрости картинку`);
   if (!/^(<\?xml[^>]*>\s*)?<svg[\s>]/i.test(text) || !/<\/svg>\s*$/i.test(text)) throw new Error('аватар должен быть SVG: <svg …>…</svg>');
@@ -54,7 +55,7 @@ export type ParsedCar = {
 /** Проверить файл участника. Бросает Error с понятным текстом */
 export function parseCarFile(input: unknown): ParsedCar {
   const file: RawCarFile = isPlainObject(input) ? input : {};
-  if (typeof file.format === 'string' && OLD_FORMATS.includes(file.format)) {
+  if (isString(file.format) && OLD_FORMATS.includes(file.format)) {
     throw new Error(`${String(file.name || 'Машина').slice(0, NAME_MAX)}: файл старого формата (мозг без знака) — обучи мозг заново и сохрани файл`);
   }
   if (file.format !== FORMAT) {
@@ -63,12 +64,12 @@ export function parseCarFile(input: unknown): ParsedCar {
   const name = String(file.name || 'Без имени').trim().slice(0, NAME_MAX) || 'Без имени';
   const fail = (msg: string): never => { throw new Error(`${name}: ${msg}`); };
 
-  const color = typeof file.color === 'string' && /^#[0-9a-f]{6}$/i.test(file.color) ? file.color.toLowerCase() : null;
+  const color = isString(file.color) && /^#[0-9a-f]{6}$/i.test(file.color) ? file.color.toLowerCase() : null;
   let avatar = null;
   try {
     avatar = checkAvatar(file.avatar);
   } catch (e) {
-    fail(e instanceof Error ? e.message : String(e));
+    fail(messageOf(e));
   }
 
   const s = file.sensors ?? {};
@@ -98,7 +99,7 @@ export function parseCarFile(input: unknown): ParsedCar {
   const thinkId = String(file.think ?? '');
   let code = null;
   if (thinkId === 'mine') {
-    if (typeof file.thinkSource !== 'string' || !file.thinkSource.trim()) return fail('вариант «Мой», но нет thinkSource');
+    if (!isString(file.thinkSource) || !file.thinkSource.trim()) return fail('вариант «Мой», но нет thinkSource');
     code = file.thinkSource.slice(0, CODE_MAX);
   }
   return { name, color, avatar, sensors, sizes, brain: file.brain as Brain, thinkId, code }; // мозг проверен checkBrain выше

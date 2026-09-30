@@ -14,6 +14,7 @@ import type { Calc } from './calc.ts';
 import { pool, racers, avatarShown } from './works.ts';
 import { stage, replay, watched, boardOrder, query, found, live, boardRows } from './stream.ts';
 import type { FinalEntry } from './entries.ts';
+import { messageOf } from '../../engine/errors.ts';
 
 const LIVE_ROWS = 10; // в живой таблице — первая десятка (и найденный участник, если он ниже)
 
@@ -192,7 +193,7 @@ async function save(note: { value: string }, filename: string, make: (done: Calc
     note.value = `Сохранено: ${filename}`;
   } catch (e) {
     const declined = typeof e === 'object' && e !== null && 'code' in e && e.code === 'declined';
-    note.value = declined ? 'Скачивание отменено.' : `Не получилось сохранить: ${e instanceof Error ? e.message : String(e)}`;
+    note.value = declined ? 'Скачивание отменено.' : `Не получилось сохранить: ${messageOf(e)}`;
   }
 }
 

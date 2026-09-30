@@ -5,6 +5,7 @@ import { showBanner } from './stage.ts';
 import { $$, isTyping } from './ui.ts';
 import type { Controls } from '../engine/car.ts';
 import { listen } from '@reely/dommy/kit';
+import { messageOf } from '../engine/errors.ts';
 
 let target: Controls | null = null; // пульт машины, которой рулят руками
 let onPadTouch: (() => void) | null = null;
@@ -20,7 +21,7 @@ function press(key: string, down: boolean): boolean {
   try {
     return !!live.controls.handleKey(key, down, target);
   } catch (e) {
-    showBanner(`Ошибка в handleKey(): ${e instanceof Error ? e.message : String(e)}`, 3000);
+    showBanner(`Ошибка в handleKey(): ${messageOf(e)}`, 3000);
     return false;
   }
 }

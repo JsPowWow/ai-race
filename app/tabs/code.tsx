@@ -9,6 +9,7 @@ import type { TestResult, TestStatus } from '../tests.ts';
 import { emit } from '../state.ts';
 import { element } from '../dom.ts';
 import { indentEdit } from '../indent.ts';
+import { messageOf } from '../../engine/errors.ts';
 
 type FileMeta = (typeof FILES)[number];
 
@@ -129,7 +130,7 @@ function replaceText(start: number, end: number, insert: string, selStart: numbe
 /** Понятное объяснение самых частых ошибок */
 function explain(e: unknown): string {
   const kind = (e as { kind?: string } | null)?.kind; // CodeError из student-code.js знает, какая это ошибка
-  const text = e instanceof Error ? e.message : String(e);
+  const text = messageOf(e);
   if (kind === 'syntax') return 'Код написан с ошибкой: проверь скобки, запятые и кавычки в этой строке или строкой выше.';
   if (kind === 'contract') return 'Файл должен экспортировать нужную функцию — например, export function fitness(car) { … }.';
   if (/is not defined/.test(text)) return 'Такого имени нет: опечатка или переменная не объявлена. Внешние объекты вроде window и fetch здесь отключены.';
@@ -143,7 +144,7 @@ function showError(e: unknown): void {
   const line = errorLine(e);
   error.value = {
     line,
-    message: e instanceof Error ? e.message : String(e),
+    message: messageOf(e),
     hint: explain(e),
     lineText: line ? (editor.value.split('\n')[line - 1] ?? '') : '',
   };

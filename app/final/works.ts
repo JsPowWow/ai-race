@@ -7,6 +7,7 @@ import { COURSE_KEY } from '../generated/course-key.js';
 import { saveFile } from '../download.ts';
 import { buildEntries, openSealedFiles } from './entries.ts';
 import type { SourceFile, Works } from './entries.ts';
+import { messageOf } from '../../engine/errors.ts';
 
 /** Работы и сколько было запечатанных файлов: открыто, ждут ключа */
 export type Pool = Works & { sealed: number; opened: number; locked: number };
@@ -65,7 +66,7 @@ export async function chooseKey(file: File): Promise<void> {
   } catch (e) {
     // текст ошибки — наш или от JSON.parse; сам ключ в него не попадает
     const still = courseKey ? ` Остаётся ключ ${courseKey.kid}.` : '';
-    keyNote.value = { text: `Не подошло: ${e instanceof Error ? e.message : String(e)}.${still}`, error: true };
+    keyNote.value = { text: `Не подошло: ${messageOf(e)}.${still}`, error: true };
   }
 }
 
@@ -77,7 +78,7 @@ export async function makeNewKeys(): Promise<void> {
     await saveFile('course-key.json', `${JSON.stringify(publicFile, null, 2)}\n`);
     newKeysNote.value = `Готово, ключ ${publicFile.kid}. Секретный — сохраните у кураторов. course-key.json — замените в репозитории и пересоберите сайт.`;
   } catch (e) {
-    newKeysNote.value = `Не получилось: ${e instanceof Error ? e.message : String(e)}`;
+    newKeysNote.value = `Не получилось: ${messageOf(e)}`;
   }
 }
 

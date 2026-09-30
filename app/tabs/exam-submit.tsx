@@ -6,6 +6,7 @@ import { canDownload, saveFile } from '../download.ts';
 import { sealCar } from '../../engine/seal.ts';
 import { COURSE_KEY } from '../generated/course-key.js';
 import { LoginField, currentLogin, loginLooksValid } from './exam-login.tsx';
+import { messageOf } from '../../engine/errors.ts';
 
 const CAR_FILE_NAME = 'car.json';
 const SEALED_FILE_NAME = 'car.sealed.json';
@@ -43,7 +44,7 @@ async function seal(): Promise<void> {
     emit('did', 'sealed');
     message.value = `Сохранено: ${SEALED_FILE_NAME}. Его и сдавай пул-реквестом. Открыть его могут только кураторы.`;
   } catch (e) {
-    message.value = failure(e, `Не получилось: ${e instanceof Error ? e.message : e}`);
+    message.value = failure(e, `Не получилось: ${messageOf(e)}`);
   }
 }
 

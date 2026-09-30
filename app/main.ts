@@ -1,4 +1,5 @@
 // AI Race — точка входа: вкладки, строка чемпиона и кадровый цикл.
+import { isString } from '@reely/basics';
 import { readPalette } from '../engine/render.ts';
 import { drawChart } from '../engine/netviz.ts';
 import { checkBrain, type Brain } from '../engine/brain.ts';
@@ -21,6 +22,7 @@ import { introTab, redrawIntro } from './tabs/intro.tsx';
 import { teachTab, redrawLoss, renderNetwork } from './tabs/teach.tsx';
 import { profileTab, redrawProfileBrain } from './tabs/profile.tsx';
 import { listen } from '@reely/dommy/kit';
+import { messageOf } from '../engine/errors.ts';
 
 /** Вкладка: enter() — её открыли, frame() — нарисовать кадр (зовётся, пока она открыта) */
 export type Tab = { enter(): void; frame(frameNo: number): void };
@@ -115,7 +117,7 @@ function renderChampion(): void {
     }
     if (isTraining()) parts.push(' · ', bold('рой учит'));
   }
-  const text = parts.map((p) => (typeof p === 'string' ? p : p.textContent)).join('');
+  const text = parts.map((p) => (isString(p) ? p : p.textContent)).join('');
   if (text === chipText) return; // зовём дважды в секунду — страницу трогаем, только когда текст другой
   chipText = text;
   chip.replaceChildren(...parts);
@@ -134,7 +136,7 @@ function frame(): void {
     if (frameNo % 30 === 0) renderChampion();
   } catch (e) {
     console.error(e);
-    showBanner(`Ошибка: ${e instanceof Error ? e.message : String(e)}`, 3000);
+    showBanner(`Ошибка: ${messageOf(e)}`, 3000);
   }
   requestAnimationFrame(frame);
 }
@@ -178,7 +180,7 @@ readPalette();
 // Сначала садимся в свою машину гаража (хранилище браузера отвечает не сразу), потом открываем вкладку
 startGarage().catch((e: unknown) => {
   console.error(e);
-  showBanner(`Гараж не открылся: ${e instanceof Error ? e.message : String(e)}`, 5000);
+  showBanner(`Гараж не открылся: ${messageOf(e)}`, 5000);
 }).finally(() => {
   migrateOldData();
   renderChampion();

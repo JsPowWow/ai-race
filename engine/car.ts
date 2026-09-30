@@ -1,4 +1,5 @@
 // Машина: физика, сенсоры, столкновения, прогресс.
+import { hasSome } from '@reely/basics';
 import { clamp, lerp, segmentT } from './utils.ts';
 import { castSegment, projectProgress, pointAt, signAt, zoneAt, freeSide, SLOW_SPEED, type Track, type Side } from './track.ts';
 import { trafficAt, type TrafficSpot } from './traffic.ts';
@@ -81,7 +82,7 @@ export function rays({ count, spread, length, back = 0, backLength = 0, backSpre
 export const rayCount = (sensors: Sensors): number => sensors.count + (sensors.back ?? 0);
 
 /** Нажатие от 0 до 1; всё, что не число (NaN, undefined из кривого think), — «не нажато» */
-const safe = (v: number | undefined): number => (v !== undefined && Number.isFinite(v) ? clamp(v, 0, 1) : 0);
+const safe = (v: number | undefined): number => (hasSome(v) && Number.isFinite(v) ? clamp(v, 0, 1) : 0);
 
 export class Car {
   x: number; y: number; angle: number; speed: number;

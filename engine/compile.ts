@@ -6,6 +6,7 @@
 //  • в финале чужой код выполняется в Web Worker (app/final/worker.ts): там нет страницы,
 //    хранилища и cookies, а зависший расчёт просто останавливается.
 // Опасные глобальные имена подменены на undefined — от случайностей и простых шалостей, не от взлома.
+import { isSomeFunction } from '@reely/basics';
 import { lerp, randomBetween, randomGauss, sigmoid, clamp } from './utils.ts';
 
 export const BLOCKED = [
@@ -36,6 +37,6 @@ export type StudentFunction = (...args: unknown[]) => unknown;
 export function compileMineThink(src: string): StudentFunction {
   const variants = compileSource(src).thinkVariants as { mine?: { think?: unknown } } | undefined;
   const think = variants?.mine?.think;
-  if (typeof think !== 'function') throw new Error('в коде нет thinkVariants.mine.think');
+  if (!isSomeFunction(think)) throw new Error('в коде нет thinkVariants.mine.think');
   return think as StudentFunction; // проверили выше: это функция
 }

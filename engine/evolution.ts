@@ -1,9 +1,11 @@
 // Эволюция: поколение машин, отбор лучшей, мутации.
+import { hasSome } from '@reely/basics';
 import { Car, carReport, maxTicksFor, type Sensors, type Think, type CarReport } from './car.ts';
 import { createBrain, cloneBrain, checkBrain, type Brain } from './brain.ts';
 import { trafficAt, type TrafficSpot } from './traffic.ts';
 import type { Track } from './track.ts';
 import type { Mutate } from './recipes.ts';
+import { messageOf } from './errors.ts';
 
 /** Ребёнок от двух родителей (функция студента: что вернёт — проверяем) */
 export type Crossover = (mom: Brain, dad: Brain) => unknown;
@@ -54,7 +56,6 @@ function brainOf(car: Car): Brain {
 }
 
 /** Текст ошибки из чего угодно, что бросил код студента */
-const messageOf = (e: unknown): string => (e instanceof Error ? e.message : String(e));
 
 export class Evolution {
   sizes: number[]; sensors: Sensors;
@@ -113,7 +114,7 @@ export class Evolution {
     this.cars = [];
     this.errors = [];
     this.lastError = null;
-    const pool = this.pool ?? [this.parent, this.parent2].filter((b) => b !== null);
+    const pool = this.pool ?? [this.parent, this.parent2].filter(hasSome);
     const two = this.parents === 2 && this.crossover && pool.length > 1;
     const any = (): Brain => pool[Math.floor(Math.random() * pool.length)];
     for (let i = 0; i < this.population; i++) {

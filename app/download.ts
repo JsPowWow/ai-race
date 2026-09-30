@@ -1,6 +1,7 @@
 // Сохранить файл: внутри Claude — через платформу, на обычном сайте — ссылкой на Blob.
+import { isSomeFunction } from '@reely/basics';
 
-const platform = typeof window.claude?.use === 'function'
+const platform = isSomeFunction(window.claude?.use)
   ? window.claude.use('downloads').catch(() => null)
   : Promise.resolve(undefined); // undefined — обычный сайт, скачивание ссылкой работает всегда
 

@@ -1,6 +1,7 @@
 // Расчёт финала в нескольких Web Worker сразу.
 // Каждый Worker берёт по одной задаче; если задача не отвечает JOB_TIMEOUT_MS — Worker уничтожаем,
 // участник получает статус 'hung', а на его место запускаем новый Worker.
+import { isSomeFunction } from '@reely/basics';
 import { failedResult } from '../../engine/rally.ts';
 import type { StageResult } from '../../engine/rally.ts';
 import { WORKER_SOURCE } from '../generated/race-worker.js';
@@ -22,7 +23,7 @@ let mode: ComputeMode | null = null;
 export function computeMode(): ComputeMode {
   if (mode) return mode;
   mode = 'page';
-  if (typeof Worker === 'function' && typeof Blob === 'function') {
+  if (isSomeFunction(globalThis.Worker) && isSomeFunction(globalThis.Blob)) {
     try {
       workerUrl = URL.createObjectURL(new Blob([WORKER_SOURCE], { type: 'text/javascript' }));
       new Worker(workerUrl).terminate();

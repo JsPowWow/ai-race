@@ -12,6 +12,7 @@ import type { Mutate } from '../engine/recipes.ts';
 import type { Fitness } from '../engine/evolution.ts';
 import * as acorn from 'acorn';
 import { load, save, remove } from './storage.ts';
+import { messageOf } from '../engine/errors.ts';
 
 /** Вариант «мозга» из student/think.js: название, подсказка и сама функция */
 export type ThinkVariant = { title?: string; hint?: string; think: (inputs: number[], brain: Brain) => number[] };
@@ -95,7 +96,6 @@ export class CodeError extends Error {
   }
 }
 
-const messageOf = (e: unknown): string => (e instanceof Error ? e.message : String(e));
 
 /** Синтаксис проверяем парсером: он, в отличие от new Function, знает номер строки */
 function checkSyntax(src: string): void {

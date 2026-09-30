@@ -9,6 +9,7 @@ import { showBanner, onTrackDrop } from '../stage.ts';
 import { Avatar } from '../components/avatar.tsx';
 import { Review } from './race-review.tsx';
 import { canCross, childFile, crossNote } from './race-cross.ts';
+import { messageOf } from '../../engine/errors.ts';
 
 /** Откуда участник */
 export type Source = 'bot' | 'mine' | 'file' | 'cross';
@@ -37,7 +38,6 @@ const reviewingId = signal<number | null>(null);
 const errors = signal<readonly string[]>([]);
 
 const byId = (id: number | null) => entrants.value.find((e) => e.id === id);
-const messageOf = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 // ── добавить и убрать ──
 

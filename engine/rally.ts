@@ -7,6 +7,7 @@ import { Car, maxTicksFor, type CarStatus, type Driver } from './car.ts';
 import { generateTrack, type Track } from './track.ts';
 import { withTraffic, trafficAt, type TrafficSpot } from './traffic.ts';
 import { clamp } from './utils.ts';
+import { messageOf } from './errors.ts';
 
 export const STAGES = 3;
 export const SUPERFINAL_SIZE = 10;
@@ -70,7 +71,7 @@ export function driveRecorded(track: Track, driver: Driver): StageResult {
       if (car.ticks % REC_EVERY === 0 || car.done) record();
     }
   } catch (e) {
-    message = (e instanceof Error ? e.message : String(e)).slice(0, 200);
+    message = messageOf(e).slice(0, 200);
   }
   return {
     status: message !== null ? 'error' : car.status,

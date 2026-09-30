@@ -7,6 +7,7 @@ import { fromCarFile } from '../car-file.ts';
 import { CAR_COLORS } from '../state.ts';
 import { BOTS } from '../generated/bots.js';
 import { Avatar } from '../components/avatar.tsx';
+import { messageOf } from '../../engine/errors.ts';
 
 /** Соперник на странице: кто он и как выглядит; сам заезд — в rival */
 export type RivalEntry = { id: string; name: string; color: string; avatar: string | null; rival: Rival };
@@ -31,7 +32,6 @@ function toRival(file: unknown, id: string): RivalEntry {
   return entry;
 }
 
-const messageOf = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 /** Бот в соперниках — снять, нет — добавить */
 function toggleBot(index: number, on: boolean): void {
