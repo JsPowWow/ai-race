@@ -1,5 +1,6 @@
 // Сохранить файл: внутри Claude — через платформу, на обычном сайте — ссылкой на Blob.
 import { isSomeFunction } from '@reely/basics';
+import { slugify } from '@reely/strings';
 
 const platform = isSomeFunction(window.claude?.use)
   ? window.claude.use('downloads').catch(() => null)
@@ -20,5 +21,5 @@ export async function saveFile(filename: string, data: string, type = 'applicati
   setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }
 
-/** Имя файла из свободного текста */
-export const safeFileName = (text: string): string => text.replace(/[^\p{L}\p{N}_-]+/gu, '_').replace(/^_+|_+$/g, '') || 'file';
+/** Имя файла из свободного текста: «Моя Машина №1» → «моя-машина-1»; одни значки — просто «file» */
+export const safeFileName = (text: string): string => slugify(text) || 'file';
