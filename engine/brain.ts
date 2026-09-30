@@ -14,6 +14,9 @@
 // Заметки — память, которую мозг ведёт сам: что выдал в m1…m3 на этом тике, то увидит на входе в следующем.
 // Так он может «помнить» дольше мгновения («был знак направо»). Заметки всегда последние.
 // Знак: -1 — «свободно налево», 1 — «направо», 0 — знака рядом нет или он погас (стоит перед развилкой-островом, см. track.ts).
+
+import { isPlainObject } from '@reely/basics';
+
 /** Слой сети: weights[i][j] — связь нейрона i → нейрон j следующего слоя, biases[j] — порог нейрона j */
 export type Layer = { weights: number[][]; biases: number[] };
 /** Мозг — просто числа в массивах: его можно сохранить в JSON и показать на схеме */
@@ -77,12 +80,12 @@ export function brainSizes(brain: Brain): number[] {
  * Принимает что угодно: мозг приходит из файлов и из хранилища, верить ему на слово нельзя.
  */
 export function checkBrain(brain: unknown, sizes: number[]): string | null {
-  if (typeof brain !== 'object' || brain === null || !('layers' in brain) || !Array.isArray(brain.layers)) return 'нет brain.layers';
+  if (!isPlainObject(brain) || !Array.isArray(brain.layers)) return 'нет brain.layers';
   const layers: unknown[] = brain.layers;
   if (layers.length !== sizes.length - 1) return `слоёв ${layers.length}, ожидалось ${sizes.length - 1}`;
   for (let k = 0; k < layers.length; k++) {
     const layer = layers[k];
-    if (typeof layer !== 'object' || layer === null || !('weights' in layer) || !('biases' in layer)) return `слой ${k + 1}: нет весов и порогов`;
+    if (!isPlainObject(layer) || !('weights' in layer) || !('biases' in layer)) return `слой ${k + 1}: нет весов и порогов`;
     const { weights, biases } = layer;
     if (!Array.isArray(weights) || weights.length !== sizes[k]) return `слой ${k + 1}: неверное число строк весов`;
     if (!Array.isArray(biases) || biases.length !== sizes[k + 1]) return `слой ${k + 1}: неверное число порогов`;

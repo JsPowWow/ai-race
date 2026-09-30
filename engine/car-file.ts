@@ -1,6 +1,7 @@
 // Файл машины для гонки: сенсоры, слои, вариант мозга, веса — и немного украшений (цвет, аватар).
 // Здесь только проверка: модуль не знает ни про страницу, ни про код студента,
 // поэтому его используют и вкладки, и расчёт финала в Web Worker, и скрипты в tools/.
+import { isPlainObject } from '@reely/basics';
 import { layerSizes, checkBrain, LIMITS, type Brain } from './brain.ts';
 import { rayCount, BACK_SPREAD, type Sensors } from './car.ts';
 import { BUDGET, cost } from './build.ts';
@@ -52,7 +53,7 @@ export type ParsedCar = {
 
 /** Проверить файл участника. Бросает Error с понятным текстом */
 export function parseCarFile(input: unknown): ParsedCar {
-  const file: RawCarFile = typeof input === 'object' && input !== null ? input : {};
+  const file: RawCarFile = isPlainObject(input) ? input : {};
   if (typeof file.format === 'string' && OLD_FORMATS.includes(file.format)) {
     throw new Error(`${String(file.name || 'Машина').slice(0, NAME_MAX)}: файл старого формата (мозг без знака) — обучи мозг заново и сохрани файл`);
   }

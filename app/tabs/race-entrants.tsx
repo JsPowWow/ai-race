@@ -90,8 +90,8 @@ function addMine(): void {
 }
 
 function remove(id: number): void {
-  entrants.value = entrants.peek().filter((e) => e.id !== id);
-  picks.value = picks.peek().filter((x) => x !== id);
+  entrants.update((list) => list.filter((e) => e.id !== id));
+  picks.update((list) => list.filter((x) => x !== id));
 }
 
 // ── проверка чужого кода: машина едет только после «Разрешить» ──
@@ -101,7 +101,7 @@ function allow(entrant: Entrant): void {
   try {
     const approved = { ...entrant };
     approveCode(approved);
-    entrants.value = entrants.peek().map((e) => (e.id === entrant.id ? approved : e));
+    entrants.update((list) => list.map((e) => (e.id === entrant.id ? approved : e)));
     showErrors([]);
   } catch (e) {
     showErrors([`${entrant.name}: ${messageOf(e)}`]);

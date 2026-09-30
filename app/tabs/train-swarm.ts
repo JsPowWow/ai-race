@@ -233,7 +233,7 @@ effect(() => {
 /** Сколько родителей; выбранных щелчком машин не больше, чем родителей */
 export function setParents(parents: 1 | 2): void {
   setTrain('parents', parents);
-  picked.value = picked.peek().slice(-parents);
+  picked.update((list) => list.slice(-parents));
 }
 
 /** Щелчок по машине: выбрать её в родители. Повторный щелчок снимает выбор */

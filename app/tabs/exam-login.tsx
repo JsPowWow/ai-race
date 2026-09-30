@@ -26,7 +26,7 @@ export const currentLogin = (): string => typed.value.trim();
 export const loginLooksValid = (): boolean => GITHUB_LOGIN.test(currentLogin());
 
 function setCheck(login: string, check: Check): void {
-  checks.value = new Map(checks.peek()).set(login.toLowerCase(), check);
+  checks.update((now) => new Map(now).set(login.toLowerCase(), check));
 }
 
 /** Запомнить логин: в поле и в state (он общий для всех машин) */

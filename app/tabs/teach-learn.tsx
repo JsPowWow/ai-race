@@ -2,6 +2,7 @@
 // как падает ошибка. Учёба продолжает копию твоего мозга; выученное — новый вариант: контрольный заезд
 // против твоего мозга, и если лучше — «Взять» (app/variants.ts). Сам мозг учёба не меняет.
 import { signal, effect, canvas } from '@reely/dommy';
+import { isPlainObject } from '@reely/basics';
 import { createBrain, cloneBrain, checkBrain } from '../../engine/brain.ts';
 import type { Brain } from '../../engine/brain.ts';
 import { trainEpoch, agreement, TEACH_THINK } from '../../engine/imitation.ts';
@@ -59,9 +60,9 @@ const RATES: Choice<number>[] = [{ id: 0.01, title: 'Чуть-чуть' }, { id:
 /** Сколько эпох и какой шаг — помним между заходами. Чего нет среди кнопок (старые настройки) — по умолчанию */
 type Settings = { epochs: number; rate: number };
 const isSettings = (v: unknown): v is Settings =>
-  typeof v === 'object' && v !== null && 'epochs' in v && REPEATS.some((r) => r.id === v.epochs) && 'rate' in v && RATES.some((r) => r.id === v.rate);
+  isPlainObject(v) && REPEATS.some((r) => r.id === v.epochs) && RATES.some((r) => r.id === v.rate);
 const settings = stored<Settings>('teach', { epochs: 20, rate: 0.05 }, isSettings);
-const change = (next: Partial<Settings>) => (settings.value = { ...settings.peek(), ...next });
+const change = (next: Partial<Settings>) => settings.update((now) => ({ ...now, ...next }));
 
 /** Идёт обучение: чему учим (копию мозга — на странице он не меняется, пока не доучится) и на чём */
 type Lesson = { brain: Brain; samples: Sample[]; total: number; runs: number; fresh: boolean; before: string };
@@ -127,7 +128,8 @@ export type Learned = { text: string; taken: boolean };
 export function trainStep(): Learned | null {
   const now = lesson.peek();
   if (!now) return null;
-  losses.value = [...losses.peek(), trainEpoch(now.brain, now.samples, settings.peek().rate)];
+  const loss = trainEpoch(now.brain, now.samples, settings.peek().rate);
+  losses.update((list) => [...list, loss]);
   if (losses.peek().length < now.total) return null;
   lesson.value = null;
   const match = Math.round(agreement(now.brain, now.samples) * 100);

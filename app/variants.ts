@@ -93,9 +93,9 @@ export function propose(variant: Variant, lesson: Track, label: string): Attempt
     label,
     taken: false,
   };
-  feeds.value = { ...feeds.peek(), [source]: [...feeds.peek()[source], attempt].slice(-FEED_SIZE) };
+  feeds.update((all) => ({ ...all, [source]: [...all[source], attempt].slice(-FEED_SIZE) }));
   if (attempt.mark === 'first' || (attempt.mark === 'better' && autoTake.peek())) return takeVariant(variant, attempt);
-  if (attempt.mark === 'better') offers.value = { ...offers.peek(), [source]: { ...variant, attempt } };
+  if (attempt.mark === 'better') offers.update((all) => ({ ...all, [source]: { ...variant, attempt } }));
   return attempt;
 }
 
@@ -103,7 +103,7 @@ export function propose(variant: Variant, lesson: Track, label: string): Attempt
 function takeVariant(variant: Variant, attempt: Attempt): Attempt {
   const source = variant.by;
   const taken = { ...attempt, taken: true };
-  feeds.value = { ...feeds.peek(), [source]: feeds.peek()[source].map((a) => (a === attempt ? taken : a)) };
+  feeds.update((all) => ({ ...all, [source]: all[source].map((a) => (a === attempt ? taken : a)) }));
   // номер поколения — счёт роя, он идёт своим чередом: мозг его не меняет
   setBrain(cloneBrain(variant.brain), { config: structuredClone(variant.config), by: source, generation: state.generation, note: variant.note });
   return taken;
@@ -117,7 +117,7 @@ export function take(source: Source): void {
 
 /** «Не надо»: карточку убираем, строка в ленте остаётся */
 export function dismiss(source: Source): void {
-  offers.value = { ...offers.peek(), [source]: null };
+  offers.update((all) => ({ ...all, [source]: null }));
 }
 
 // Твой мозг сменился (взяли вариант, вернули из «Истории», поправили руками): прежние сравнения уже не про него

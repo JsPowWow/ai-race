@@ -1,4 +1,5 @@
 // Общее состояние приложения, его сохранение и простые события между вкладками.
+import { forEachSettled } from '@reely/basics';
 import { DEFAULT_SENSORS, rayCount, type Sensors } from '../engine/car.ts';
 import { layerSizes, type Brain } from '../engine/brain.ts';
 import { CAR_COLORS } from '../engine/car-file.ts';
@@ -169,9 +170,12 @@ const listeners = new Map<AppEvent, Listener[]>();
 export function on<E extends AppEvent>(event: E, fn: (payload: Events[E]) => void): void {
   listeners.set(event, [...(listeners.get(event) ?? []), fn as Listener]);
 }
-/** Разослать событие. Что оно несёт — в Events: у 'champion' — кто, у 'code' — id файла, у остальных ничего */
+/**
+ * Разослать событие. Что оно несёт — в Events: у 'champion' — кто, у 'code' — id файла, у остальных ничего.
+ * Если один слушатель упал, остальные всё равно узнают о событии: ошибка вкладки не ломает другие
+ */
 export function emit<E extends AppEvent>(event: E, ...[payload]: Events[E] extends undefined ? [] : [Events[E]]): void {
-  listeners.get(event)?.forEach((fn) => fn(payload));
+  forEachSettled(listeners.get(event) ?? [], (fn) => fn(payload), `событие «${event}»: упали слушатели`);
 }
 
 // ── действия, общие для нескольких вкладок ──

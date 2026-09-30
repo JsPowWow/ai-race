@@ -3,6 +3,7 @@
 // Отметки запоминаются в браузере по номерам шагов; сменились шаги (LESSONS_VERSION) — старые отметки забываем.
 // Тексты уроков — app/lessons.ts; здесь только вид и отметки. Урок рисуется один раз и дальше обновляется сам.
 import { mount, signal } from '@reely/dommy';
+import { isPlainObject } from '@reely/basics';
 import { LESSONS, LESSONS_VERSION } from './lessons.ts';
 import type { LessonTab } from './lessons.ts';
 import { stored } from './storage.ts';
@@ -18,7 +19,7 @@ const isLessonTab = (tab: string): tab is LessonTab => Object.hasOwn(LESSONS, ta
 
 /** Отметки из браузера годятся: та же версия шагов, у вкладок — номера шагов. Нет — начинаем с чистого листа */
 const isDone = (saved: unknown): saved is Done =>
-  typeof saved === 'object' && saved !== null && 'v' in saved && saved.v === LESSONS_VERSION &&
+  isPlainObject(saved) && saved.v === LESSONS_VERSION &&
   Object.entries(saved).every(([tab, steps]) => tab === 'v' || (isLessonTab(tab) && Array.isArray(steps) && steps.every(Number.isInteger)));
 
 const done = stored<Done>('lessonDone', { v: LESSONS_VERSION }, isDone);
@@ -35,7 +36,7 @@ function setDone(tab: LessonTab, step: number, isDone: boolean): void {
   const steps = doneSteps(tab);
   if (isDone) steps.add(step);
   else steps.delete(step);
-  done.value = { ...done.value, [tab]: [...steps].sort((a, b) => a - b) };
+  done.update((now) => ({ ...now, [tab]: [...steps].sort((a, b) => a - b) }));
 }
 
 /** Показать шаг step (null — снова «первый невыполненный») */

@@ -112,7 +112,7 @@ function stageEnded(done: Calc, now: StageReplay): void {
   // этап доехал — таблица переходит к общему зачёту: строки переезжают на свои новые места
   boardRows.run(() => batch(() => {
     phase.value = 'ready';
-    watched.value = new Set([...watched.peek(), i]);
+    watched.update((seen) => new Set([...seen, i]));
     boardOrder.value = order;
   }));
   if (isSuperfinal(i)) {

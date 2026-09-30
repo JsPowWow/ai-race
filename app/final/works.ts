@@ -88,7 +88,7 @@ const toggled = (set: ReadonlySet<string>, id: string): ReadonlySet<string> => {
   return next;
 };
 
-export const toggleAllowed = (id: string) => (allowed.value = toggled(allowed.value, id));
-export const toggleAvatar = (id: string) => (hiddenAvatars.value = toggled(hiddenAvatars.value, id));
+export const toggleAllowed = (id: string) => allowed.update((set) => toggled(set, id));
+export const toggleAvatar = (id: string) => hiddenAvatars.update((set) => toggled(set, id));
 /** Показать ли аватар участника: аватары включены и этот не спрятан */
 export const avatarShown = (id: string) => avatarsOn.value && !hiddenAvatars.value.has(id);

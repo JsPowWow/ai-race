@@ -4,6 +4,7 @@
 // просто несколько .json. Автор определяется по пути: «папка автора/что-угодно.json» или «ник.json».
 // Другие JSON (package.json и т. п.) молча пропускаем.
 // Запечатанные файлы (car.sealed.json) сначала открываем секретным ключом курса — см. openSealedFiles.
+import { isPlainObject } from '@reely/basics';
 import { parseCarFile, CAR_COLORS } from '../../engine/car-file.ts';
 import type { ParsedCar } from '../../engine/car-file.ts';
 import { SEALED_FORMAT, openSealed } from '../../engine/seal.ts';
@@ -75,7 +76,7 @@ function tryJson(text: string): unknown {
   }
 }
 /** Поле format у JSON, если оно есть */
-const formatOf = (json: unknown): unknown => (typeof json === 'object' && json !== null && 'format' in json ? json.format : undefined);
+const formatOf = (json: unknown): unknown => (isPlainObject(json) ? json.format : undefined);
 const messageOf = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 /**

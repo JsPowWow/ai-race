@@ -38,7 +38,7 @@ function apply(now: Theme): void {
  * холсты (трасса, схема сети, график) нужно перерисовать: сами они CSS не слушают.
  */
 export function initTheme(onChange: () => void): void {
-  listen(button, 'click', () => (theme.value = THEMES[(THEMES.indexOf(theme.peek()) + 1) % THEMES.length]));
+  listen(button, 'click', () => theme.update((now) => THEMES[(THEMES.indexOf(now) + 1) % THEMES.length]));
   let started = false;
   effect(() => {
     apply(theme.value);

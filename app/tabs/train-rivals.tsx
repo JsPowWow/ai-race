@@ -58,11 +58,11 @@ async function addFiles(files: FileList | null): Promise<void> {
       failed.push(`${list[i].name}: ${messageOf(e)}`);
     }
   });
-  rivals.value = [...rivals.peek(), ...added];
+  rivals.update((list) => [...list, ...added]);
   errors.value = failed;
 }
 
-const remove = (id: string) => (rivals.value = rivals.peek().filter((r) => r.id !== id));
+const remove = (id: string) => rivals.update((list) => list.filter((r) => r.id !== id));
 
 export function Rivals(): Node {
   const files = () => rivals.value.filter((r) => r.id.startsWith('file-'));

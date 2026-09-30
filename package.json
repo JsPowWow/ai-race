@@ -26,6 +26,7 @@
     "vite": "^8.3.1"
   },
   "dependencies": {
-    "@reely/dommy": "0.1.0-next.2"
+    "@reely/basics": "0.1.0",
+    "@reely/dommy": "0.1.0"
   }
 }
