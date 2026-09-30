@@ -4,7 +4,7 @@ import { createBrain, cloneBrain, brainSizes } from '../engine/brain.ts';
 import type { Brain } from '../engine/brain.ts';
 import type { Controls, CarReport } from '../engine/car.ts';
 import { errorLine, type StudentFiles, type FileId } from './student-code.ts';
-import { messageOf } from '../engine/errors.ts';
+import { messageOf } from '@reely/basics';
 
 export type { StudentFiles, FileId };
 

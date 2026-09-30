@@ -7,7 +7,7 @@ import { fromCarFile } from '../car-file.ts';
 import { CAR_COLORS } from '../state.ts';
 import { BOTS } from '../generated/bots.js';
 import { Avatar } from '../components/avatar.tsx';
-import { messageOf } from '../../engine/errors.ts';
+import { messageOf } from '@reely/basics';
 
 /** Соперник на странице: кто он и как выглядит; сам заезд — в rival */
 export type RivalEntry = { id: string; name: string; color: string; avatar: string | null; rival: Rival };

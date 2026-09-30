@@ -7,7 +7,7 @@ import { COURSE_KEY } from '../generated/course-key.js';
 import { saveFile } from '../download.ts';
 import { buildEntries, openSealedFiles } from './entries.ts';
 import type { SourceFile, Works } from './entries.ts';
-import { messageOf } from '../../engine/errors.ts';
+import { messageOf } from '@reely/basics';
 
 /** Работы и сколько было запечатанных файлов: открыто, ждут ключа */
 export type Pool = Works & { sealed: number; opened: number; locked: number };

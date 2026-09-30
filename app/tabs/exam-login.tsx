@@ -91,19 +91,14 @@ function hint(): Hint {
   return say('Не получилось проверить на GitHub — просто убедись, что логин верный.');
 }
 
-/** user() — null на миг, пока блок убирают: читаем осторожно */
-function FoundUser({ user }: { user: () => GitHubUser | null }): Node {
-  const avatar = () => {
-    const found = user();
-    return found && avatarOf(found);
-  };
+function FoundUser({ user }: { user: () => GitHubUser }): Node {
   return (
     <>
-      <Show when={avatar}>
+      <Show when={() => avatarOf(user())}>
         {/* не загрузилась картинка — просто прячем её */}
-        {() => <img src={() => avatar() ?? ''} alt="" onError={(e) => (e.currentTarget.hidden = true)} />}
+        {(src) => <img src={src} alt="" onError={(e) => (e.currentTarget.hidden = true)} />}
       </Show>
-      <span>Это ты? <b>{() => user()?.name || user()?.login}</b> @{() => user()?.login}</span>
+      <span>Это ты? <b>{() => user().name || user().login}</b> @{() => user().login}</span>
     </>
   );
 }
@@ -119,7 +114,7 @@ export function LoginField(): Node {
       </div>
       <div className={() => ['gh-check', hint().tone].filter(Boolean).join(' ')} id="pLoginCheck" aria={{ role: 'status' }}>
         <Show when={found} fallback={() => <>{() => hint().text}</>}>
-          {() => <FoundUser user={found} />}
+          {(user) => <FoundUser user={user} />}
         </Show>
       </div>
     </>

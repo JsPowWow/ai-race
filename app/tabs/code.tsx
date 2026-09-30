@@ -9,7 +9,7 @@ import type { TestResult, TestStatus } from '../tests.ts';
 import { emit } from '../state.ts';
 import { element } from '../dom.ts';
 import { indentEdit } from '../indent.ts';
-import { messageOf } from '../../engine/errors.ts';
+import { messageOf } from '@reely/basics';
 
 type FileMeta = (typeof FILES)[number];
 

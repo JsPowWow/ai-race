@@ -8,7 +8,7 @@ import { getTrainingTrack, pointAt } from '../engine/track.ts';
 import { parseCarFile } from '../engine/car-file.ts';
 import { thinkVariants, feedForward } from '../student/think.js';
 import { liveSize } from './ui.ts';
-import { listen } from '@reely/dommy/kit';
+import { listen } from '@reely/dommy-kit';
 
 const SECTION = 150; // шаг швов игрушечной трассы: перескок на секцию назад незаметен
 const LOOP_FROM = 1100; // участок «Разминки» от 1100 до 1250 — длинная прямая напротив старта, черта за кадром

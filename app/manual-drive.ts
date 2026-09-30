@@ -4,8 +4,8 @@ import { live } from './student-code.ts';
 import { showBanner } from './stage.ts';
 import { $$, isTyping } from './ui.ts';
 import type { Controls } from '../engine/car.ts';
-import { listen } from '@reely/dommy/kit';
-import { messageOf } from '../engine/errors.ts';
+import { listen } from '@reely/dommy-kit';
+import { messageOf } from '@reely/basics';
 
 let target: Controls | null = null; // пульт машины, которой рулят руками
 let onPadTouch: (() => void) | null = null;

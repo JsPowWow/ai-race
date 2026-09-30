@@ -7,7 +7,7 @@ import { effect, untracked } from '@reely/dommy';
 import { cssColor } from '../engine/render.ts';
 import { $$ } from './ui.ts';
 import { element } from './dom.ts';
-import { listen } from '@reely/dommy/kit';
+import { listen } from '@reely/dommy-kit';
 
 type Theme = 'system' | 'light' | 'dark';
 const THEMES: Theme[] = ['system', 'light', 'dark'];

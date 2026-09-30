@@ -2,7 +2,7 @@
 // через пару случайных на вид букв и встают на новую. Строки стоят на местах (1-е, 2-е…),
 // а меняются надписи на них: обогнал — имя переехало строкой выше, как на настоящем табло.
 import { effect, For, Show } from '@reely/dommy';
-import { later } from '@reely/dommy/kit';
+import { later } from '@reely/dommy-kit';
 import { avatarUrl } from '../../engine/car-file.ts';
 
 /** Колонка табло: заголовок, сколько плиток, по какому краю прижать текст. Колонка с ключом place красится по месту (1–3) */
@@ -128,7 +128,7 @@ export function FlapBoard<Key extends string>({ title, columns, rows, label, fil
               {/* SVG — только через <img>: так браузер не выполнит из картинки скрипт и ничего не загрузит */}
               {avatars && (
                 <span className="flap-logo" aria={{ ariaHidden: 'true' }}>
-                  <Show when={() => row().avatar}>{() => <img src={() => avatarUrl(row().avatar) ?? ''} alt="" />}</Show>
+                  <Show when={() => avatarUrl(row().avatar)}>{(src) => <img src={src} alt="" />}</Show>
                 </span>
               )}
               {columns.map((c) => (

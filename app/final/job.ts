@@ -8,7 +8,7 @@ import { driveRecorded, failedResult, stageTrack } from '../../engine/rally.ts';
 import type { StageResult } from '../../engine/rally.ts';
 import type { Track } from '../../engine/track.ts';
 import type { FinalEntry } from './entries.ts';
-import { messageOf } from '../../engine/errors.ts';
+import { messageOf, toErrorWithMessage } from '@reely/basics';
 
 /** Что нужно расчёту от участника: мозг, сенсоры и чем он думает */
 export type JobEntry = Pick<FinalEntry, 'id' | 'brain' | 'sensors' | 'thinkId' | 'code'>;
@@ -35,7 +35,7 @@ function compileOwn(entry: JobEntry, code: string): Think | Error {
       // что вернёт чужой think, неизвестно — машина сама считает «не нажато» всё, что не число (см. press в engine/car.ts)
       think = compileMineThink(code) as Think;
     } catch (e) {
-      think = e instanceof Error ? e : new Error(String(e));
+      think = toErrorWithMessage(e);
     }
     thinks.set(entry.id, think);
   }

@@ -6,7 +6,7 @@ import type { Point } from '../engine/turtle.ts';
 import { clamp } from '../engine/utils.ts';
 import { liveSize } from './ui.ts';
 import { element } from './dom.ts';
-import { listen } from '@reely/dommy/kit';
+import { listen } from '@reely/dommy-kit';
 
 export const canvas = element<HTMLCanvasElement>('#stage');
 const ctx = context2d(canvas);

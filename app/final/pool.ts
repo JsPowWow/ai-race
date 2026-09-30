@@ -8,7 +8,7 @@ import { WORKER_SOURCE } from '../generated/race-worker.js';
 import { runJob } from './job.ts';
 import type { Job } from './job.ts';
 import type { JobMessage } from './worker.ts';
-import { listen } from '@reely/dommy/kit';
+import { listen } from '@reely/dommy-kit';
 
 const JOB_TIMEOUT_MS = 5000;
 const PAGE_CHUNK = 25; // без Worker: сколько задач считать между кадрами, чтобы страница не замирала

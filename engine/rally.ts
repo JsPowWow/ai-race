@@ -7,7 +7,7 @@ import { Car, maxTicksFor, type CarStatus, type Driver } from './car.ts';
 import { generateTrack, type Track } from './track.ts';
 import { withTraffic, trafficAt, type TrafficSpot } from './traffic.ts';
 import { clamp } from './utils.ts';
-import { messageOf } from './errors.ts';
+import { messageOf } from '@reely/basics';
 
 export const STAGES = 3;
 export const SUPERFINAL_SIZE = 10;

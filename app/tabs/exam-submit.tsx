@@ -6,7 +6,7 @@ import { canDownload, saveFile } from '../download.ts';
 import { sealCar } from '../../engine/seal.ts';
 import { COURSE_KEY } from '../generated/course-key.js';
 import { LoginField, currentLogin, loginLooksValid } from './exam-login.tsx';
-import { messageOf } from '../../engine/errors.ts';
+import { messageOf } from '@reely/basics';
 
 const CAR_FILE_NAME = 'car.json';
 const SEALED_FILE_NAME = 'car.sealed.json';

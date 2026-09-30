@@ -11,8 +11,8 @@ export type AvatarLook = { avatar?: string | null; color: string };
  */
 export function Avatar({ look }: { look: () => AvatarLook }): Node {
   return (
-    <Show when={() => look().avatar} fallback={() => <span className="car-dot" styles={{ background: () => look().color }} />}>
-      {() => <img className="avatar" src={() => avatarUrl(look().avatar) ?? ''} alt="" loading="lazy" />}
+    <Show when={() => avatarUrl(look().avatar)} fallback={() => <span className="car-dot" styles={{ background: () => look().color }} />}>
+      {(src) => <img className="avatar" src={src} alt="" loading="lazy" />}
     </Show>
   );
 }

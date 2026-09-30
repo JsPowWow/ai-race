@@ -17,7 +17,7 @@ import { drawFire, readSkin } from './fire-skin.ts';
 import { FormulaCard } from './formula-card.tsx';
 import { ZoomButtons } from './zoom-buttons.tsx';
 import type { ZoomStep } from './zoom-buttons.tsx';
-import { listen } from '@reely/dommy/kit';
+import { listen } from '@reely/dommy-kit';
 
 const MAX_ZOOM = 4;
 const FORMULA_MS = 100; // формула под указателем обновляется 10 раз в секунду, как числа у узлов

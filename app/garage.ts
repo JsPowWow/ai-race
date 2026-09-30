@@ -17,8 +17,8 @@ import { openCarStore, bytes } from './car-store.ts';
 import { runs, setRuns, legacyRuns } from './runs.ts';
 import { diskSupported, savedFolder, pickFolder, folderAccess, forgetFolder, diskStore } from './car-disk.ts';
 import { load, save, remove, compactJson, usedBytes } from './storage.ts';
-import { listen } from '@reely/dommy/kit';
-import { messageOf } from '../engine/errors.ts';
+import { listen } from '@reely/dommy-kit';
+import { messageOf } from '@reely/basics';
 
 export const MAX_CARS = 12;
 const CAR_FORMAT = 'ai-race/garage-car@1';  // car.json: машина без «Истории»

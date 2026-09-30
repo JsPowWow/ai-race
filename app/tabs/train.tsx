@@ -15,7 +15,7 @@ import { TrainPanel, drawSwarmChart } from './train-panel.tsx';
 import { showLeaderBrain } from './train-leader.ts';
 import { updateTrainFlaps } from './train-flaps.tsx';
 import { rivalInfo } from './train-rivals.tsx';
-import { listen } from '@reely/dommy/kit';
+import { listen } from '@reely/dommy-kit';
 import { Tries } from '../components/tries.tsx';
 import { controlNames } from '../variants.ts';
 

@@ -1,11 +1,10 @@
 // Файл машины для гонки: сенсоры, слои, вариант мозга, веса — и немного украшений (цвет, аватар).
 // Здесь только проверка: модуль не знает ни про страницу, ни про код студента,
 // поэтому его используют и вкладки, и расчёт финала в Web Worker, и скрипты в tools/.
-import { hasSome, isPlainObject, isString } from '@reely/basics';
+import { hasSome, isPlainObject, isString, messageOf } from '@reely/basics';
 import { layerSizes, checkBrain, LIMITS, type Brain } from './brain.ts';
 import { rayCount, BACK_SPREAD, type Sensors } from './car.ts';
 import { BUDGET, cost } from './build.ts';
-import { messageOf } from './errors.ts';
 
 // car@3 — мозг с памятью и дорожным знаком: сенсоры мгновение назад, знак и заметки (см. engine/brain.ts).
 // Мозги car@1 и car@2 к ней не подходят: у них другое число входов.

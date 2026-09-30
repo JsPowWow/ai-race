@@ -1,5 +1,5 @@
 // AI Race — точка входа: вкладки, строка чемпиона и кадровый цикл.
-import { isString } from '@reely/basics';
+import { isString, messageOf } from '@reely/basics';
 import { readPalette } from '../engine/render.ts';
 import { drawChart } from '../engine/netviz.ts';
 import { checkBrain, type Brain } from '../engine/brain.ts';
@@ -21,8 +21,7 @@ import { raceTab } from './tabs/race.tsx';
 import { introTab, redrawIntro } from './tabs/intro.tsx';
 import { teachTab, redrawLoss, renderNetwork } from './tabs/teach.tsx';
 import { profileTab, redrawProfileBrain } from './tabs/profile.tsx';
-import { listen } from '@reely/dommy/kit';
-import { messageOf } from '../engine/errors.ts';
+import { listen } from '@reely/dommy-kit';
 
 /** Вкладка: enter() — её открыли, frame() — нарисовать кадр (зовётся, пока она открыта) */
 export type Tab = { enter(): void; frame(frameNo: number): void };

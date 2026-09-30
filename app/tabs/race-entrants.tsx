@@ -9,7 +9,7 @@ import { showBanner, onTrackDrop } from '../stage.ts';
 import { Avatar } from '../components/avatar.tsx';
 import { Review } from './race-review.tsx';
 import { canCross, childFile, crossNote } from './race-cross.ts';
-import { messageOf } from '../../engine/errors.ts';
+import { messageOf } from '@reely/basics';
 
 /** Откуда участник */
 export type Source = 'bot' | 'mine' | 'file' | 'cross';

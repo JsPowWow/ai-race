@@ -14,7 +14,7 @@ import type { Calc } from './calc.ts';
 import { pool, racers, avatarShown } from './works.ts';
 import { stage, replay, watched, boardOrder, query, found, live, boardRows } from './stream.ts';
 import type { FinalEntry } from './entries.ts';
-import { messageOf } from '../../engine/errors.ts';
+import { messageOf } from '@reely/basics';
 
 const LIVE_ROWS = 10; // в живой таблице — первая десятка (и найденный участник, если он ниже)
 
@@ -119,7 +119,7 @@ function Avatar({ entry }: { entry: () => FinalEntry }): Node {
   const url = () => (avatarShown(entry().id) ? avatarUrl(entry().avatar) : null);
   return (
     <Show when={url} fallback={() => <span className="car-dot" styles={{ background: () => entry().color }} />}>
-      {() => <img className="avatar" src={() => url() ?? ''} alt="" loading="lazy" />}
+      {(src) => <img className="avatar" src={src} alt="" loading="lazy" />}
     </Show>
   );
 }

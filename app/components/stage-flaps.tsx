@@ -2,7 +2,7 @@
 // свободные — пустые плитки), на узком — полоса над ней в четыре строки.
 // Хозяин — пустой <aside class="flap-board" data-panel="…"> в .stage (app/markup.html): его прячет main.ts.
 import { FlapBoard, FLAP_ROW_PX, type FlapColumn, type FlapRow } from './flap-board.tsx';
-import { media, size, throttled } from '@reely/dommy/kit';
+import { media, size, throttled } from '@reely/dommy-kit';
 
 /** Сбоку от трассы — только когда трасса и без того широкая; иначе табло над ней. То же условие — в stage.css */
 const SIDE_QUERY = '(min-width: 1180px), (min-width: 760px) and (max-width: 1000px)';

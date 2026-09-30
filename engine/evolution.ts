@@ -1,11 +1,10 @@
 // Эволюция: поколение машин, отбор лучшей, мутации.
-import { hasSome } from '@reely/basics';
+import { hasSome, messageOf } from '@reely/basics';
 import { Car, carReport, maxTicksFor, type Sensors, type Think, type CarReport } from './car.ts';
 import { createBrain, cloneBrain, checkBrain, type Brain } from './brain.ts';
 import { trafficAt, type TrafficSpot } from './traffic.ts';
 import type { Track } from './track.ts';
 import type { Mutate } from './recipes.ts';
-import { messageOf } from './errors.ts';
 
 /** Ребёнок от двух родителей (функция студента: что вернёт — проверяем) */
 export type Crossover = (mom: Brain, dad: Brain) => unknown;

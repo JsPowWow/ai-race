@@ -44,16 +44,16 @@ export function Tries({ source, empty, control, duel }: {
           Брать лучшее само
         </label>
       </div>
-      <Show when={() => !!duel?.()}>
-        {() => <p className="tries-duel" id={`${source}Duel`}>{() => duel?.()}</p>}
+      <Show when={() => duel?.()}>
+        {(text) => <p className="tries-duel" id={`${source}Duel`}>{text}</p>}
       </Show>
       <Show when={waiting}>
-        {() => (
+        {(offer) => (
           <div className="offer" aria={{ role: 'group', ariaLabel: 'Новый вариант лучше твоего мозга' }}>
             <span className="try-mark" data-mark="better" aria={{ ariaHidden: 'true' }} />
             <p className="offer-text">
-              <b>Новый вариант лучше твоего мозга: {() => waiting()?.attempt.text}</b>
-              <span className="offer-note">{() => `${waiting()?.attempt.label} · контрольный: ${waiting()?.attempt.result} · ${control()}`}</span>
+              <b>Новый вариант лучше твоего мозга: {() => offer().attempt.text}</b>
+              <span className="offer-note">{() => `${offer().attempt.label} · контрольный: ${offer().attempt.result} · ${control()}`}</span>
             </p>
             <div className="offer-actions">
               <button className="btn brain" onClick={() => take(source)}>Взять</button>

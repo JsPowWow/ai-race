@@ -12,7 +12,7 @@ import type { Mutate } from '../engine/recipes.ts';
 import type { Fitness } from '../engine/evolution.ts';
 import * as acorn from 'acorn';
 import { load, save, remove } from './storage.ts';
-import { messageOf } from '../engine/errors.ts';
+import { messageOf } from '@reely/basics';
 
 /** Вариант «мозга» из student/think.js: название, подсказка и сама функция */
 export type ThinkVariant = { title?: string; hint?: string; think: (inputs: number[], brain: Brain) => number[] };
