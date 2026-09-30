@@ -14,7 +14,7 @@ export type { AppEvent };
  * тот же объект ещё не значит те же данные.
  */
 export function fromEvents<T>(events: AppEvent[], read: () => T): () => T {
-  const value = signal(read(), { equals: () => false });
+  const value = signal(read(), { equals: false });
   for (const event of events) on(event, () => (value.value = read()));
   return value;
 }
