@@ -1,6 +1,7 @@
 // Вид «Огонь в рамках»: один цвет на всё — где идёт сигнал, там разгорается. Рамки подписывают группы.
 // Скин только рисует: что горит и насколько, ему даёт glow.ts, где что стоит — layout.ts.
 // Рисуется каждый кадр, поэтому цвета заранее разложены по ступеням жара (readSkin), а не собираются в строки на лету.
+import { getContrastRatio, mix, parseColor, rgbToHex } from '@reely/colors';
 import { cssColor } from '../../engine/render.ts';
 import type { Brain } from '../../engine/brain.ts';
 import { addCurve, bezierAt, buttonCenterX, NOTE_W } from './layout.ts';
@@ -13,14 +14,15 @@ const SANS = 'Rubik, system-ui, sans-serif';
 const HOT = 0.03; // связь теплее — рисуем её поверх дымки своим цветом и толщиной
 const STEPS = 100; // ступеней жара в готовых цветах: глазу хватает, а строк — всего сотня
 
-type RGB = [number, number, number];
-const rgbOf = (css: string): RGB => {
-  const [r = 0, g = 0, b = 0] = (css.match(/[\d.]+/g) ?? []).map(Number);
-  return [r, g, b];
+/** Цвет токена как #rrggbb: getComputedStyle отдаёт rgb(…), а смешивать и сравнивать удобнее одинаковые строки */
+const hexOf = (css: string): string => rgbToHex(parseColor(css));
+/** Тот же цвет, но полупрозрачный */
+const alpha = (color: string, a: number) => {
+  const { r, g, b } = parseColor(color);
+  return `rgb(${r} ${g} ${b} / ${a})`;
 };
-const rgb = ([r, g, b]: RGB, a = 1) => `rgb(${r} ${g} ${b} / ${a})`;
-const lum = ([r, g, b]: RGB) => (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
-const mix = (a: RGB, b: RGB, t: number): RGB => [0, 1, 2].map((n) => Math.round(a[n] + (b[n] - a[n]) * t)) as RGB;
+/** Светлая заливка: с чёрным она контрастнее, чем с белым, — значит, писать на ней тёмным */
+const isLight = (color: string) => getContrastRatio(color, '#000000') > getContrastRatio(color, '#ffffff');
 const clamp01 = (t: number) => Math.max(0, Math.min(1, t));
 /** Номер ступени жара для t = 0…1 */
 const step = (t: number) => Math.round(clamp01(t) * (STEPS - 1));
@@ -28,13 +30,13 @@ const step = (t: number) => Math.round(clamp01(t) * (STEPS - 1));
 export type Skin = {
   bg: string; edge: string; ring: string; muted: string; inkDark: string; inkLight: string;
   frame: string; title: string; sub: string; press: string;
-  node: RGB; fire: RGB[];
+  node: string; fire: string[];
   /** готовые цвета по ступеням жара: огонь, горячая связь, лампочка и цифры на ней */
   fireCss: string[]; edgeCss: string[]; lampCss: string[]; lampInk: string[];
 };
 
 /** Шкала жара: t = 0 — угли, 1 — самый сильный сигнал */
-function heatRGB(fire: RGB[], t: number): RGB {
+function heat(fire: string[], t: number): string {
   const x = clamp01(t) * (fire.length - 1);
   const i = Math.min(fire.length - 2, Math.floor(x));
   return mix(fire[i], fire[i + 1], x - i);
@@ -43,19 +45,19 @@ function heatRGB(fire: RGB[], t: number): RGB {
 /** Цвета из токенов --bb-* (app/styles/tokens.css) — перечитываем при смене темы */
 export function readSkin(): Skin {
   const c = cssColor;
-  const node = rgbOf(c('--bb-node'));
-  const fire = [0, 1, 2, 3, 4].map((n) => rgbOf(c(`--bb-fire-${n}`)));
+  const node = hexOf(c('--bb-node'));
+  const fire = [0, 1, 2, 3, 4].map((n) => hexOf(c(`--bb-fire-${n}`)));
   const inkDark = c('--bb-ink-dark'), inkLight = c('--bb-ink-light');
   const levels = Array.from({ length: STEPS }, (_, s) => s / (STEPS - 1));
-  const lamps = levels.map((h) => mix(node, heatRGB(fire, h), h));
+  const lamps = levels.map((h) => mix(node, heat(fire, h), h));
   return {
     bg: c('--bb-bg'), edge: c('--bb-edge'), ring: c('--bb-ring'), muted: c('--bb-muted'), inkDark, inkLight,
     frame: c('--bb-frame'), title: c('--bb-title'), sub: c('--bb-sub'), press: c('--bb-press'),
     node, fire,
-    fireCss: levels.map((h) => rgb(heatRGB(fire, h))),
-    edgeCss: levels.map((h) => rgb(heatRGB(fire, h), Math.min(1, 0.25 + h))),
-    lampCss: lamps.map((fill) => rgb(fill)),
-    lampInk: lamps.map((fill) => (lum(fill) > 0.45 ? inkDark : inkLight)), // цвет цифр — по яркости заливки
+    fireCss: levels.map((h) => heat(fire, h)),
+    edgeCss: levels.map((h) => alpha(heat(fire, h), Math.min(1, 0.25 + h))),
+    lampCss: lamps,
+    lampInk: lamps.map((fill) => (isLight(fill) ? inkDark : inkLight)), // цвет цифр — по яркости заливки
   };
 }
 
@@ -177,18 +179,18 @@ function buttons(ctx: CanvasRenderingContext2D, { lay, glow, labels }: Scene, sk
     const [px, cy] = lay.pos[last][i], cx = buttonCenterX(lay, px);
     const x0 = cx - w / 2, y0 = cy - h / 2;
     const v = clamp01(press[i]), won = wins(i);
-    const color = heatRGB(skin.fire, 0.35 + 0.65 * v);
+    const color = heat(skin.fire, 0.35 + 0.65 * v);
     const bg = mix(skin.node, color, v ** 2); // квадрат разводит 70 % и 90 % заметнее
-    const light = lum(bg) > 0.45;
+    const light = isLight(bg);
     ctx.save();
-    if (won) { ctx.shadowColor = rgb(heatRGB(skin.fire, 1), 0.6); ctx.shadowBlur = 14; }
-    ctx.beginPath(); ctx.roundRect(x0, y0, w, h, rr); ctx.fillStyle = rgb(bg); ctx.fill();
+    if (won) { ctx.shadowColor = alpha(heat(skin.fire, 1), 0.6); ctx.shadowBlur = 14; }
+    ctx.beginPath(); ctx.roundRect(x0, y0, w, h, rr); ctx.fillStyle = bg; ctx.fill();
     ctx.restore();
     ctx.save(); ctx.clip(); // тот же контур: полоска-шкала не вылезает за скругления
-    ctx.fillStyle = light ? 'rgb(0 0 0 / 0.35)' : rgb(color, 0.9);
+    ctx.fillStyle = light ? 'rgb(0 0 0 / 0.35)' : alpha(color, 0.9);
     ctx.fillRect(x0, y0 + h - 4, w * v, 4);
     ctx.restore();
-    ctx.lineWidth = won ? 1.5 : 1; ctx.strokeStyle = won ? rgb(color) : skin.ring; ctx.stroke();
+    ctx.lineWidth = won ? 1.5 : 1; ctx.strokeStyle = won ? color : skin.ring; ctx.stroke();
     ctx.fillStyle = light ? skin.inkDark : skin.inkLight; ctx.textBaseline = 'middle';
     const value = glow.readout[last][i];
     if (narrow) {

@@ -1,5 +1,6 @@
 // «Гонка», скрещивание двух участников: подходят ли они друг другу и какой получится ребёнок.
 // Сами веса ребёнка считает crossover() студента (student/crossover.js).
+import { mix } from '@reely/colors';
 import { cloneBrain } from '../../engine/brain.ts';
 import type { Brain } from '../../engine/brain.ts';
 import type { Think } from '../../engine/car.ts';
@@ -24,12 +25,5 @@ export function crossNote(mom: Parent | undefined, dad: Parent | undefined): str
 export function childFile(mom: Parent, dad: Parent): object {
   // что вернул crossover() студента, проверит parseCarFile, когда ребёнок встанет в гонку
   const brain = live.crossover.crossover(cloneBrain(mom.brain), cloneBrain(dad.brain));
-  return { ...mom.file, name: `${mom.name} × ${dad.name}`.slice(0, NAME_MAX), color: mixColors(mom.color, dad.color), brain };
-}
-
-/** Цвет посередине между двумя: '#ff0000' и '#0000ff' → '#800080' */
-export function mixColors(a: string, b: string): string {
-  const channel = (hex: string, i: number) => parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16);
-  const mixed = [0, 1, 2].map((i) => Math.round((channel(a, i) + channel(b, i)) / 2).toString(16).padStart(2, '0'));
-  return `#${mixed.join('')}`;
+  return { ...mom.file, name: `${mom.name} × ${dad.name}`.slice(0, NAME_MAX), color: mix(mom.color, dad.color), brain };
 }

@@ -2,12 +2,15 @@
 // Логин нужен, чтобы в финале сверить: файл сдал тот, кто его сделал. Он один на все машины гаража (state.login).
 // Проверка на GitHub — подсказка против опечаток: если GitHub недоступен или кончился лимит, она не мешает.
 import { signal, untracked, Show } from '@reely/dommy';
+import { retry } from '@reely/async';
 import { GITHUB_LOGIN } from '../../engine/seal.ts';
 import { state, persist } from '../state.ts';
 
 /** Спрашиваем GitHub, когда перестали печатать */
 const CHECK_DELAY_MS = 700;
 const GITHUB_AVATARS = 'https://avatars.githubusercontent.com';
+/** GitHub иногда подвисает: ждём столько и пробуем ещё раз через секунду, потом — «не получилось проверить» */
+const GITHUB_TIMEOUT_MS = 8000;
 
 /** Что GitHub рассказал о пользователе (нам нужно немногое) */
 type GitHubUser = { login: string; name: string | null; avatar_url: string };
@@ -44,12 +47,17 @@ function onType(value: string): void {
 }
 
 async function askGitHub(login: string): Promise<Check> {
-  try {
-    const res = await fetch(`https://api.github.com/users/${encodeURIComponent(login)}`, { headers: { Accept: 'application/vnd.github+json' } });
+  const ask = async (_attempt: number, signal: AbortSignal): Promise<Check> => {
+    const res = await fetch(`https://api.github.com/users/${encodeURIComponent(login)}`, { headers: { Accept: 'application/vnd.github+json' }, signal });
     if (res.status === 404) return { status: 'missing' };
     if (res.ok) return { status: 'found', user: (await res.json()) as GitHubUser };
-  } catch { /* нет сети или GitHub не пустил — не страшно */ }
-  return { status: 'unknown' };
+    return { status: 'unknown' }; // GitHub ответил, но не пустил (лимит запросов) — повторять незачем
+  };
+  try {
+    return await retry(ask, { retries: 1, delay: 1000, timeout: GITHUB_TIMEOUT_MS });
+  } catch {
+    return { status: 'unknown' }; // нет сети или GitHub так и не ответил — не страшно
+  }
 }
 
 /** Спросить GitHub про логин из поля (если он похож на логин и его ещё не спрашивали) */

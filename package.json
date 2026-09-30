@@ -26,7 +26,9 @@
     "vite": "^8.3.1"
   },
   "dependencies": {
+    "@reely/async": "0.1.0",
     "@reely/basics": "0.1.2",
+    "@reely/colors": "0.0.6",
     "@reely/dommy": "0.2.0",
     "@reely/dommy-kit": "0.1.0"
   }
