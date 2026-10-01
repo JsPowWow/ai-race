@@ -29,7 +29,7 @@
     "@reely/async": "0.1.1",
     "@reely/basics": "0.1.2",
     "@reely/colors": "0.0.7",
-    "@reely/dommy": "0.2.1",
+    "@reely/dommy": "0.2.2",
     "@reely/dommy-kit": "0.1.1",
     "@reely/strings": "0.0.8"
   }
