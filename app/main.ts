@@ -1,4 +1,5 @@
 // AI Race — точка входа: вкладки, строка чемпиона и кадровый цикл.
+import './dev.ts';
 import { isString, messageOf } from '@reely/basics';
 import { readPalette } from '../engine/render.ts';
 import { drawChart } from '../engine/netviz.ts';

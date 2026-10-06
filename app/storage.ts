@@ -32,26 +32,25 @@ export function load<T>(key: string, fallback: T): T {
 
 export const save = (key: string, value: unknown): boolean => write(PREFIX + key, JSON.stringify(value, compact));
 
-/** Записать строку. Место кончилось — один раз сообщаем тем, кто подписался на onStorageFull */
+/** Запись не удалась. Если из-за того, что место кончилось, — один раз сообщаем тем, кто подписался на onStorageFull */
+function failed(key: string, e: unknown): void {
+  const full = e instanceof DOMException && (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014);
+  if (full && !warnedFull) {
+    warnedFull = true;
+    fullListeners.forEach((fn) => fn(key));
+  }
+}
+
+/** Записать строку; не вышло — false */
 function write(fullKey: string, text: string): boolean {
   try {
     localStorage.setItem(fullKey, text);
     return true;
   } catch (e) {
-    const full = e instanceof DOMException && (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014);
-    if (full && !warnedFull) {
-      warnedFull = true;
-      fullListeners.forEach((fn) => fn(fullKey.slice(PREFIX.length)));
-    }
+    failed(fullKey.slice(PREFIX.length), e);
     return false;
   }
 }
-
-/** localStorage для persisted: пишет через write() — с тем же предупреждением о нехватке места */
-const guarded = {
-  getItem: (fullKey: string) => localStorage.getItem(fullKey),
-  setItem: (fullKey: string, text: string) => void write(fullKey, text),
-};
 
 /**
  * Сигнал, который сам помнит себя в браузере (persisted из @reely/dommy-kit): записал — сохранилось,
@@ -60,7 +59,7 @@ const guarded = {
  * Для маленьких настроек; мозги и заезды — через save() (он укорачивает дробные числа).
  */
 export const stored = <T>(key: string, initial: T, is?: (saved: unknown) => saved is T): Signal<T> =>
-  persisted(PREFIX + key, initial, { storage: guarded, is });
+  persisted(PREFIX + key, initial, { is, onSaveError: (e) => failed(key, e) });
 
 export function remove(key: string): void {
   try {

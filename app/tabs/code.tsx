@@ -3,6 +3,7 @@
 // её содержимое не привязано к сигналу, чтобы не сбивать курсор; сигналы — вокруг: номера строк, ошибка, проверки.
 import { mount, signal, For, Show } from '@reely/dommy';
 import { pre, textarea } from '@reely/dommy';
+import { withOwner } from '@reely/signals';
 import { FILES, live, evalAvailable, getSource, originalSource, applySource, resetSource, isEdited, errorLine, beginCodeStartup, endCodeStartup } from '../student-code.ts';
 import { runTests } from '../tests.ts';
 import type { TestResult, TestStatus } from '../tests.ts';
@@ -53,14 +54,15 @@ export function runAllTests(): void {
 
 // ── редактор ──
 
-// Фабрики тегов возвращают сам элемент с точным типом: курсором и прокруткой управляем напрямую
-const editor = textarea({
+// Фабрики тегов возвращают сам элемент с точным типом: курсором и прокруткой управляем напрямую.
+// Редактор живёт, пока открыта страница: withOwner — его собственный владелец (иначе dommy предупредит об утечке)
+const editor = withOwner(() => textarea({
   id: 'codeEditor', spellcheck: false, autocomplete: 'off', autocapitalize: 'off', wrap: 'off', readOnly: !canEdit,
   aria: { ariaLabel: () => `Код: ${file.value.file}`, ariaDescribedby: 'codeError' },
   onInput: () => edited(),
   onScroll: () => syncGutter(),
   onKeyDown: (e) => onKey(e),
-});
+}));
 const gutter = pre({ className: 'gutter', id: 'codeGutter', aria: { ariaHidden: 'true' } });
 /** Номера строк: у строки с ошибкой — красная плашка */
 const lineNumbers = () => Array.from({ length: text.value.split('\n').length }, (_, i) => i + 1);
