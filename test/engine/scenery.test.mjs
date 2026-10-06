@@ -1,8 +1,8 @@
 // Декор вокруг трассы: из seed, всегда за бордюрами, у знака пусто (ADR 0005).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { sceneryOf, stripScenery, segmentDistance, signSpots, houseRadius, houseSpots, wallsOf, roofOf, FLOOR, spotsOf, cornersOf, SCENERY_GAP, SIGN_CLEAR } from '../../engine/scenery.ts';
-import { getTrainingTrack, generateTrack, buildTrack, TRAINING_TRACKS } from '../../engine/track.ts';
+import { sceneryOf, stripScenery, segmentDistance, signSpots, houseRadius, houseSpots, wallsOf, roofOf, FLOOR, WORKS_CLEAR, spotsOf, cornersOf, SCENERY_GAP, SIGN_CLEAR } from '../../engine/scenery.ts';
+import { getTrainingTrack, generateTrack, buildTrack, worksSigns, TRAINING_TRACKS } from '../../engine/track.ts';
 import { drawRing } from '../../engine/turtle.ts';
 
 const tracks = [...TRAINING_TRACKS.map((t) => getTrainingTrack(t.id)), generateTrack('витрина'), generateTrack('финал-2026')];
@@ -41,6 +41,18 @@ test('у знака пусто: его видно издалека', () => {
     for (const sign of signSpots(track)) {
       for (const o of items(sceneryOf(track))) assert.ok(Math.hypot(o.x - sign.x, o.y - sign.y) >= SIGN_CLEAR + o.r, `${track.id}: декор у знака`);
     }
+  }
+});
+
+test('знаки дорожных работ — у обочины снаружи острова, рядом с ними пусто', () => {
+  for (const track of tracks.filter((t) => t.islands.length)) {
+    track.islands.forEach((_, i) => {
+      for (const w of worksSigns(track, i)) {
+        const gap = nearestRoad(track, w.x, w.y) - track.width / 2;
+        assert.ok(gap > 5 && gap < 30, `${track.id}: знак работ в ${gap.toFixed(1)} px от края дороги`);
+        for (const o of items(sceneryOf(track))) assert.ok(Math.hypot(o.x - w.x, o.y - w.y) >= WORKS_CLEAR + o.r - 0.01, `${track.id}: декор у знака работ`);
+      }
+    });
   }
 });
 

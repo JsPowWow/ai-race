@@ -342,6 +342,23 @@ export function signAt(track: Track, road: number, s: number, tick: number): Sid
   return 0;
 }
 
+/** Знаки «Дорожные работы» и «Ограничение скорости» стоят за столько px до медленной зоны */
+const WORKS_AHEAD = 40;
+
+/**
+ * Где знаки перед дорожными работами острова i: на каждом из двух путей, снаружи от острова.
+ * [на кольце, на втором пути]; виден тот, чей путь сейчас закрыт (freeSide)
+ */
+export function worksSigns(track: Track, i: number): [Point & { angle: number }, Point & { angle: number }] {
+  const isl = track.islands[i], branch = track.roads[isl.road] as Branch, s = isl.zone[0] - WORKS_AHEAD;
+  const main = pointAt(track, s), side = pointAt(branch, ((s - branch.fromS) / (branch.toS - branch.fromS)) * branch.total);
+  const away = (a: RoadPoint, b: RoadPoint): Point & { angle: number } => { // от другого пути — наружу
+    const d = Math.hypot(a.x - b.x, a.y - b.y) || 1, off = track.width / 2 + 14;
+    return { x: a.x + ((a.x - b.x) / d) * off, y: a.y + ((a.y - b.y) / d) * off, angle: a.angle };
+  };
+  return [away(main, side), away(side, main)];
+}
+
 /** В медленной зоне какого острова машина: { island, side } — side, по какому пути она едет. Или null */
 export function zoneAt(track: Track, road: number, s: number): { island: number; side: Side } | null {
   const at = onLap(track, s);

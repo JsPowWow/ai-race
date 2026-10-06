@@ -1,5 +1,5 @@
 // Рисование трассы на canvas: цвета темы, камера, асфальт, бордюры, острова, старт. Машины — engine/car-draw.ts.
-import { pointAt, freeSide, signShows, LANE_WIDTH, type Track, type Road, type Branch, type Island, type Point, type RoadPoint, type Side } from './track.ts';
+import { pointAt, freeSide, signShows, worksSigns, SLOW_SPEED, LANE_WIDTH, type Track, type Road, type Branch, type Island, type Point, type RoadPoint, type Side } from './track.ts';
 import { drawScenery, drawBlades, startLights } from './scenery-draw.ts';
 import { pasteGround, type View } from './track-cache.ts';
 import { TILT, RISE, lift } from './tilt.ts';
@@ -137,7 +137,9 @@ export function drawTrack(ctx: Ctx, track: Track, cam: Camera, tick = 0): void {
   const px = 1 / cam.scale;
   track.islands.forEach((island, i) => {
     drawSlowZone(ctx, track, island, freeSide(track, i, tick), p);
-    drawSign(ctx, track, island.sign, signShows(track, i, tick), Math.min(1.8, Math.max(1, 0.9 * px)), p);
+    const size = Math.min(1.8, Math.max(1, 0.9 * px));
+    drawSign(ctx, track, island.sign, signShows(track, i, tick), size, p);
+    drawWorksSign(ctx, worksSigns(track, i)[freeSide(track, i, tick) !== island.side ? 0 : 1], size, p);
   });
   checkered(ctx, pointAt(track, 0), track.width, p); // старт и финиш — одна черта: круг за кругом
 }
@@ -356,6 +358,46 @@ export function signFace(ctx: Ctx, dir: Side | 0, p: Palette): void {
   ctx.strokeStyle = p.kerb2; ctx.fillStyle = p.kerb2; ctx.lineWidth = 3.6; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   ctx.beginPath(); ctx.moveTo(-dir * 3, 9); ctx.lineTo(-dir * 3, -2); ctx.lineTo(dir * 3, -2); ctx.stroke(); // прямо, потом поворот
   ctx.beginPath(); ctx.moveTo(dir * 2, -8); ctx.lineTo(dir * 2, 4); ctx.lineTo(dir * 10, -2); ctx.closePath(); ctx.fill();
+}
+
+/** Знаки перед дорожными работами на одном столбе — у закрытого пути, лицом к нам, как синий знак */
+function drawWorksSign(ctx: Ctx, at: Point, size: number, p: Palette): void {
+  const k = (size * 10) / 15, top = lift(at.x, at.y, 24 * size); // середина круглого знака на высоте 2,4 м
+  ctx.fillStyle = 'rgb(0 0 0 / 0.2)';
+  ctx.beginPath(); ctx.ellipse(at.x + 3, at.y + 2, 3 * size, 2 * size, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = p.roof2; ctx.lineWidth = 2 * size; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(at.x, at.y); ctx.lineTo(top.x, top.y); ctx.stroke();
+  ctx.save();
+  ctx.translate(top.x, top.y);
+  ctx.scale(k, k / TILT);
+  worksFace(ctx, p);
+  ctx.restore();
+}
+
+/**
+ * Лицо знаков перед дорожными работами: сверху треугольник «Дорожные работы» (человечек с лопатой),
+ * под ним — «Ограничение скорости» с SLOW_SPEED, как на табло. Круг радиусом 15 — в (0, 0), треугольник над ним
+ */
+export function worksFace(ctx: Ctx, p: Palette): void {
+  // треугольник: красная кайма, белое поле, чёрный рабочий у кучи земли
+  ctx.save();
+  ctx.translate(0, -34);
+  ctx.beginPath(); ctx.moveTo(0, -17); ctx.lineTo(17, 12); ctx.lineTo(-17, 12); ctx.closePath();
+  ctx.fillStyle = p.kerb; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(0, -10); ctx.lineTo(11, 8.5); ctx.lineTo(-11, 8.5); ctx.closePath();
+  ctx.fillStyle = p.checkLight; ctx.fill();
+  ctx.fillStyle = p.checkDark; ctx.strokeStyle = p.checkDark; ctx.lineCap = 'round'; ctx.lineWidth = 1.8;
+  ctx.beginPath(); ctx.arc(-2.5, -2.5, 1.7, 0, Math.PI * 2); ctx.fill(); // голова
+  ctx.beginPath(); ctx.moveTo(-2.5, -0.5); ctx.lineTo(-4, 4); ctx.lineTo(-6, 7.5); ctx.moveTo(-4, 4); ctx.lineTo(-2, 7.5); // туловище и ноги
+  ctx.moveTo(-3, 1); ctx.lineTo(2, 3.5); ctx.stroke(); // руки к лопате
+  ctx.beginPath(); ctx.moveTo(0.5, 1.5); ctx.lineTo(4, 6.5); ctx.lineWidth = 1.2; ctx.stroke(); // лопата
+  ctx.beginPath(); ctx.moveTo(2.5, 8); ctx.quadraticCurveTo(6, 3, 9, 8); ctx.closePath(); ctx.fill(); // куча земли
+  ctx.restore();
+  // круг: белое поле в красном кольце, число — как скорость на табло
+  ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI * 2); ctx.fillStyle = p.kerb; ctx.fill();
+  ctx.beginPath(); ctx.arc(0, 0, 11.5, 0, Math.PI * 2); ctx.fillStyle = p.checkLight; ctx.fill();
+  ctx.fillStyle = p.checkDark; ctx.font = `700 10px ${UI_FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(SLOW_SPEED.toFixed(1), 0, 0.5);
 }
 
 function line(ctx: Ctx, pt: Point & { angle: number }, width: number, color: string, thick: number): void {

@@ -3,9 +3,9 @@
 // потом всё, у чего есть высота (бордюры, лес, дома, машины), — от дальнего к ближнему, как художник. Последними — лучи и своя машина.
 // Камера и проекция — engine/cockpit.ts. Что не видно (позади, дальше тумана, сбоку от обзора), не рисуем вовсе.
 import { clipNear, project, toCamera, type View, type ScreenPoint } from './cockpit.ts';
-import { getPalette, signFace, UI_FONT, type Palette } from './render.ts';
+import { getPalette, signFace, worksFace, UI_FONT, type Palette } from './render.ts';
 import type { CarView } from './car-draw.ts';
-import { pointAt, freeSide, signShows, type Track, type Branch, type Point, type RoadPoint, type Island } from './track.ts';
+import { pointAt, freeSide, signShows, worksSigns, type Track, type Branch, type Point, type RoadPoint, type Island } from './track.ts';
 import { sceneryOf, wallsOf, roofOf, windowColumns, windowRows, SIZE, type Tree, type House, type Prop, type Dot } from './scenery.ts';
 import { startLights, sceneryMoves } from './scenery-draw.ts';
 import { local } from './tilt.ts';
@@ -272,6 +272,8 @@ export function drawCockpit(ctx: Ctx, track: Track, v: View, scene: CockpitScene
     cones(track, island, freeSide(track, i, tick), (x, y) => add(x, y, 6, () => cone(ctx, v, x, y, p)));
     const { x, y } = signSpot(track, island.sign);
     add(x, y, 20, () => sign(ctx, v, x, y, signShows(track, i, tick), p));
+    const works = worksSigns(track, i)[freeSide(track, i, tick) !== island.side ? 0 : 1];
+    add(works.x, works.y, 20, () => worksSign(ctx, v, works.x, works.y, p));
   });
   for (const o of scene.traffic ?? []) add(o.x, o.y, 30, () => box(ctx, v, o, o.oncoming ? p.trafficOncoming : p.traffic, p, o.oncoming ? 'front' : 'back'));
   const ghost = scene.ghost;
@@ -385,6 +387,18 @@ function sign(ctx: Ctx, v: View, x: number, y: number, dir: number, p: Palette):
   ctx.save();
   ctx.translate(c.x, c.y); ctx.scale(k, k);
   signFace(ctx, dir === 1 || dir === -1 ? dir : 0, p);
+  ctx.restore();
+}
+
+/** Знаки перед дорожными работами на столбе — как в виде сверху (worksFace) */
+function worksSign(ctx: Ctx, v: View, x: number, y: number, p: Palette): void {
+  const foot = billboard(v, x, y, 0), c = billboard(v, x, y, 24);
+  if (!foot || !c) return;
+  const k = c.k * (10 / 15);
+  ctx.fillStyle = p.roof2; ctx.fillRect(foot.x - 1.5 * k, c.y, 3 * k, foot.y - c.y);
+  ctx.save();
+  ctx.translate(c.x, c.y); ctx.scale(k, k);
+  worksFace(ctx, p);
   ctx.restore();
 }
 

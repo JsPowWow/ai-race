@@ -2,7 +2,7 @@
 // Только картинка — сенсоры и физика его не видят (ADR 0005).
 // Расставляется из seed трассы: у всех учеников на одной трассе один и тот же лес.
 import { hashString, mulberry32, type Random } from './utils.ts';
-import type { Track, Point, Road } from './track.ts';
+import { worksSigns, type Track, type Point, type Road } from './track.ts';
 import { local, RISE } from './tilt.ts';
 
 /** Дерево: ёлка (ярусы конусов), круглое (пышная крона) или низкий куст. r — радиус кроны, h — высота до макушки, px */
@@ -50,6 +50,8 @@ export type Scenery = { trees: Tree[]; houses: House[]; bushes: Tree[]; props: P
 export const SCENERY_GAP = 16;
 /** Вокруг знака пусто: его должно быть видно издалека */
 export const SIGN_CLEAR = 70;
+/** Вокруг знаков дорожных работ — поменьше: они у самой обочины */
+export const WORKS_CLEAR = 24;
 const MARGIN = 160; // насколько декор выходит за края трассы
 const OUTSKIRTS = 300; // многоэтажки — ещё дальше: окраина видна из машины издалека
 const CELL = 64;
@@ -227,6 +229,7 @@ function place(track: Track): Scenery {
   const rand3 = mulberry32(hashString(`${track.id}|scenery3`)); // многоэтажки и рост: прежний декор остался на месте
   const lines = linesOf(track);
   const signs = signSpots(track);
+  const works = track.islands.flatMap((_, i) => worksSigns(track, i)); // у знаков дорожных работ тоже пусто
   const taken: Taken = { cells: new Map(), maxR: 0 };
   const edge = track.width / 2 + SCENERY_GAP;
   const trees: Tree[] = [], houses: House[] = [], bushes: Tree[] = [], props: Prop[] = [];
@@ -236,6 +239,7 @@ function place(track: Track): Scenery {
   const fits = (x: number, y: number, r: number): boolean =>
     roadDistance(lines, x, y, edge + r + CELL) >= edge + r &&
     signs.every((s) => Math.hypot(s.x - x, s.y - y) >= SIGN_CLEAR + r) &&
+    works.every((s) => Math.hypot(s.x - x, s.y - y) >= WORKS_CLEAR + r) &&
     isFree(taken, x, y, r);
   /** Поставить предмет, если всё его место свободно */
   const put = (o: Prop): boolean => {
