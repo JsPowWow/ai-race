@@ -2,11 +2,11 @@
 // Панель справа — на @reely/dommy (#20): каждая часть сама обновляется от событий. Трасса и табло мозга —
 // холсты: их рисует кадровый цикл (frame), а машина пересаживается, как только поменялись сборка на экране или мозг.
 import { effect, mount } from '@reely/dommy';
-import { getTrainingTrack } from '../../engine/track.ts';
-import { Car } from '../../engine/car.ts';
-import { checkBrain, createBrain } from '../../engine/brain.ts';
-import type { Brain } from '../../engine/brain.ts';
-import { withTraffic } from '../../engine/traffic.ts';
+import { getTrainingTrack } from '../../engine/world/track.ts';
+import { Car } from '../../engine/world/car.ts';
+import { checkBrain, createBrain } from '../../engine/net/brain.ts';
+import type { Brain } from '../../engine/net/brain.ts';
+import { withTraffic } from '../../engine/world/traffic.ts';
 import { state, sizesOf, thinkFn } from '../state.ts';
 import { live } from '../student-code.ts';
 import { drawRide, trafficOn, setHud } from '../stage.ts';

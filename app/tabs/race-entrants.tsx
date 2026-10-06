@@ -1,7 +1,7 @@
 // «Гонка», участники: боты, мой чемпион, чужие файлы и гибриды. Добавить, убрать, проверить чужой код, скрестить двоих.
 // Список участников — сигнал: заезд (race-run.ts) сам готовится заново, когда он меняется.
 import { signal, untracked, For, Show } from '@reely/dommy';
-import type { Think } from '../../engine/car.ts';
+import type { Think } from '../../engine/world/car.ts';
 import { state, thinkVariant, emit, CAR_COLORS } from '../state.ts';
 import { toCarFile, fromCarFile, approveCode, type Entrant as CarEntrant } from '../car-file.ts';
 import { BOTS } from '../generated/bots.js';

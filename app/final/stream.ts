@@ -2,8 +2,8 @@
 // Тик меняется каждый кадр, поэтому он — обычная переменная; таблице раз в BOARD_EVERY кадров
 // отдаём порядок машин (boardOrder), а не перестраиваем её на каждый кадр.
 import { batch, computed, effect, signal, untracked } from '@reely/dommy';
-import { isSuperfinal, stageLabel, trafficSnapshot } from '../../engine/rally.ts';
-import { getTrainingTrack } from '../../engine/track.ts';
+import { isSuperfinal, stageLabel, trafficSnapshot } from '../../engine/world/rally.ts';
+import { getTrainingTrack } from '../../engine/world/track.ts';
 import { startCountdown, stopCountdown, updateCountdown } from '../countdown.ts';
 import { drawScene, setHud, lapText, showBanner } from '../stage.ts';
 import { secs } from '../ui.ts';

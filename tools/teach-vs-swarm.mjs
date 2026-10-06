@@ -7,18 +7,18 @@
 //   А. рой с нуля;
 //   Б. «Я учу» (заезд учителя по «Разминке», 20 эпох, шаг 0,05), потом рой от этого мозга;
 //   В. рой с нуля, потом «Я учу» поверх него.
-// Мерка — контрольный заезд урока 2 (engine/control.ts): «Змейка» и «Разминка» с попутными и встречными.
-import { getTrainingTrack, withCoins } from '../engine/track.ts';
-import { withTraffic } from '../engine/traffic.ts';
-import { Evolution } from '../engine/evolution.ts';
-import { Car, DEFAULT_SENSORS, maxTicksFor } from '../engine/car.ts';
-import { layerSizes, createBrain, cloneBrain } from '../engine/brain.ts';
-import { mulberry32 } from '../engine/utils.ts';
-import { sampleOf, worthLearning, trainEpoch, TEACH_THINK } from '../engine/imitation.ts';
-import { controlRun, controlText, verdict } from '../engine/control.ts';
-import { parseCarFile } from '../engine/car-file.ts';
+// Мерка — контрольный заезд урока 2 (engine/course/control.ts): «Змейка» и «Разминка» с попутными и встречными.
+import { getTrainingTrack, withCoins } from '../engine/world/track.ts';
+import { withTraffic } from '../engine/world/traffic.ts';
+import { Evolution } from '../engine/learn/evolution.ts';
+import { Car, DEFAULT_SENSORS, maxTicksFor } from '../engine/world/car.ts';
+import { layerSizes, createBrain, cloneBrain } from '../engine/net/brain.ts';
+import { mulberry32 } from '../engine/core/utils.ts';
+import { sampleOf, worthLearning, trainEpoch, TEACH_THINK } from '../engine/learn/imitation.ts';
+import { controlRun, controlText, verdict } from '../engine/course/control.ts';
+import { parseCarFile } from '../engine/course/car-file.ts';
 import { thinkVariants, DEFAULT_THINK } from '../student/think.js';
-import { fitnessOf, MUTATIONS, DEFAULT_RECIPE, crossover } from '../engine/recipes.ts';
+import { fitnessOf, MUTATIONS, DEFAULT_RECIPE, crossover } from '../engine/learn/recipes.ts';
 import { readFileSync } from 'fs';
 
 const GENERATIONS = Number(process.argv[2] ?? 40), RUNS = Number(process.argv[3] ?? 4);

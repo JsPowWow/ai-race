@@ -1,7 +1,7 @@
 // Панель «Учится само» справа: рецепт, поколение, как идёт обучение (график), мозг с «Историей» и рекорды роя.
 import { For, Show } from '@reely/dommy';
-import { cloneBrain, checkBrain } from '../../engine/brain.ts';
-import { drawChart } from '../../engine/netviz.ts';
+import { cloneBrain, checkBrain } from '../../engine/net/brain.ts';
+import { drawChart } from '../../engine/draw/netviz.ts';
 import { sizesOf } from '../state.ts';
 import { setBrain } from '../library.ts';
 import { showBanner } from '../stage.ts';

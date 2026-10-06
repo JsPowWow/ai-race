@@ -5,11 +5,11 @@
 // Другие JSON (package.json и т. п.) молча пропускаем.
 // Запечатанные файлы (car.sealed.json) сначала открываем секретным ключом курса — см. openSealedFiles.
 import { isPlainObject, isString, messageOf } from '@reely/basics';
-import { parseCarFile, CAR_COLORS } from '../../engine/car-file.ts';
-import type { ParsedCar } from '../../engine/car-file.ts';
-import { SEALED_FORMAT, openSealed } from '../../engine/seal.ts';
-import type { CourseKey, SealedFile } from '../../engine/seal.ts';
-import { hashString } from '../../engine/utils.ts';
+import { parseCarFile, CAR_COLORS } from '../../engine/course/car-file.ts';
+import type { ParsedCar } from '../../engine/course/car-file.ts';
+import { SEALED_FORMAT, openSealed } from '../../engine/course/seal.ts';
+import type { CourseKey, SealedFile } from '../../engine/course/seal.ts';
+import { hashString } from '../../engine/core/utils.ts';
 
 const MAX_FILE_BYTES = 2_000_000;
 const SIMILAR = 0.97; // косинусное сходство весов, выше которого мозги считаем «похожими»

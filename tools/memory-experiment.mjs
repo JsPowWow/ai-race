@@ -7,12 +7,12 @@
 //   Б. Обучение на примерах (как «Я учу»): учитель ездит, сеть учится повторять.
 //      Подозрение (copycat): с памятью сеть выучит «жми то же, что в прошлый тик» —
 //      совпадение с учителем высокое, а сама не поедет.
-import { getTrainingTrack, generateTrack } from '../engine/track.ts';
-import { withTraffic } from '../engine/traffic.ts';
-import { Car, CAR, carReport, maxTicksFor } from '../engine/car.ts';
-import { createBrain as create, cloneBrain, BUTTONS } from '../engine/brain.ts';
-import { trainEpoch, agreement, worthLearning } from '../engine/imitation.ts';
-import { mulberry32 } from '../engine/utils.ts';
+import { getTrainingTrack, generateTrack } from '../engine/world/track.ts';
+import { withTraffic } from '../engine/world/traffic.ts';
+import { Car, CAR, carReport, maxTicksFor } from '../engine/world/car.ts';
+import { createBrain as create, cloneBrain, BUTTONS } from '../engine/net/brain.ts';
+import { trainEpoch, agreement, worthLearning } from '../engine/learn/imitation.ts';
+import { mulberry32 } from '../engine/core/utils.ts';
 import { thinkVariants } from '../student/think.js';
 import { mutate } from '../student/mutate.js';
 

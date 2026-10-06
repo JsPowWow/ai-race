@@ -1,9 +1,9 @@
 // «Экзамен», сам расчёт: чемпион проезжает знакомые трассы и незнакомые (по seed) — сразу до конца, без показа.
-import { TRAINING_TRACKS, getTrainingTrack } from '../../engine/track.ts';
-import type { Track } from '../../engine/track.ts';
-import { Car, carReport, maxTicksFor } from '../../engine/car.ts';
-import type { CarStatus } from '../../engine/car.ts';
-import { withTraffic } from '../../engine/traffic.ts';
+import { TRAINING_TRACKS, getTrainingTrack } from '../../engine/world/track.ts';
+import type { Track } from '../../engine/world/track.ts';
+import { Car, carReport, maxTicksFor } from '../../engine/world/car.ts';
+import type { CarStatus } from '../../engine/world/car.ts';
+import { withTraffic } from '../../engine/world/traffic.ts';
 import { state, thinkFn } from '../state.ts';
 import { seedTrack } from '../tracks.ts';
 

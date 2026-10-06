@@ -1,9 +1,9 @@
 // Эволюция: поколение машин, отбор лучшей, мутации.
 import { hasSome, messageOf } from '@reely/basics';
-import { Car, carReport, maxTicksFor, type Sensors, type Think, type CarReport } from './car.ts';
-import { createBrain, cloneBrain, checkBrain, type Brain } from './brain.ts';
-import { trafficAt, type TrafficSpot } from './traffic.ts';
-import type { Track } from './track.ts';
+import { Car, carReport, maxTicksFor, type Sensors, type Think, type CarReport } from '../world/car.ts';
+import { createBrain, cloneBrain, checkBrain, type Brain } from '../net/brain.ts';
+import { trafficAt, type TrafficSpot } from '../world/traffic.ts';
+import type { Track } from '../world/track.ts';
 import type { Mutate } from './recipes.ts';
 
 /** Ребёнок от двух родителей (функция студента: что вернёт — проверяем) */

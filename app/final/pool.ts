@@ -2,8 +2,8 @@
 // Каждый Worker берёт по одной задаче; если задача не отвечает JOB_TIMEOUT_MS — Worker уничтожаем,
 // участник получает статус 'hung', а на его место запускаем новый Worker.
 import { isSomeFunction } from '@reely/basics';
-import { failedResult } from '../../engine/rally.ts';
-import type { StageResult } from '../../engine/rally.ts';
+import { failedResult } from '../../engine/world/rally.ts';
+import type { StageResult } from '../../engine/world/rally.ts';
 import { WORKER_SOURCE } from '../generated/race-worker.js';
 import { runJob } from './job.ts';
 import type { Job } from './job.ts';

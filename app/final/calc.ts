@@ -3,11 +3,11 @@
 import { effect, signal, untracked } from '@reely/dommy';
 import {
   STAGES, stageLabel, stageSeed, stageTrack, hardStages, standings, superfinalists, finalStandings, nominations,
-} from '../../engine/rally.ts';
-import type { Award, StageResult, StageResults, StandingRow } from '../../engine/rally.ts';
-import type { Track } from '../../engine/track.ts';
-import type { Driver } from '../../engine/car.ts';
-import { parseCarFile } from '../../engine/car-file.ts';
+} from '../../engine/world/rally.ts';
+import type { Award, StageResult, StageResults, StandingRow } from '../../engine/world/rally.ts';
+import type { Track } from '../../engine/world/track.ts';
+import type { Driver } from '../../engine/world/car.ts';
+import { parseCarFile } from '../../engine/course/car-file.ts';
 import { BOTS } from '../generated/bots.js';
 import { showBanner } from '../stage.ts';
 import { runJobs, computeMode } from './pool.ts';

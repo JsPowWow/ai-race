@@ -1,9 +1,9 @@
 // Звук мотора в виде из машины (#25): процедурно, Web Audio — без звуковых файлов (по мотивам Раду).
 // Мотор — «пила» и квадрат октавой ниже через фильтр, с пульсацией «тук-тук» цилиндров. Чужие машины — такие же
 // моторы, только тише и глуше; громкость — по расстоянию, слева/справа — по стороне. Тон и громкость считает
-// engine/sound-mix.ts, здесь — только провода. Браузер даёт звук лишь после касания: включается кнопкой.
-import { toneOf, heard } from '../engine/sound-mix.ts';
-import type { Point } from '../engine/track.ts';
+// engine/sound/motor.ts, здесь — только провода. Браузер даёт звук лишь после касания: включается кнопкой.
+import { toneOf, heard } from '../engine/sound/motor.ts';
+import type { Point } from '../engine/world/track.ts';
 
 /** Один мотор: генераторы → пульсация → фильтр → громкость → сторона */
 type Motor = { saw: OscillatorNode; sub: OscillatorNode; beat: OscillatorNode; filter: BiquadFilterNode; gain: GainNode; pan: StereoPannerNode };

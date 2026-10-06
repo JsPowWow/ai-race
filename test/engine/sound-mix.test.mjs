@@ -1,8 +1,8 @@
 // Звук мотора: какой тон у мотора и как слышно чужую машину.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { toneOf, heard, HEAR } from '../../engine/sound-mix.ts';
-import { CAR } from '../../engine/car.ts';
+import { toneOf, heard, HEAR } from '../../engine/sound/motor.ts';
+import { CAR } from '../../engine/world/car.ts';
 
 test('мотор: быстрее — выше, газ — громче и ярче, на месте — тихий холостой ход', () => {
   const idle = toneOf(0, 0), cruise = toneOf(CAR.maxSpeed, 0), push = toneOf(CAR.maxSpeed, 1);

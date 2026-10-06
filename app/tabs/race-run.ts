@@ -1,10 +1,10 @@
 // «Гонка», сам заезд: все участники на одной секретной трассе, тик за тиком, после отсчёта «3 — 2 — 1».
 // Машины двигает кадровый цикл (tickRace); страница узнаёт итоги через сигналы: таблица, номинации, кнопка старта.
 import { effect, signal, untracked } from '@reely/dommy';
-import { Car, maxTicksFor } from '../../engine/car.ts';
-import { withTraffic } from '../../engine/traffic.ts';
-import type { TrafficLevel } from '../../engine/traffic.ts';
-import { lapOf, type Track } from '../../engine/track.ts';
+import { Car, maxTicksFor } from '../../engine/world/car.ts';
+import { withTraffic } from '../../engine/world/traffic.ts';
+import type { TrafficLevel } from '../../engine/world/traffic.ts';
+import { lapOf, type Track } from '../../engine/world/track.ts';
 import { state, emit } from '../state.ts';
 import { seedTrack } from '../tracks.ts';
 import { startCountdown, stopCountdown, updateCountdown } from '../countdown.ts';

@@ -3,7 +3,7 @@ import { signal } from '@reely/dommy';
 import { state, on, emit } from '../state.ts';
 import { toCarFile } from '../car-file.ts';
 import { canDownload, saveFile } from '../download.ts';
-import { sealCar } from '../../engine/seal.ts';
+import { sealCar } from '../../engine/course/seal.ts';
 import { COURSE_KEY } from '../generated/course-key.js';
 import { LoginField, currentLogin, loginLooksValid } from './exam-login.tsx';
 import { messageOf } from '@reely/basics';

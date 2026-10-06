@@ -4,7 +4,7 @@
 // крошечный скрипт в <head> (tools/build.mjs) — до того, как браузер нарисует первый кадр.
 import { stored } from './storage.ts';
 import { effect, untracked } from '@reely/dommy';
-import { cssColor } from '../engine/render.ts';
+import { cssColor } from '../engine/draw/render.ts';
 import { $$ } from './ui.ts';
 import { element } from './dom.ts';
 import { listen } from '@reely/dommy-kit';

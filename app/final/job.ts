@@ -1,12 +1,12 @@
 // Одна задача расчёта финала: участник × этап. Без DOM — выполняется в Web Worker
 // (а если браузер не дал создать Worker — прямо на странице, но тогда без чужого кода).
 import { thinkVariants } from '../../student/think.js';
-import { compileMineThink } from '../../engine/compile.ts';
-import { maxTicksFor } from '../../engine/car.ts';
-import type { Think } from '../../engine/car.ts';
-import { driveRecorded, failedResult, stageTrack } from '../../engine/rally.ts';
-import type { StageResult } from '../../engine/rally.ts';
-import type { Track } from '../../engine/track.ts';
+import { compileMineThink } from '../../engine/course/compile.ts';
+import { maxTicksFor } from '../../engine/world/car.ts';
+import type { Think } from '../../engine/world/car.ts';
+import { driveRecorded, failedResult, stageTrack } from '../../engine/world/rally.ts';
+import type { StageResult } from '../../engine/world/rally.ts';
+import type { Track } from '../../engine/world/track.ts';
 import type { FinalEntry } from './entries.ts';
 import { messageOf, toErrorWithMessage } from '@reely/basics';
 
@@ -32,7 +32,7 @@ function compileOwn(entry: JobEntry, code: string): Think | Error {
   let think = thinks.get(entry.id);
   if (!think) {
     try {
-      // что вернёт чужой think, неизвестно — машина сама считает «не нажато» всё, что не число (см. press в engine/car.ts)
+      // что вернёт чужой think, неизвестно — машина сама считает «не нажато» всё, что не число (см. press в engine/world/car.ts)
       think = compileMineThink(code) as Think;
     } catch (e) {
       think = toErrorWithMessage(e);

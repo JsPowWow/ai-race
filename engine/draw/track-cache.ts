@@ -3,8 +3,8 @@
 //  • вся трасса в кадре — камера стоит: один слой во весь холст;
 //  • камера за машиной — плитки: в кадре десяток-другой, по краю следующие дорисовываются заранее, по одной за кадр.
 // Что меняется (лопасти ветряков, острова, машины) — рисует поверх drawTrack() в render.ts.
-import { TILT } from './tilt.ts';
-import type { Track } from './track.ts';
+import { TILT } from '../core/tilt.ts';
+import type { Track } from '../world/track.ts';
 
 type Ctx = CanvasRenderingContext2D;
 /** Камера, как её видит кэш: куда смотрит и в каком масштабе */

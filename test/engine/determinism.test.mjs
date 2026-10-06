@@ -2,9 +2,9 @@
 // на любом компьютере. На этом держатся финал («считаем заранее, показываем запись») и перепроверка.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { generateTrack } from '../../engine/track.ts';
-import { withTraffic } from '../../engine/traffic.ts';
-import { driveRecorded, stageTrack } from '../../engine/rally.ts';
+import { generateTrack } from '../../engine/world/track.ts';
+import { withTraffic } from '../../engine/world/traffic.ts';
+import { driveRecorded, stageTrack } from '../../engine/world/rally.ts';
 import { BOTS, driverOf } from '../helpers.mjs';
 
 test('одна фраза — одна и та же трасса', () => {

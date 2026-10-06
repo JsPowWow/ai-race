@@ -1,10 +1,10 @@
 // «Мои заезды»: записанные ручные заезды для обучения с учителем.
-// Заезд — это примеры «что видела сеть → что нажал человек», упакованные в строки (см. engine/imitation.ts).
+// Заезд — это примеры «что видела сеть → что нажал человек», упакованные в строки (см. engine/learn/imitation.ts).
 // Заезды — у каждой машины гаража свои (записаны под её сенсоры): лежат в её папке, в runs.json.
 // Здесь — заезды выбранной машины; пересели в другую — гараж подменит их через setRuns().
-import { packSample, unpackSample, worthLearning, type Sample } from '../engine/imitation.ts';
-import type { CarStatus } from '../engine/car.ts';
-import type { TrafficLevel } from '../engine/traffic.ts';
+import { packSample, unpackSample, worthLearning, type Sample } from '../engine/learn/imitation.ts';
+import type { CarStatus } from '../engine/world/car.ts';
+import type { TrafficLevel } from '../engine/world/traffic.ts';
 import { emit } from './state.ts';
 import { load, remove } from './storage.ts';
 
@@ -18,7 +18,7 @@ export type RunStatus = Exclude<CarStatus, 'driving'> | 'stopped';
 export type RunInfo = { trackName: string; traffic: TrafficLevel; status: RunStatus; progressPct: number; ticks: number };
 /**
  * Записанный заезд. inputs — сколько входов было у сети (заезды другой сборки не учим),
- * packed — примеры строками (engine/imitation.ts), on — учить ли на нём.
+ * packed — примеры строками (engine/learn/imitation.ts), on — учить ли на нём.
  */
 export type Run = RunInfo & { id: string; at: string; inputs: number; packed: string[]; on: boolean };
 

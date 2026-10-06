@@ -1,8 +1,8 @@
 // «Учится само» у трассы: кнопки роя под ней и «Рой сейчас» — одно поколение в трёх шагах и что делать дальше.
 import { effect } from '@reely/dommy';
-import { TRAINING_TRACKS } from '../../engine/track.ts';
-import { TRAFFIC_LEVELS } from '../../engine/traffic.ts';
-import type { TrafficLevel } from '../../engine/traffic.ts';
+import { TRAINING_TRACKS } from '../../engine/world/track.ts';
+import { TRAFFIC_LEVELS } from '../../engine/world/traffic.ts';
+import type { TrafficLevel } from '../../engine/world/traffic.ts';
 import { Seg, Select } from '../components/controls.tsx';
 import type { Choice } from '../components/controls.tsx';
 import { train, setTrain } from './train-settings.ts';

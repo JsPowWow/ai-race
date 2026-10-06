@@ -8,7 +8,7 @@
 // Зависание ловит страница: если ответа нет несколько секунд, Worker просто уничтожают.
 import { runJob } from './job.ts';
 import type { Job } from './job.ts';
-import { mulberry32, hashString } from '../../engine/utils.ts';
+import { mulberry32, hashString } from '../../engine/core/utils.ts';
 
 /** Задача от страницы (см. pool.ts) */
 export type JobMessage = Job & { jobId: number };

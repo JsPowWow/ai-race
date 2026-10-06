@@ -1,8 +1,8 @@
 // Формула нейрона «в столбик»: из каких слагаемых сложилась сумма и что нейрон из неё сделал.
 // Слагаемые округлены так же, как числа в узлах, и складываются ровно в сумму — у новичка всё сходится.
 // Здесь только числа и строки, без DOM: карточку рисует formula-card.tsx.
-import { BUTTONS } from '../../engine/brain.ts';
-import type { Brain } from '../../engine/brain.ts';
+import { BUTTONS } from '../../engine/net/brain.ts';
+import type { Brain } from '../../engine/net/brain.ts';
 
 /** Как подписать активацию нейрона: имя для рамки слоя и формула с числом */
 export type Act = {

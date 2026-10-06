@@ -1,6 +1,6 @@
 // «Рецепт роя»: за что хвалим (фитнес), как меняем детей (мутация), как думает мозг и сколько родителей.
 // Новый рецепт действует со следующего поколения: рой перечитывает его в начале каждого (train-swarm.ts).
-import { FITNESS_PARTS, MUTATIONS } from '../../engine/recipes.ts';
+import { FITNESS_PARTS, MUTATIONS } from '../../engine/learn/recipes.ts';
 import { state } from '../state.ts';
 import { live } from '../student-code.ts';
 import { changeShape } from '../library.ts';

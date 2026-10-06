@@ -1,9 +1,9 @@
 // AI Race — точка входа: вкладки, строка чемпиона и кадровый цикл.
 import './dev.ts';
 import { isString, messageOf } from '@reely/basics';
-import { readPalette } from '../engine/render.ts';
-import { drawChart } from '../engine/netviz.ts';
-import { checkBrain, type Brain } from '../engine/brain.ts';
+import { readPalette } from '../engine/draw/render.ts';
+import { drawChart } from '../engine/draw/netviz.ts';
+import { checkBrain, type Brain } from '../engine/net/brain.ts';
 import { state, on, persist, sizesOf, brainTitle, type TabId } from './state.ts';
 import { restoreEdits, endCodeStartup } from './student-code.ts';
 import { renderLesson } from './lesson.tsx';

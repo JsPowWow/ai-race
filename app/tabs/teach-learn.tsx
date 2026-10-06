@@ -3,18 +3,18 @@
 // против твоего мозга, и если лучше — «Взять» (app/variants.ts). Сам мозг учёба не меняет.
 import { signal, effect, canvas } from '@reely/dommy';
 import { isPlainObject } from '@reely/basics';
-import { createBrain, cloneBrain, checkBrain } from '../../engine/brain.ts';
-import type { Brain } from '../../engine/brain.ts';
-import { trainEpoch, agreement, TEACH_THINK } from '../../engine/imitation.ts';
-import type { Sample } from '../../engine/imitation.ts';
-import { drawSeries } from '../../engine/netviz.ts';
+import { createBrain, cloneBrain, checkBrain } from '../../engine/net/brain.ts';
+import type { Brain } from '../../engine/net/brain.ts';
+import { trainEpoch, agreement, TEACH_THINK } from '../../engine/learn/imitation.ts';
+import type { Sample } from '../../engine/learn/imitation.ts';
+import { drawSeries } from '../../engine/draw/netviz.ts';
 import { state, sizesOf, brainTitle, thinkVariant, on } from '../state.ts';
 import { stored } from '../storage.ts';
 import { live } from '../student-code.ts';
 import { bestRun, trainingSamples } from '../runs.ts';
 import { propose, yourLessonLeg } from '../variants.ts';
-import { getTrainingTrack, type Track } from '../../engine/track.ts';
-import { withTraffic } from '../../engine/traffic.ts';
+import { getTrainingTrack, type Track } from '../../engine/world/track.ts';
+import { withTraffic } from '../../engine/world/traffic.ts';
 import { fromEvents } from '../signals.ts';
 import { plural } from './teach-words.ts';
 import { Seg, type Choice } from '../components/controls.tsx';
@@ -76,7 +76,7 @@ export const stopped = signal('');
 /** «Как учится» раскрыт */
 const open = signal(false);
 
-// ── вариант «думания»: обучение на примерах работает только с «Плавным» (см. engine/imitation.ts) ──
+// ── вариант «думания»: обучение на примерах работает только с «Плавным» (см. engine/learn/imitation.ts) ──
 
 const think = fromEvents(['config', 'car', 'code'], () => ({ now: state.config.think, can: !!live.think.thinkVariants?.[TEACH_THINK] }));
 const titleOf = (id: string) => thinkVariant(id)?.title ?? id;

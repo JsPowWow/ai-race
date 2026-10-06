@@ -1,6 +1,6 @@
 // «Профиль», облик машины: имя и цвет. Их видно на всех трассах, в таблице гонки и на стриме финала.
 import { state, persist, CAR_COLORS } from '../state.ts';
-import { NAME_MAX } from '../../engine/car-file.ts';
+import { NAME_MAX } from '../../engine/course/car-file.ts';
 import { fromEvents } from '../signals.ts';
 
 /** Облик выбранной машины: пересели в другую (car) или поменяли этот (save) — перечитываем */

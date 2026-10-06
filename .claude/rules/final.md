@@ -2,9 +2,9 @@
 paths:
   - "app/final/**"
   - "app/tabs/final.tsx"
-  - "engine/rally.ts"
-  - "engine/seal.ts"
-  - "engine/compile.ts"
+  - "engine/world/rally.ts"
+  - "engine/course/seal.ts"
+  - "engine/course/compile.ts"
   - "tools/collect-entries.mjs"
   - "tools/make-demo-entries.mjs"
   - "tools/seal.mjs"

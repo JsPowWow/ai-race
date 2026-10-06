@@ -7,7 +7,7 @@
 //    хранилища и cookies, а зависший расчёт просто останавливается.
 // Опасные глобальные имена подменены на undefined — от случайностей и простых шалостей, не от взлома.
 import { isSomeFunction } from '@reely/basics';
-import { lerp, randomBetween, randomGauss, sigmoid, clamp } from './utils.ts';
+import { lerp, randomBetween, randomGauss, sigmoid, clamp } from '../core/utils.ts';
 
 export const BLOCKED = [
   'window', 'self', 'globalThis', 'document', 'localStorage', 'sessionStorage', 'indexedDB', 'caches',

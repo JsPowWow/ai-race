@@ -1,13 +1,13 @@
 // Новый вариант мозга (#24). Его приносят два учителя: ты («Я учу») и рой («Учится само»).
-// Твой мозг он сам не заменяет: сначала оба едут одинаковый контрольный заезд (engine/control.ts),
+// Твой мозг он сам не заменяет: сначала оба едут одинаковый контрольный заезд (engine/course/control.ts),
 // и вердикт — ▲ лучше, ▼ хуже или = так же. Лучше — рядом с трассой карточка «Взять», и решаешь ты.
 // Галочка «Брать лучшее само» (выключена) берёт без вопроса. Мозга ещё нет — первый вариант берём сразу: заменять нечего.
 // Вкладки друг друга не знают: обе зовут propose() отсюда и рисуют ленту попыток компонентом components/tries.tsx.
 import { signal } from '@reely/dommy';
-import { cloneBrain, type Brain } from '../engine/brain.ts';
-import { controlRun, verdict, controlText, type ControlLeg, type ControlResult, type Mark } from '../engine/control.ts';
-import { getTrainingTrack, type Track } from '../engine/track.ts';
-import { withTraffic } from '../engine/traffic.ts';
+import { cloneBrain, type Brain } from '../engine/net/brain.ts';
+import { controlRun, verdict, controlText, type ControlLeg, type ControlResult, type Mark } from '../engine/course/control.ts';
+import { getTrainingTrack, type Track } from '../engine/world/track.ts';
+import { withTraffic } from '../engine/world/traffic.ts';
 import { state, thinkFn, on, type Shape } from './state.ts';
 import { setBrain } from './library.ts';
 import { stored } from './storage.ts';

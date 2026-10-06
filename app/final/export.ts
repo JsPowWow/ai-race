@@ -1,6 +1,6 @@
 // Итоги финала в файлы: RESULTS.md (опубликовать в репозитории), CSV (таблица для баллов), JSON (всё подряд).
-import { STAGES, stageLabel, stageSeed, stageTime } from '../../engine/rally.ts';
-import type { StageResult } from '../../engine/rally.ts';
+import { STAGES, stageLabel, stageSeed, stageTime } from '../../engine/world/rally.ts';
+import type { StageResult } from '../../engine/world/rally.ts';
 import type { Calc } from './calc.ts';
 
 /** «16,17 с» · «сошёл на 63%» · «ошибка в коде» */

@@ -1,9 +1,9 @@
 // Контрольный заезд — честная мерка «стал мозг лучше или хуже».
 // Прежний мозг и новый вариант едут один и тот же заезд: те же трассы, тот же трафик, та же серия знаков.
 // Мир детерминирован, поэтому разница во времени — только от мозга, а не от везения.
-import { Car, maxTicksFor, type CarStatus, type Driver } from './car.ts';
-import { lapOf, type Track } from './track.ts';
-import { trafficSnapshot } from './rally.ts';
+import { Car, maxTicksFor, type CarStatus, type Driver } from '../world/car.ts';
+import { lapOf, type Track } from '../world/track.ts';
+import { trafficSnapshot } from '../world/rally.ts';
 
 const TICKS_PER_SECOND = 60;
 /** Разница меньше — «так же»: доли секунды на глаз не видны, а вердикт должен быть понятен */

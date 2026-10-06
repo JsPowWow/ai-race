@@ -3,13 +3,13 @@
 // блок «Мозг» с «Историей» и «Мозг под микроскопом» (network-editor). Трасса — холст: машину двигает
 // и рисует кадровый цикл (frame), он же учит мозг по эпохе за кадр.
 import { mount, signal } from '@reely/dommy';
-import type { Track } from '../../engine/track.ts';
-import { Car, carReport } from '../../engine/car.ts';
-import type { CarStatus } from '../../engine/car.ts';
-import { sampleOf, worthLearning } from '../../engine/imitation.ts';
-import type { Sample } from '../../engine/imitation.ts';
-import type { Trace } from '../../engine/netviz.ts';
-import { cssColor } from '../../engine/render.ts';
+import type { Track } from '../../engine/world/track.ts';
+import { Car, carReport } from '../../engine/world/car.ts';
+import type { CarStatus } from '../../engine/world/car.ts';
+import { sampleOf, worthLearning } from '../../engine/learn/imitation.ts';
+import type { Sample } from '../../engine/learn/imitation.ts';
+import type { Trace } from '../../engine/draw/netviz.ts';
+import { cssColor } from '../../engine/draw/render.ts';
 import { state, thinkFn, on, emit } from '../state.ts';
 import { live } from '../student-code.ts';
 import { runs, addRun, sampleCount, MAX_SAMPLES, type RunStatus } from '../runs.ts';
@@ -29,7 +29,7 @@ import { controlNames } from '../variants.ts';
 import { ViewSwitch, SoundSwitch, cockpitOn, soundOn } from './teach-view.tsx';
 import { hearFrame } from '../engine-sound.ts';
 import { aimStick } from '../joystick.ts';
-import { TILT } from '../../engine/tilt.ts';
+import { TILT } from '../../engine/core/tilt.ts';
 
 /** После финиша или аварии машина постоит столько (мс) — видно, чем кончилось, — и поедет заново */
 const RESTART_DELAY = 1100;

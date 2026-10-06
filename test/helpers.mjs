@@ -1,6 +1,6 @@
 // Общее для тестов: боты из tools/bots.json — готовые мозги, на которых удобно проверять движок.
 import { readFileSync } from 'fs';
-import { parseCarFile } from '../engine/car-file.ts';
+import { parseCarFile } from '../engine/course/car-file.ts';
 import { thinkVariants } from '../student/think.js';
 
 export const BOTS = JSON.parse(readFileSync(new URL('../tools/bots.json', import.meta.url), 'utf8'));

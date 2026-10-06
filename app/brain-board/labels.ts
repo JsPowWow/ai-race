@@ -1,5 +1,5 @@
 // Подписи «Табло мозга» для мозга данной формы: имена входов и выходов, заголовки рамок, петля заметок.
-import { inputLabels, sensorsOf, OUTPUT_LABELS } from '../../engine/brain.ts';
+import { inputLabels, sensorsOf, OUTPUT_LABELS } from '../../engine/net/brain.ts';
 import type { Act } from './formula.ts';
 
 /** Заголовок рамки: на обычном экране — две строки (заголовок и пояснение), на узком — одна короткая */

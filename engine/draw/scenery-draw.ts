@@ -1,11 +1,11 @@
 // Декор под наклоном: пластиковые ёлки ярусами на стволе, пышные круглые деревья, домики со скатной крышей
 // и всё хозяйство трассы: огни старта, трибуна, паддок, шины, шевроны, щиты, фонари, ветряк, пруд и клумбы.
 // Деревья, кусты и шины рисуем слоями — все тени, потом все стволы, потом ярус за ярусом: несколько заливок за кадр вместо сотен.
-import { sceneryOf, houseRadius, wallsOf, roofOf, windowColumns, windowRows, SIZE, type Tree, type House, type Prop, type Dot, type Parked } from './scenery.ts';
-import { TILT, RISE, lift, local, prism, cap } from './tilt.ts';
+import { sceneryOf, houseRadius, wallsOf, roofOf, windowColumns, windowRows, SIZE, type Tree, type House, type Prop, type Dot, type Parked } from '../world/scenery.ts';
+import { TILT, RISE, lift, local, prism, cap } from '../core/tilt.ts';
 import { UI_FONT, type Palette } from './render.ts';
 import type { View } from './track-cache.ts';
-import type { Track, Point } from './track.ts';
+import type { Track, Point } from '../world/track.ts';
 
 type Ctx = CanvasRenderingContext2D;
 /** Низкое и многочисленное — рисуется пачкой, слоями */
@@ -26,7 +26,7 @@ export function setStartLights(n: number): void {
   lightsOn = Math.max(0, Math.min(LIGHTS, Math.round(n)));
 }
 
-/** Сколько огней горит сейчас — для вида из машины (engine/cockpit-draw.ts) */
+/** Сколько огней горит сейчас — для вида из машины (engine/draw/cockpit/scene.ts) */
 export const startLights = (): number => lightsOn;
 
 let motion = true;

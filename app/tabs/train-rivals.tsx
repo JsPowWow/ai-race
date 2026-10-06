@@ -1,8 +1,8 @@
 // «Учится само», соперники: боты и чужие машины едут рядом с роем — видно, догнал ли их рой.
-// В отборе они не участвуют: родители — только из роя (engine/evolution.ts, rivals).
+// В отборе они не участвуют: родители — только из роя (engine/learn/evolution.ts, rivals).
 // Список не сохраняем: соперники — на один вечер, а localStorage маленький.
 import { signal, For, Show } from '@reely/dommy';
-import type { Rival } from '../../engine/evolution.ts';
+import type { Rival } from '../../engine/learn/evolution.ts';
 import { fromCarFile } from '../car-file.ts';
 import { CAR_COLORS } from '../state.ts';
 import { BOTS } from '../generated/bots.js';

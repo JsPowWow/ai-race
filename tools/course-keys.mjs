@@ -3,7 +3,7 @@
 // Открытый ключ пишется в course-key.json (его коммитят), секретный — рядом с репозиторием, НЕ внутри.
 // То же самое умеет кнопка «Создать ключи курса» на вкладке «Финал».
 import { writeFileSync, existsSync } from 'fs';
-import { generateCourseKeys } from '../engine/seal.ts';
+import { generateCourseKeys } from '../engine/course/seal.ts';
 
 const privatePath = process.argv[2] ?? '../ai-race-private-key.json';
 if (existsSync(privatePath)) {

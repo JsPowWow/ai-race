@@ -1,7 +1,7 @@
 // Пульт шоу под трассой: этап, старт и пауза, скорость показа, камера и режим трансляции.
 import { signal } from '@reely/dommy';
 import type { Signal } from '@reely/dommy';
-import { stageLabel } from '../../engine/rally.ts';
+import { stageLabel } from '../../engine/world/rally.ts';
 import { calc, STAGE_COUNT } from './calc.ts';
 import { stage, phase, speed, camera, watched, play, selectStage } from './stream.ts';
 import type { CameraMode } from './stream.ts';

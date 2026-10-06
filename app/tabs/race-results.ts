@@ -1,8 +1,8 @@
 // «Гонка», итоги: кто за кем, что писать в таблице и кому какая номинация.
 // Только расчёт — без страницы: его легко читать и проверять отдельно.
-import { carReport } from '../../engine/car.ts';
-import type { Car, CarReport } from '../../engine/car.ts';
-import type { Track } from '../../engine/track.ts';
+import { carReport } from '../../engine/world/car.ts';
+import type { Car, CarReport } from '../../engine/world/car.ts';
+import type { Track } from '../../engine/world/track.ts';
 import { secs, pct } from '../ui.ts';
 
 /** Машина в заезде и тот, кто её привёз */

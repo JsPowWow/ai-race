@@ -1,14 +1,14 @@
 // Холст с трассой: камера, отрисовка сцены, подсказки поверх (HUD, баннер).
-import { Camera, fitCanvas, clear, drawTrack } from '../engine/render.ts';
-import { drawTraffic, drawCar, drawSensors, drawPack, type CarView, type CarLook, type PackCar } from '../engine/car-draw.ts';
-import { TILT } from '../engine/tilt.ts';
-import { Chase, viewOf, CHASE } from '../engine/cockpit.ts';
-import { drawCockpit, type CockpitScene } from '../engine/cockpit-draw.ts';
-import { setSceneryMotion } from '../engine/scenery-draw.ts';
-import { trafficAt, type TrafficSpot } from '../engine/traffic.ts';
-import { lapOf, type Track } from '../engine/track.ts';
-import type { Point } from '../engine/turtle.ts';
-import { clamp } from '../engine/utils.ts';
+import { Camera, fitCanvas, clear, drawTrack } from '../engine/draw/render.ts';
+import { drawTraffic, drawCar, drawSensors, drawPack, type CarView, type CarLook, type PackCar } from '../engine/draw/car-draw.ts';
+import { TILT } from '../engine/core/tilt.ts';
+import { Chase, viewOf, CHASE } from '../engine/draw/cockpit/camera.ts';
+import { drawCockpit, type CockpitScene } from '../engine/draw/cockpit/scene.ts';
+import { setSceneryMotion } from '../engine/draw/scenery-draw.ts';
+import { trafficAt, type TrafficSpot } from '../engine/world/traffic.ts';
+import { lapOf, type Track } from '../engine/world/track.ts';
+import type { Point } from '../engine/world/turtle.ts';
+import { clamp } from '../engine/core/utils.ts';
 import { liveSize } from './ui.ts';
 import { element } from './dom.ts';
 import { listen } from '@reely/dommy-kit';

@@ -2,10 +2,10 @@
 // Снимки — в машине гаража (state.timeline): мозг и форма машины тогда, по одному на поколения 1, 5, 10, 25…
 // Заезд — на трассе урока с той же серией машин, что у контрольного заезда: всё детерминировано, как в гонке.
 import { signal } from '@reely/dommy';
-import { Car, maxTicksFor } from '../../engine/car.ts';
-import { cloneBrain, type Brain } from '../../engine/brain.ts';
-import { trafficAt, type TrafficSpot } from '../../engine/traffic.ts';
-import type { Track } from '../../engine/track.ts';
+import { Car, maxTicksFor } from '../../engine/world/car.ts';
+import { cloneBrain, type Brain } from '../../engine/net/brain.ts';
+import { trafficAt, type TrafficSpot } from '../../engine/world/traffic.ts';
+import type { Track } from '../../engine/world/track.ts';
 import { state, thinkFn, on, type Moment } from '../state.ts';
 
 /** Какие поколения запоминаем: сначала часто (там рой меняется быстрее всего), потом всё реже */

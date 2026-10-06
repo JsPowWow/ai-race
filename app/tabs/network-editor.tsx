@@ -1,11 +1,11 @@
 // «Мозг под микроскопом» на вкладке «Я учу»: подсветка работы нейронов и ручная правка весов.
 // Схема — холст (рисует render(), в том числе из кадрового цикла), подписи и ползунок — компонент dommy.
 import { signal } from '@reely/dommy';
-import { createBrain, OUTPUT_LABELS, inputLabel } from '../../engine/brain.ts';
-import type { Brain } from '../../engine/brain.ts';
-import { drawNetwork, hitNetwork } from '../../engine/netviz.ts';
-import type { NetLayout, NetPick, Trace } from '../../engine/netviz.ts';
-import { mulberry32 } from '../../engine/utils.ts';
+import { createBrain, OUTPUT_LABELS, inputLabel } from '../../engine/net/brain.ts';
+import type { Brain } from '../../engine/net/brain.ts';
+import { drawNetwork, hitNetwork } from '../../engine/draw/netviz.ts';
+import type { NetLayout, NetPick, Trace } from '../../engine/draw/netviz.ts';
+import { mulberry32 } from '../../engine/core/utils.ts';
 import { state, sizesOf, setChampion } from '../state.ts';
 import { remember } from '../library.ts';
 

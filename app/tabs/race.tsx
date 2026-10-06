@@ -4,7 +4,7 @@
 //   race-run.ts       — сам заезд;  race-results.ts — места и номинации;  race-board.tsx — таблица
 //   race-flaps.tsx    — табло-флапы рядом с трассой
 import { mount } from '@reely/dommy';
-import { TRAFFIC_LEVELS, type TrafficLevel } from '../../engine/traffic.ts';
+import { TRAFFIC_LEVELS, type TrafficLevel } from '../../engine/world/traffic.ts';
 import { state, persist } from '../state.ts';
 import { drawScene, paintCar, paintSensors, trafficOn, setHud } from '../stage.ts';
 import { secs } from '../ui.ts';

@@ -1,18 +1,18 @@
 // Рисунок вида из машины: та же игрушечная трасса на столе, только смотрим с дороги, позади своей машины.
 // Сначала всё плоское (асфальт одним путём — без швов между кусками, разметка, черта), потом туман у горизонта,
 // потом всё, у чего есть высота (бордюры, лес, дома, машины), — от дальнего к ближнему, как художник. Последними — лучи и своя машина.
-// Камера и проекция — engine/cockpit.ts. Что не видно (позади, дальше тумана, сбоку от обзора), не рисуем вовсе.
-import { clipNear, project, toCamera, type View, type ScreenPoint } from './cockpit.ts';
-import { getPalette, signFace, worksFace, UI_FONT, type Palette } from './render.ts';
-import type { CarView } from './car-draw.ts';
-import { pointAt, freeSide, signShows, worksSigns, type Track, type Branch, type Point, type RoadPoint, type Island } from './track.ts';
-import { sceneryOf, wallsOf, roofOf, windowColumns, windowRows, SIZE, type Tree, type House, type Prop, type Dot } from './scenery.ts';
-import { startLights, sceneryMoves } from './scenery-draw.ts';
-import { local } from './tilt.ts';
-import { drawCockpitCar } from './cockpit-car.ts';
-import { tint, clearOf } from './paint.ts';
-import { rays, CAR } from './car.ts';
-import type { TrafficSpot } from './traffic.ts';
+// Камера и проекция — engine/draw/cockpit/camera.ts. Что не видно (позади, дальше тумана, сбоку от обзора), не рисуем вовсе.
+import { clipNear, project, toCamera, type View, type ScreenPoint } from './camera.ts';
+import { getPalette, signFace, worksFace, UI_FONT, type Palette } from '../render.ts';
+import type { CarView } from '../car-draw.ts';
+import { pointAt, freeSide, signShows, worksSigns, type Track, type Branch, type Point, type RoadPoint, type Island } from '../../world/track.ts';
+import { sceneryOf, wallsOf, roofOf, windowColumns, windowRows, SIZE, type Tree, type House, type Prop, type Dot } from '../../world/scenery.ts';
+import { startLights, sceneryMoves } from '../scenery-draw.ts';
+import { local } from '../../core/tilt.ts';
+import { drawCockpitCar } from './car.ts';
+import { tint, clearOf } from '../../core/paint.ts';
+import { rays, CAR } from '../../world/car.ts';
+import type { TrafficSpot } from '../../world/traffic.ts';
 
 type Ctx = CanvasRenderingContext2D;
 type P3 = Point & { z: number };

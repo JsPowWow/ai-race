@@ -1,7 +1,7 @@
 // Запечатанная сдача: открыть может только секретный ключ, подмену видно.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { generateCourseKeys, sealCar, importPrivateKey, openSealed } from '../../engine/seal.ts';
+import { generateCourseKeys, sealCar, importPrivateKey, openSealed } from '../../engine/course/seal.ts';
 import { bot } from '../helpers.mjs';
 
 const keys = await generateCourseKeys();

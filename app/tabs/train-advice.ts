@@ -1,8 +1,8 @@
 // «Рой сейчас»: одна фраза — что происходит с роем и что делать дальше.
 // Чистая функция: всё, на что она смотрит, приходит аргументом.
-import { TRAINING_TRACKS } from '../../engine/track.ts';
-import type { Track } from '../../engine/track.ts';
-import { FITNESS_PARTS } from '../../engine/recipes.ts';
+import { TRAINING_TRACKS } from '../../engine/world/track.ts';
+import type { Track } from '../../engine/world/track.ts';
+import { FITNESS_PARTS } from '../../engine/learn/recipes.ts';
 import { secs, pct } from '../ui.ts';
 import type { HistoryEntry } from '../state.ts';
 

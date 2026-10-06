@@ -1,9 +1,9 @@
 // Декор вокруг трассы: из seed, всегда за бордюрами, у знака пусто (ADR 0005).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { sceneryOf, stripScenery, segmentDistance, signSpots, houseRadius, houseSpots, wallsOf, roofOf, FLOOR, WORKS_CLEAR, spotsOf, cornersOf, SCENERY_GAP, SIGN_CLEAR } from '../../engine/scenery.ts';
-import { getTrainingTrack, generateTrack, buildTrack, worksSigns, TRAINING_TRACKS } from '../../engine/track.ts';
-import { drawRing } from '../../engine/turtle.ts';
+import { sceneryOf, stripScenery, segmentDistance, signSpots, houseRadius, houseSpots, wallsOf, roofOf, FLOOR, WORKS_CLEAR, spotsOf, cornersOf, SCENERY_GAP, SIGN_CLEAR } from '../../engine/world/scenery.ts';
+import { getTrainingTrack, generateTrack, buildTrack, worksSigns, TRAINING_TRACKS } from '../../engine/world/track.ts';
+import { drawRing } from '../../engine/world/turtle.ts';
 
 const tracks = [...TRAINING_TRACKS.map((t) => getTrainingTrack(t.id)), generateTrack('витрина'), generateTrack('финал-2026')];
 
@@ -80,7 +80,7 @@ test('спальные районы: многоэтажки в 4 этажа и �
 });
 
 test('в виде сверху высокое не закрывает дорогу: дома и деревья растут, пока за ними нет асфальта', () => {
-  const RISE = Math.cos((55 * Math.PI) / 180) / Math.sin((55 * Math.PI) / 180); // как в engine/tilt.ts
+  const RISE = Math.cos((55 * Math.PI) / 180) / Math.sin((55 * Math.PI) / 180); // как в engine/core/tilt.ts
   for (const track of tracks) {
     const { houses, trees } = sceneryOf(track);
     const tall = [

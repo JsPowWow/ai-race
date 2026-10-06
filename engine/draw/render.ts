@@ -1,9 +1,9 @@
-// Рисование трассы на canvas: цвета темы, камера, асфальт, бордюры, острова, старт. Машины — engine/car-draw.ts.
-import { pointAt, freeSide, signShows, worksSigns, SLOW_SPEED, LANE_WIDTH, type Track, type Road, type Branch, type Island, type Point, type RoadPoint, type Side } from './track.ts';
+// Рисование трассы на canvas: цвета темы, камера, асфальт, бордюры, острова, старт. Машины — engine/draw/car-draw.ts.
+import { pointAt, freeSide, signShows, worksSigns, SLOW_SPEED, LANE_WIDTH, type Track, type Road, type Branch, type Island, type Point, type RoadPoint, type Side } from '../world/track.ts';
 import { drawScenery, drawBlades, startLights } from './scenery-draw.ts';
 import { pasteGround, type View } from './track-cache.ts';
-import { TILT, RISE, lift } from './tilt.ts';
-import { mulberry32 } from './utils.ts';
+import { TILT, RISE, lift } from '../core/tilt.ts';
+import { mulberry32 } from '../core/utils.ts';
 
 type Ctx = CanvasRenderingContext2D;
 
@@ -75,7 +75,7 @@ export class Camera {
       this.ready = true;
     }
   }
-  /** Наклонный вид: по высоте экрана пол сжат в TILT раз (engine/tilt.ts) */
+  /** Наклонный вид: по высоте экрана пол сжат в TILT раз (engine/core/tilt.ts) */
   apply(ctx: Ctx, canvas: { width: number; height: number }): void {
     const k = this.scale, ky = this.scale * TILT;
     ctx.setTransform(k, 0, 0, ky, canvas.width / 2 - this.x * k, canvas.height / 2 - this.y * ky);

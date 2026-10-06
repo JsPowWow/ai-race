@@ -3,7 +3,7 @@
 import { live } from './student-code.ts';
 import { showBanner } from './stage.ts';
 import { $$, isTyping } from './ui.ts';
-import type { Controls } from '../engine/car.ts';
+import type { Controls } from '../engine/world/car.ts';
 import { listen } from '@reely/dommy-kit';
 import { messageOf } from '@reely/basics';
 

@@ -1,7 +1,7 @@
 // Вид из машины: камера позади машины и проекция точек трассы на экран.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { viewOf, project, clipNear, Chase, CHASE } from '../../engine/cockpit.ts';
+import { viewOf, project, clipNear, Chase, CHASE } from '../../engine/draw/cockpit/camera.ts';
 
 const screen = { width: 1000, height: 600 };
 const along = (angle) => viewOf({ x: 0, y: 0, angle }, screen); // камера в начале координат

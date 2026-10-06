@@ -1,7 +1,7 @@
 // Оттенки цвета: тень и блик смешиваются заранее — одна заливка вместо двух-трёх.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseColor, tint, clearOf } from '../../engine/paint.ts';
+import { parseColor, tint, clearOf } from '../../engine/core/paint.ts';
 
 test('цвет холста разбирается во всех видах, что отдаёт браузер', () => {
   assert.deepEqual(parseColor('#fff'), [255, 255, 255, 1]);

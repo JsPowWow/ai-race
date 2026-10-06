@@ -2,8 +2,8 @@
 //   node tools/seal.mjs car.json <логин на GitHub>   →   car.sealed.json
 // Шифрует открытым ключом курса из course-key.json — так же, как кнопка «Скачать для сдачи» на «Экзамене».
 import { readFileSync, writeFileSync } from 'fs';
-import { sealCar } from '../engine/seal.ts';
-import { parseCarFile } from '../engine/car-file.ts';
+import { sealCar } from '../engine/course/seal.ts';
+import { parseCarFile } from '../engine/course/car-file.ts';
 
 const [input, login] = process.argv.slice(2);
 if (!input || !login) {

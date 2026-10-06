@@ -1,7 +1,7 @@
 // Фитнес по галочкам: основа — расстояние, каждая галочка — одна поправка.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { fitnessOf } from '../../engine/recipes.ts';
+import { fitnessOf } from '../../engine/learn/recipes.ts';
 
 const crashed = { progress: 1000, finished: false, crashed: true, ticks: 900, wiggle: 10 };
 const finished = { progress: 3000, finished: true, crashed: false, ticks: 5000, wiggle: 10 };

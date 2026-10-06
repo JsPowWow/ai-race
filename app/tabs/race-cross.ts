@@ -1,10 +1,10 @@
 // «Гонка», скрещивание двух участников: подходят ли они друг другу и какой получится ребёнок.
 // Сами веса ребёнка считает crossover() студента (student/crossover.js).
 import { mix } from '@reely/colors';
-import { cloneBrain } from '../../engine/brain.ts';
-import type { Brain } from '../../engine/brain.ts';
-import type { Think } from '../../engine/car.ts';
-import { NAME_MAX } from '../../engine/car-file.ts';
+import { cloneBrain } from '../../engine/net/brain.ts';
+import type { Brain } from '../../engine/net/brain.ts';
+import type { Think } from '../../engine/world/car.ts';
+import { NAME_MAX } from '../../engine/course/car-file.ts';
 import { live } from '../student-code.ts';
 
 /** Что нужно знать о родителе */

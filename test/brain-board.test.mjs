@@ -1,8 +1,8 @@
 // «Табло мозга» без браузера: раскладка, формула нейрона и «теплота» — чистые функции (app/brain-board/*.ts).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createBrain, layerSizes, BUTTONS, NOTES } from '../engine/brain.ts';
-import { mulberry32 } from '../engine/utils.ts';
+import { createBrain, layerSizes, BUTTONS, NOTES } from '../engine/net/brain.ts';
+import { mulberry32 } from '../engine/core/utils.ts';
 import { thinkVariants, feedForward } from '../student/think.js';
 import { layout, neuronAt, sensorAt, buttonCenterX } from '../app/brain-board/layout.ts';
 import { neuronFormula, SMOOTH, TOP_TERMS } from '../app/brain-board/formula.ts';

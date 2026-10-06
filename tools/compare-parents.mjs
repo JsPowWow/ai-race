@@ -1,11 +1,11 @@
 // Честный эксперимент: помогает ли кроссовер? Один родитель против двух, много запусков.
 // Запуск: node tools/compare-parents.mjs [трасса=hairpin] [запусков=20] [поколений=30]
-import { getTrainingTrack } from '../engine/track.ts';
-import { withTraffic } from '../engine/traffic.ts';
-import { layerSizes } from '../engine/brain.ts';
-import { Evolution } from '../engine/evolution.ts';
+import { getTrainingTrack } from '../engine/world/track.ts';
+import { withTraffic } from '../engine/world/traffic.ts';
+import { layerSizes } from '../engine/net/brain.ts';
+import { Evolution } from '../engine/learn/evolution.ts';
 import { thinkVariants } from '../student/think.js';
-import { fitnessOf, MUTATIONS, crossover, DEFAULT_PARTS } from '../engine/recipes.ts';
+import { fitnessOf, MUTATIONS, crossover, DEFAULT_PARTS } from '../engine/learn/recipes.ts';
 
 const fitness = fitnessOf(DEFAULT_PARTS), { mutate } = MUTATIONS.spot;
 

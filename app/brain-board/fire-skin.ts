@@ -2,8 +2,8 @@
 // Скин только рисует: что горит и насколько, ему даёт glow.ts, где что стоит — layout.ts.
 // Рисуется каждый кадр, поэтому цвета заранее разложены по ступеням жара (readSkin), а не собираются в строки на лету.
 import { getContrastRatio, mix, withAlpha } from '@reely/colors';
-import { cssColor } from '../../engine/render.ts';
-import type { Brain } from '../../engine/brain.ts';
+import { cssColor } from '../../engine/draw/render.ts';
+import type { Brain } from '../../engine/net/brain.ts';
 import { addCurve, bezierAt, buttonCenterX, NOTE_W } from './layout.ts';
 import type { Box, Layout, Point } from './layout.ts';
 import type { Glow } from './glow.ts';

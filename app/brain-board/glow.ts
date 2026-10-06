@@ -1,8 +1,8 @@
 // «Жизнь» табло во времени: что сейчас горит и насколько, какие импульсы бегут, какие числа подписаны у узлов.
 // Всё хранится в плоских массивах одной формы с мозгом и переиспользуется каждый кадр: кадр не создаёт мусора.
 // Без DOM — только числа; рисует их fire-skin.ts.
-import { BUTTONS } from '../../engine/brain.ts';
-import type { Brain } from '../../engine/brain.ts';
+import { BUTTONS } from '../../engine/net/brain.ts';
+import type { Brain } from '../../engine/net/brain.ts';
 import { fmt, pct } from './formula.ts';
 
 const ATTACK = 0.04, DECAY = 0.3; // секунды: вспыхивает быстро, гаснет чуть медленнее

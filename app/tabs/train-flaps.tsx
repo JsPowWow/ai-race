@@ -1,9 +1,9 @@
 // «Учится само», табло-флапы у трассы: не весь рой (сто одинаковых машин), а лучший роя в этом поколении,
 // твой мозг (он едет рядом, в отбор не идёт) и соперники. Новое поколение — табло перещёлкивается заново.
 import { mount, signal } from '@reely/dommy';
-import { carReport, type Car } from '../../engine/car.ts';
-import type { Evolution } from '../../engine/evolution.ts';
-import { lapOf, type Track } from '../../engine/track.ts';
+import { carReport, type Car } from '../../engine/world/car.ts';
+import type { Evolution } from '../../engine/learn/evolution.ts';
+import { lapOf, type Track } from '../../engine/world/track.ts';
 import { pickRows, type FlapColumn, type FlapRow } from '../components/flap-board.tsx';
 import { StageFlaps } from '../components/stage-flaps.tsx';
 import { state } from '../state.ts';

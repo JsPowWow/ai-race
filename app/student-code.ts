@@ -5,11 +5,11 @@ import * as mutate from '../student/mutate.js';
 import * as fitness from '../student/fitness.js';
 import * as crossover from '../student/crossover.js';
 import { SOURCES } from './generated/sources.js';
-import { compileSource, type StudentModule } from '../engine/compile.ts';
-import type { Brain } from '../engine/brain.ts';
-import type { Controls } from '../engine/car.ts';
-import type { Mutate } from '../engine/recipes.ts';
-import type { Fitness } from '../engine/evolution.ts';
+import { compileSource, type StudentModule } from '../engine/course/compile.ts';
+import type { Brain } from '../engine/net/brain.ts';
+import type { Controls } from '../engine/world/car.ts';
+import type { Mutate } from '../engine/learn/recipes.ts';
+import type { Fitness } from '../engine/learn/evolution.ts';
 import * as acorn from 'acorn';
 import { load, save, remove } from './storage.ts';
 import { messageOf } from '@reely/basics';
@@ -81,7 +81,7 @@ export const getSource = (id: FileId): string => load<string | null>(`code:${id}
 export const isEdited = (id: FileId): boolean => load<string | null>(`code:${id}`, null) !== null;
 
 // ── как выполняется код студента ──
-// Сама компиляция и её ограничения описаны в engine/compile.ts.
+// Сама компиляция и её ограничения описаны в engine/course/compile.ts.
 // Здесь — то, что нужно редактору: синтаксис с номером строки и номер строки у ошибок выполнения.
 
 /** Ошибка в коде студента с номером строки (если его удалось понять) */

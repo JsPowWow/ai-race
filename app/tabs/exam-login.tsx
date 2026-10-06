@@ -3,7 +3,7 @@
 // Проверка на GitHub — подсказка против опечаток: если GitHub недоступен или кончился лимит, она не мешает.
 import { signal, untracked, Show } from '@reely/dommy';
 import { retry } from '@reely/async';
-import { GITHUB_LOGIN } from '../../engine/seal.ts';
+import { GITHUB_LOGIN } from '../../engine/course/seal.ts';
 import { state, persist } from '../state.ts';
 
 /** Спрашиваем GitHub, когда перестали печатать */

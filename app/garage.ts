@@ -6,12 +6,12 @@
 //
 // Пересесть в другую машину = записать нынешнюю, прочитать другую и разослать события:
 // 'reset', 'config', 'champion', 'library', 'car' — вкладки перерисуются, как после смены мозга.
-import { checkBrain } from '../engine/brain.ts';
+import { checkBrain } from '../engine/net/brain.ts';
 import type { Profile, CarData, Version } from './state.ts';
 import type { CarStore } from './car-store.ts';
 import type { DiskFolder } from './car-disk.ts';
 import type { Run } from './runs.ts';
-import { parseCarFile, NAME_MAX } from '../engine/car-file.ts';
+import { parseCarFile, NAME_MAX } from '../engine/course/car-file.ts';
 import { state, blankCar, blankProgress, isMoment, CAR_KEYS, CAR_COLORS, sizesOf, emit, on } from './state.ts';
 import { openCarStore, bytes } from './car-store.ts';
 import { runs, setRuns, legacyRuns } from './runs.ts';

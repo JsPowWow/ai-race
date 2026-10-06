@@ -1,11 +1,11 @@
 // Показ записанного этапа: где каждая машина на тике t, кто впереди, и как это нарисовать.
 // Сотни машин рисуем попроще (paintPack), десятку лидеров и найденного участника — красиво, с подписями.
-import { REC_EVERY, REC_FIELDS } from '../../engine/rally.ts';
-import type { StageResult } from '../../engine/rally.ts';
-import { UI_FONT } from '../../engine/render.ts';
-import type { PackCar } from '../../engine/car-draw.ts';
-import { maxCurve } from '../../engine/car.ts';
-import type { Track } from '../../engine/track.ts';
+import { REC_EVERY, REC_FIELDS } from '../../engine/world/rally.ts';
+import type { StageResult } from '../../engine/world/rally.ts';
+import { UI_FONT } from '../../engine/draw/render.ts';
+import type { PackCar } from '../../engine/draw/car-draw.ts';
+import { maxCurve } from '../../engine/world/car.ts';
+import type { Track } from '../../engine/world/track.ts';
 import { paintCar, paintPack, paintScreen, toScreen } from '../stage.ts';
 import type { FinalEntry } from './entries.ts';
 

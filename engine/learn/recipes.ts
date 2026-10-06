@@ -1,8 +1,8 @@
 // Рецепты роя: за что хвалить машину (фитнес по частям) и как делать детей (мутация, кроссовер).
 // Выбираются на вкладке «Учится само». Каждый вариант проверен опытом: tools/swarm-check.mjs.
 // Случайность здесь — только при рождении детей, не на пути заезда: заезд по-прежнему детерминирован.
-import { randomGauss } from './utils.ts';
-import type { Brain } from './brain.ts';
+import { randomGauss } from '../core/utils.ts';
+import type { Brain } from '../net/brain.ts';
 
 /** Отчёт о заезде: то, что из carReport нужно фитнесу */
 export type Report = { progress: number; finished: boolean; crashed: boolean; ticks: number; wiggle: number };

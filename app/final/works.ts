@@ -1,8 +1,8 @@
 // Финал, шаг 1: работы участников. Файлы из папки, секретный ключ курса, чужие файлы, которые куратор допустил,
 // и аватары, которые он спрятал перед стримом. Всё — только в памяти вкладки.
 import { computed, signal } from '@reely/dommy';
-import { generateCourseKeys, importPrivateKey } from '../../engine/seal.ts';
-import type { CourseKey } from '../../engine/seal.ts';
+import { generateCourseKeys, importPrivateKey } from '../../engine/course/seal.ts';
+import type { CourseKey } from '../../engine/course/seal.ts';
 import { COURSE_KEY } from '../generated/course-key.js';
 import { saveFile } from '../download.ts';
 import { buildEntries, openSealedFiles } from './entries.ts';

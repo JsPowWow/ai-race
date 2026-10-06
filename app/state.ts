@@ -1,11 +1,11 @@
 // Общее состояние приложения, его сохранение и простые события между вкладками.
 import { forEachSettled, isPlainObject } from '@reely/basics';
-import { DEFAULT_SENSORS, rayCount, type Sensors } from '../engine/car.ts';
-import { checkBrain, layerSizes, type Brain } from '../engine/brain.ts';
-import { CAR_COLORS } from '../engine/car-file.ts';
-import { DEFAULT_PARTS } from '../engine/recipes.ts';
-import type { GenerationEntry } from '../engine/evolution.ts';
-import type { TrafficLevel } from '../engine/traffic.ts';
+import { DEFAULT_SENSORS, rayCount, type Sensors } from '../engine/world/car.ts';
+import { checkBrain, layerSizes, type Brain } from '../engine/net/brain.ts';
+import { CAR_COLORS } from '../engine/course/car-file.ts';
+import { DEFAULT_PARTS } from '../engine/learn/recipes.ts';
+import type { GenerationEntry } from '../engine/learn/evolution.ts';
+import type { TrafficLevel } from '../engine/world/traffic.ts';
 import { load, save } from './storage.ts';
 import { live, type ThinkVariant } from './student-code.ts';
 

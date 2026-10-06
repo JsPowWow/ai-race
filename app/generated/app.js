@@ -51,7 +51,7 @@ export function handleKey(key, isDown, controls) {
 //  Все варианты ниже отличаются только тем, что нейрон делает со своей суммой.
 //  Вариант выбирается на вкладке «Я учу». Обученные веса подходят к любому.
 
-import { sigmoid } from '../engine/utils.ts';
+import { sigmoid } from '../engine/core/utils.ts';
 
 // Прямой проход: слой за слоем считаем для каждого нейрона сумму «вход × вес»
 // и отдаём её функции activate(sum, bias, isOutput) — она решает, что нейрон «скажет» дальше.
@@ -150,7 +150,7 @@ export const DEFAULT_THINK = 'smooth'; // в опыте рой с ним учи�
 //  Так ребёнок похож на родителя, но где-то чуть другой: хорошее не теряется, новое пробуется.
 //  В опыте (tools/swarm-check.mjs) так рой учится куда надёжнее, чем если «тянуть» к случайному все числа сразу.
 
-import { randomGauss } from '../engine/utils.ts';
+import { randomGauss } from '../engine/core/utils.ts';
 
 const STEP = 0.4; // насколько сдвигаем выбранное число: обычно меньше чем на STEP
 

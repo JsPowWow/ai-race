@@ -1,8 +1,8 @@
 // Проверки кода студентов (вкладка «Код»). advice: true — это совет (жёлтый), а не ошибка (красный).
 // Код студента может быть каким угодно: проверка сама ловит, чего в нём нет, и объясняет по-русски.
-import { createBrain, cloneBrain, brainSizes } from '../engine/brain.ts';
-import type { Brain } from '../engine/brain.ts';
-import type { Controls, CarReport } from '../engine/car.ts';
+import { createBrain, cloneBrain, brainSizes } from '../engine/net/brain.ts';
+import type { Brain } from '../engine/net/brain.ts';
+import type { Controls, CarReport } from '../engine/world/car.ts';
 import { errorLine, type StudentFiles, type FileId } from './student-code.ts';
 import { messageOf } from '@reely/basics';
 

@@ -1,9 +1,9 @@
 // Файл машины на странице: собрать свой из чемпиона и подготовить чужой к гонке.
-// Сама проверка файла — в engine/car-file.ts.
-import { FORMAT, parseCarFile, type ParsedCar } from '../engine/car-file.ts';
-import { compileMineThink } from '../engine/compile.ts';
-import type { Brain } from '../engine/brain.ts';
-import type { Sensors, Think } from '../engine/car.ts';
+// Сама проверка файла — в engine/course/car-file.ts.
+import { FORMAT, parseCarFile, type ParsedCar } from '../engine/course/car-file.ts';
+import { compileMineThink } from '../engine/course/compile.ts';
+import type { Brain } from '../engine/net/brain.ts';
+import type { Sensors, Think } from '../engine/world/car.ts';
 import { state, sizesOf, CAR_COLORS } from './state.ts';
 import { live, getSource, evalAvailable } from './student-code.ts';
 
@@ -55,6 +55,6 @@ export function fromCarFile(file: unknown, fallbackColor = CAR_COLORS[0]): Entra
 export function approveCode(entrant: Entrant): void {
   if (!evalAvailable()) throw new Error('здесь нельзя запускать свой код');
   if (!entrant.code) return;
-  // что вернёт чужой think, машина проверяет сама: нечисла и NaN становятся нулями (safe в engine/car.ts)
+  // что вернёт чужой think, машина проверяет сама: нечисла и NaN становятся нулями (safe в engine/world/car.ts)
   entrant.think = compileMineThink(entrant.code) as Think;
 }

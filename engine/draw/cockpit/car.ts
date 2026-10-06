@@ -1,12 +1,12 @@
 // Своя машина в виде из машины: литой корпус из граней, кабина со стёклами, круглые колёса.
 // Камера всегда рядом, поэтому машина здесь подробнее, чем трафик: её видно крупно весь заезд.
 // Каждая часть — выпуклое тело: рисуем только грани к камере, и они друг друга не перекрывают — сортировать не надо.
-import { clipNear, type View } from './cockpit.ts';
-import type { Palette } from './render.ts';
-import type { CarView } from './car-draw.ts';
-import { tint } from './paint.ts';
-import { wheelAngle, CAR, WHEELBASE } from './car.ts';
-import type { Point } from './track.ts';
+import { clipNear, type View } from './camera.ts';
+import type { Palette } from '../render.ts';
+import type { CarView } from '../car-draw.ts';
+import { tint } from '../../core/paint.ts';
+import { wheelAngle, CAR, WHEELBASE } from '../../world/car.ts';
+import type { Point } from '../../world/track.ts';
 
 type Ctx = CanvasRenderingContext2D;
 type P3 = Point & { z: number };

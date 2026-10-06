@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'fs';
 import { buildEntries } from '../app/final/entries.ts';
 import { resultText, toCsv } from '../app/final/export.ts';
-import { failedResult } from '../engine/rally.ts';
+import { failedResult } from '../engine/world/rally.ts';
 
 const BOTS = JSON.parse(readFileSync(new URL('../tools/bots.json', import.meta.url), 'utf8'));
 const file = (path, car, claimed) => ({ path, text: JSON.stringify(car), ...(claimed === undefined ? {} : { claimed }) });

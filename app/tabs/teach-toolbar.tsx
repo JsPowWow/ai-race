@@ -1,7 +1,7 @@
 // «Я учу», полоска под трассой: кто рулит, «Заново», трасса и машины на ней.
 // Трасса и машины — общие для всех машин гаража (state.drive), поэтому помним их в localStorage.
-import { TRAINING_TRACKS } from '../../engine/track.ts';
-import { TRAFFIC_LEVELS, type TrafficLevel } from '../../engine/traffic.ts';
+import { TRAINING_TRACKS } from '../../engine/world/track.ts';
+import { TRAFFIC_LEVELS, type TrafficLevel } from '../../engine/world/traffic.ts';
 import { state, persist } from '../state.ts';
 
 /** Кто рулит: 'me' — ты (заезд записывается), 'brain' — текущий мозг */

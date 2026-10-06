@@ -1,7 +1,7 @@
 // Звук мотора (#25): только счёт — какой тон у мотора и как слышно чужую машину. Звучит app/engine-sound.ts.
 // Мотор игрушечный, но честный: высота — от скорости (быстрее крутятся колёса), громкость и «яркость» — от газа.
-import { CAR } from './car.ts';
-import type { Point } from './track.ts';
+import { CAR } from '../world/car.ts';
+import type { Point } from '../world/track.ts';
 
 /** Тон мотора: частота «пилы» (Гц), срез фильтра (Гц, выше — ярче, «злее») и громкость 0…1 */
 export type Tone = { freq: number; cutoff: number; gain: number };

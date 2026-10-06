@@ -2,8 +2,8 @@
 // Кнопки, «Рой сейчас» и панель справа — компоненты @reely/dommy (#20): обновляются сами от сигналов роя.
 // Трасса и «Мозг лидера» — холсты: их рисует кадр вкладки (frame). Сам рой — train-swarm.ts, он учится и в фоне.
 import { mount } from '@reely/dommy';
-import { Car } from '../../engine/car.ts';
-import type { Track } from '../../engine/track.ts';
+import { Car } from '../../engine/world/car.ts';
+import type { Track } from '../../engine/world/track.ts';
 import { state } from '../state.ts';
 import { canvas, drawScene, paintCar, trafficOn, carAt, setHud, lapText } from '../stage.ts';
 import { esc, secs } from '../ui.ts';

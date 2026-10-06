@@ -1,13 +1,13 @@
 // Обучить ботов-соперников для вкладки «Гонка» и сохранить в tools/bots.json.
 // Запуск: node tools/train-bots.mjs   (несколько минут), потом npm run build
 import { writeFileSync } from 'node:fs';
-import { getTrainingTrack, generateTrack, withCoins } from '../engine/track.ts';
-import { layerSizes } from '../engine/brain.ts';
-import { rayCount } from '../engine/car.ts';
-import { FORMAT } from '../engine/car-file.ts';
-import { withTraffic } from '../engine/traffic.ts';
+import { getTrainingTrack, generateTrack, withCoins } from '../engine/world/track.ts';
+import { layerSizes } from '../engine/net/brain.ts';
+import { rayCount } from '../engine/world/car.ts';
+import { FORMAT } from '../engine/course/car-file.ts';
+import { withTraffic } from '../engine/world/traffic.ts';
 import { thinkVariants } from '../student/think.js';
-import { fitnessOf } from '../engine/recipes.ts';
+import { fitnessOf } from '../engine/learn/recipes.ts';
 import { drive, evolveOnTracks, resultText } from './sim.mjs';
 
 const training = (id, traffic = 'all') => withTraffic(getTrainingTrack(id), traffic);

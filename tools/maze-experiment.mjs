@@ -11,13 +11,13 @@
 //   • знак, без заметок — заметки на входе всегда нули: помнить можно только «телом» (где едешь, как быстро);
 //   • без знака — вход «зн» всегда 0.
 // Лучший мозг каждого опыта потом едет по пяти незнакомым трассам из seed.
-import { getTrainingTrack, generateTrack, withCoins } from '../engine/track.ts';
-import { SIGN_GAP } from '../engine/turtle.ts';
-import { Evolution } from '../engine/evolution.ts';
-import { Car, maxTicksFor } from '../engine/car.ts';
-import { layerSizes, NOTES } from '../engine/brain.ts';
-import { DEFAULT_SENSORS } from '../engine/car.ts';
-import { mulberry32 } from '../engine/utils.ts';
+import { getTrainingTrack, generateTrack, withCoins } from '../engine/world/track.ts';
+import { SIGN_GAP } from '../engine/world/turtle.ts';
+import { Evolution } from '../engine/learn/evolution.ts';
+import { Car, maxTicksFor } from '../engine/world/car.ts';
+import { layerSizes, NOTES } from '../engine/net/brain.ts';
+import { DEFAULT_SENSORS } from '../engine/world/car.ts';
+import { mulberry32 } from '../engine/core/utils.ts';
 import { thinkVariants } from '../student/think.js';
 import { mutate } from '../student/mutate.js';
 

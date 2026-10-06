@@ -2,11 +2,11 @@
 // Здесь только проверка: модуль не знает ни про страницу, ни про код студента,
 // поэтому его используют и вкладки, и расчёт финала в Web Worker, и скрипты в tools/.
 import { isPlainObject, isString } from '@reely/basics';
-import { layerSizes, checkBrain, LIMITS, type Brain } from './brain.ts';
-import { rayCount, BACK_SPREAD, type Sensors } from './car.ts';
+import { layerSizes, checkBrain, LIMITS, type Brain } from '../net/brain.ts';
+import { rayCount, BACK_SPREAD, type Sensors } from '../world/car.ts';
 import { BUDGET, cost } from './build.ts';
 
-// car@3 — мозг с памятью и дорожным знаком: сенсоры мгновение назад, знак и заметки (см. engine/brain.ts).
+// car@3 — мозг с памятью и дорожным знаком: сенсоры мгновение назад, знак и заметки (см. engine/net/brain.ts).
 // Мозги car@1 и car@2 к ней не подходят: у них другое число входов.
 export const FORMAT = 'ai-race/car@3';
 const OLD_FORMATS = ['ai-race/car@1', 'ai-race/car@2', 'neuro-race/car@1'];

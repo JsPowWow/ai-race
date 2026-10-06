@@ -1,9 +1,9 @@
 // Декор вокруг трассы: лес, домики, всё хозяйство гоночной трассы (огни, трибуны, шины, щиты) и сельская мелочь.
 // Только картинка — сенсоры и физика его не видят (ADR 0005).
 // Расставляется из seed трассы: у всех учеников на одной трассе один и тот же лес.
-import { hashString, mulberry32, type Random } from './utils.ts';
+import { hashString, mulberry32, type Random } from '../core/utils.ts';
 import { worksSigns, type Track, type Point, type Road } from './track.ts';
-import { local, RISE } from './tilt.ts';
+import { local, RISE } from '../core/tilt.ts';
 
 /** Дерево: ёлка (ярусы конусов), круглое (пышная крона) или низкий куст. r — радиус кроны, h — высота до макушки, px */
 export type Tree = { x: number; y: number; r: number; h: number; kind: 'fir' | 'round' | 'bush' };

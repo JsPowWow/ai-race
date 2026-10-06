@@ -2,9 +2,9 @@
 // Панель и кнопка под трассой — на @reely/dommy (#20); повтор заезда на трассе рисует кадровый цикл (frame).
 //   exam-run.ts — сам экзамен;  exam-results.tsx — таблица итогов;  exam-submit.tsx, exam-login.tsx — файл для сдачи
 import { effect, mount, untracked } from '@reely/dommy';
-import { getTrainingTrack } from '../../engine/track.ts';
-import { maxTicksFor, carReport } from '../../engine/car.ts';
-import type { Car } from '../../engine/car.ts';
+import { getTrainingTrack } from '../../engine/world/track.ts';
+import { maxTicksFor, carReport } from '../../engine/world/car.ts';
+import type { Car } from '../../engine/world/car.ts';
 import { state } from '../state.ts';
 import { drawScene, paintCar, trafficOn, setHud, lapText } from '../stage.ts';
 import { esc, secs, pct } from '../ui.ts';

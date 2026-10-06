@@ -2,15 +2,15 @@
 // не уезжает — поэтому можно спокойно зажать сенсор и посмотреть, что сделает мозг.
 // Сенсоры видят настоящую «Разминку», а рисуем бесконечную прямую с лесом: она повторяется через PERIOD px,
 // и на этом шаге совпадают швы, полоски бордюра и деревья — стыка не видно, а пробег не растёт без конца.
-import { Camera, fitCanvas, clear, drawStraight, cssColor, getPalette } from '../engine/render.ts';
-import { drawCar } from '../engine/car-draw.ts';
-import { drawDecor } from '../engine/scenery-draw.ts';
-import { stripScenery, type Tree, type House } from '../engine/scenery.ts';
-import { Car } from '../engine/car.ts';
-import { BUTTONS, NOTES } from '../engine/brain.ts';
-import type { Brain } from '../engine/brain.ts';
-import { getTrainingTrack, pointAt } from '../engine/track.ts';
-import { parseCarFile } from '../engine/car-file.ts';
+import { Camera, fitCanvas, clear, drawStraight, cssColor, getPalette } from '../engine/draw/render.ts';
+import { drawCar } from '../engine/draw/car-draw.ts';
+import { drawDecor } from '../engine/draw/scenery-draw.ts';
+import { stripScenery, type Tree, type House } from '../engine/world/scenery.ts';
+import { Car } from '../engine/world/car.ts';
+import { BUTTONS, NOTES } from '../engine/net/brain.ts';
+import type { Brain } from '../engine/net/brain.ts';
+import { getTrainingTrack, pointAt } from '../engine/world/track.ts';
+import { parseCarFile } from '../engine/course/car-file.ts';
 import { thinkVariants, feedForward } from '../student/think.js';
 import { liveSize } from './ui.ts';
 import { listen } from '@reely/dommy-kit';

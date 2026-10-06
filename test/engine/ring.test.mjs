@@ -4,10 +4,10 @@ import assert from 'node:assert/strict';
 import {
   getTrainingTrack, generateTrack, projectProgress, signAt, signShows, freeSide, zoneAt, castSegment, pointAt, forksPassed,
   lapOf, withCoins, SIGN_VIEW, SLOW_SPEED, TRAINING_TRACKS,
-} from '../../engine/track.ts';
-import { drawRing, SIGN_GAP } from '../../engine/turtle.ts';
-import { makeTraffic, trafficAt } from '../../engine/traffic.ts';
-import { Car } from '../../engine/car.ts';
+} from '../../engine/world/track.ts';
+import { drawRing, SIGN_GAP } from '../../engine/world/turtle.ts';
+import { makeTraffic, trafficAt } from '../../engine/world/traffic.ts';
+import { Car } from '../../engine/world/car.ts';
 
 const maze = getTrainingTrack('maze');
 const [island] = maze.islands;

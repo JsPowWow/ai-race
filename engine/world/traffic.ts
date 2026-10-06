@@ -1,6 +1,6 @@
 // Трафик: машины, которые едут по своим полосам с постоянной скоростью.
 // Положение каждой зависит только от тика, поэтому у всех участников гонки поток одинаковый.
-import { mulberry32, hashString } from './utils.ts';
+import { mulberry32, hashString } from '../core/utils.ts';
 import { pointAt, type Track, type RoadPoint } from './track.ts';
 import { CAR } from './car.ts';
 

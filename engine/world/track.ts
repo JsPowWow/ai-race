@@ -1,5 +1,5 @@
 // Трассы: кольцо дороги, бордюры, прогресс по кругам, развилки-острова, генерация по seed.
-import { hashString, clamp, segmentT, mulberry32 } from './utils.ts';
+import { hashString, clamp, segmentT, mulberry32 } from '../core/utils.ts';
 import { drawRing, randomRing, SIGN_GAP, ZONE, type Point, type Side, type Command, type Ring } from './turtle.ts';
 import type { Traffic, TrafficLevel, TrafficSpot } from './traffic.ts';
 

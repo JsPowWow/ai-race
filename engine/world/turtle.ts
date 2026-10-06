@@ -6,10 +6,11 @@
 // Развилка — остров: дорога расходится на два одинаковых пути и снова сходится. У самой развилки
 // пути зеркальные: сенсоры видят одно и то же слева и справа. Какой путь свободен, а на каком
 // «медленная зона», решают судьи по ходу гонки (см. freeSide в track.ts) — подскажет только знак.
-import { mulberry32, type Random } from './utils.ts';
+import { mulberry32, type Random } from '../core/utils.ts';
+import type { Point } from '../core/geometry.ts';
 
-/** Точка на плоскости, px */
-export type Point = { x: number; y: number };
+/** Точка на плоскости, px (сама — в core: она нужна всем слоям) */
+export type { Point };
 /** Куда уходит путь: 1 — направо, -1 — налево */
 export type Side = 1 | -1;
 /** Команда черепашке (см. drawRing) */

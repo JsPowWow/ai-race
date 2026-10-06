@@ -1,9 +1,9 @@
 // Машина: физика, сенсоры, столкновения, прогресс.
 import { hasSome } from '@reely/basics';
-import { clamp, lerp, segmentT } from './utils.ts';
+import { clamp, lerp, segmentT } from '../core/utils.ts';
 import { castSegment, projectProgress, pointAt, signAt, zoneAt, freeSide, SLOW_SPEED, type Track, type Side } from './track.ts';
 import { trafficAt, type TrafficSpot } from './traffic.ts';
-import { BUTTONS, NOTES, type Brain } from './brain.ts';
+import { BUTTONS, NOTES, type Brain } from '../net/brain.ts';
 
 /** Сенсоры: сколько лучей вперёд, угол веера (°), дальность (px); по желанию — лучи назад */
 export type Sensors = { count: number; spread: number; length: number; back?: number; backLength?: number; backSpread?: number };

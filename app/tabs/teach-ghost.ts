@@ -1,13 +1,13 @@
 // Призрак на «Я учу» (#10): рядом с машиной едет полупрозрачная вторая — сразу видно, догнал ли ученик учителя.
 // Рулишь ты — рядом едет твой мозг. Едет мозг — рядом твой лучший заезд по этой трассе: запись нажатий,
 // повторяем её тик в тик (мир детерминирован — машина проедет ровно там же). Призрак ни с кем не сталкивается.
-import { Car, maxTicksFor, type Think } from '../../engine/car.ts';
-import type { Track } from '../../engine/track.ts';
-import type { TrafficSpot } from '../../engine/traffic.ts';
-import { unpackSample } from '../../engine/imitation.ts';
+import { Car, maxTicksFor, type Think } from '../../engine/world/car.ts';
+import type { Track } from '../../engine/world/track.ts';
+import type { TrafficSpot } from '../../engine/world/traffic.ts';
+import { unpackSample } from '../../engine/learn/imitation.ts';
 import { state, thinkFn } from '../state.ts';
 import { bestRun } from '../runs.ts';
-import { cssColor } from '../../engine/render.ts';
+import { cssColor } from '../../engine/draw/render.ts';
 
 /**
  * Призрак: его машина, подпись и цвет. trail — сколько проехал к каждому тику он и твоя машина:

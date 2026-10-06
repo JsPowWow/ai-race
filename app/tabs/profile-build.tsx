@@ -2,9 +2,9 @@
 // Сборку меняешь черновиком: машина на трассе и табло мозга сразу показывают, что получится, а в сборку
 // всё уходит разом — по «Применить». «Отменить» возвращает как было.
 import { signal, For } from '@reely/dommy';
-import { rays, rayCount, BACK_SPREAD } from '../../engine/car.ts';
-import { LIMITS, inputCount, OUTPUTS } from '../../engine/brain.ts';
-import { BUDGET, PRICES, cost } from '../../engine/build.ts';
+import { rays, rayCount, BACK_SPREAD } from '../../engine/world/car.ts';
+import { LIMITS, inputCount, OUTPUTS } from '../../engine/net/brain.ts';
+import { BUDGET, PRICES, cost } from '../../engine/course/build.ts';
 import { state, sizesOf, on } from '../state.ts';
 import { live } from '../student-code.ts';
 import { changeShape } from '../library.ts';

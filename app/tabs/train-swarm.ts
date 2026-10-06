@@ -1,15 +1,15 @@
 // Рой «Учится само»: поколения, отбор, рекорды. Без разметки — её рисуют train-*.tsx по сигналам отсюда.
 // Рой учится в фоне на любой вкладке: updateTraining() зовёт кадровый цикл app/main.ts.
 import { batch, effect, signal, untracked } from '@reely/dommy';
-import { TRAINING_TRACKS, getTrainingTrack, forksPassed, withCoins } from '../../engine/track.ts';
-import type { Track } from '../../engine/track.ts';
-import type { Car, CarReport } from '../../engine/car.ts';
-import { cloneBrain } from '../../engine/brain.ts';
-import type { Brain } from '../../engine/brain.ts';
-import { Evolution } from '../../engine/evolution.ts';
-import type { EvolutionOptions, Rival } from '../../engine/evolution.ts';
-import { MUTATIONS, crossover, fitnessOf } from '../../engine/recipes.ts';
-import { withTraffic } from '../../engine/traffic.ts';
+import { TRAINING_TRACKS, getTrainingTrack, forksPassed, withCoins } from '../../engine/world/track.ts';
+import type { Track } from '../../engine/world/track.ts';
+import type { Car, CarReport } from '../../engine/world/car.ts';
+import { cloneBrain } from '../../engine/net/brain.ts';
+import type { Brain } from '../../engine/net/brain.ts';
+import { Evolution } from '../../engine/learn/evolution.ts';
+import type { EvolutionOptions, Rival } from '../../engine/learn/evolution.ts';
+import { MUTATIONS, crossover, fitnessOf } from '../../engine/learn/recipes.ts';
+import { withTraffic } from '../../engine/world/traffic.ts';
 import { state, type HistoryEntry, type HallEntry, persist, persistSoon, sizesOf, thinkFn, on, emit } from '../state.ts';
 import { propose } from '../variants.ts';
 import { live, errorLine } from '../student-code.ts';

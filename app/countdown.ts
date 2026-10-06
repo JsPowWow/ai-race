@@ -1,7 +1,7 @@
 // Отсчёт «3 — 2 — 1 — СТАРТ!» поверх трассы. Общий для гонки и финала.
 // Вместе с цифрами гаснут пять огней на табло у черты: последний гаснет ровно на «СТАРТ!».
 import { element } from './dom.ts';
-import { setStartLights } from '../engine/scenery-draw.ts';
+import { setStartLights } from '../engine/draw/scenery-draw.ts';
 
 const STEP_MS = 700;
 let startedAt = 0;

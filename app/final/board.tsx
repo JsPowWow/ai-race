@@ -2,12 +2,12 @@
 // Участников сотни, поэтому строки — For с ключом «ник»: при обновлении строка остаётся той же,
 // меняются только её текст и место в списке, а не вся таблица.
 import { For, Show, computed, signal, untracked } from '@reely/dommy';
-import { STAGES, isSuperfinal, stageLabel } from '../../engine/rally.ts';
+import { STAGES, isSuperfinal, stageLabel } from '../../engine/world/rally.ts';
 import { saveFile } from '../download.ts';
 import { resultText, toCsv, toJson, toMarkdown } from './export.ts';
 import { countStatuses } from './show.ts';
 import type { StageReplay } from './show.ts';
-import type { StageResult } from '../../engine/rally.ts';
+import type { StageResult } from '../../engine/world/rally.ts';
 import { calc } from './calc.ts';
 import type { Calc } from './calc.ts';
 import { pool, racers } from './works.ts';

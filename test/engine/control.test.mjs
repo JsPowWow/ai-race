@@ -1,9 +1,9 @@
 // Контрольный заезд (#24): честная мерка «новый вариант мозга лучше прежнего или хуже».
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { getTrainingTrack } from '../../engine/track.ts';
-import { withTraffic } from '../../engine/traffic.ts';
-import { controlRun, verdict, controlText } from '../../engine/control.ts';
+import { getTrainingTrack } from '../../engine/world/track.ts';
+import { withTraffic } from '../../engine/world/traffic.ts';
+import { controlRun, verdict, controlText } from '../../engine/course/control.ts';
 import { BOTS, driverOf } from '../helpers.mjs';
 
 const TRACKS = [withTraffic(getTrainingTrack('warmup'), 'all'), withTraffic(getTrainingTrack('snake'), 'all')];

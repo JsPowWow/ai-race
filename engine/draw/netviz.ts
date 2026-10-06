@@ -1,5 +1,5 @@
 // Картинка нейросети: слои слева направо, цвет связи — знак веса, яркость — сила.
-import { OUTPUT_LABELS, inputLabel, type Brain } from './brain.ts';
+import { OUTPUT_LABELS, inputLabel, type Brain } from '../net/brain.ts';
 import { cssColor as css } from './render.ts';
 
 /** Что выбрано на схеме: связь i → j в слое k (вес) или нейрон j слоя k (порог) */

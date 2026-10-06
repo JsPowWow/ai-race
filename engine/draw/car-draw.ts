@@ -1,9 +1,9 @@
 // Машины в виде сверху (наклонный стол): игрушка с корпусом, кабиной, колёсами и тенью, трафик, стая финала, лучи сенсоров.
-// Вид из машины рисует свою машину сам — engine/cockpit-car.ts.
-import { CAR, WHEELBASE, wheelAngle, rays, type Car } from './car.ts';
-import type { TrafficSpot } from './traffic.ts';
-import type { Point } from './track.ts';
-import { RISE, lift, local, prism, cap } from './tilt.ts';
+// Вид из машины рисует свою машину сам — engine/draw/cockpit/car.ts.
+import { CAR, WHEELBASE, wheelAngle, rays, type Car } from '../world/car.ts';
+import type { TrafficSpot } from '../world/traffic.ts';
+import type { Point } from '../world/track.ts';
+import { RISE, lift, local, prism, cap } from '../core/tilt.ts';
 import { getPalette, UI_FONT, type Camera, type Palette } from './render.ts';
 
 type Ctx = CanvasRenderingContext2D;

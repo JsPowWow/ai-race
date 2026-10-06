@@ -1,6 +1,6 @@
 // «Мозг лидера»: то же табло, что на титульной, только мозг — у машины роя, которая сейчас впереди.
 // Табло — холст: его рисует кадр вкладки (showLeaderBrain), а разметка лежит в app/markup.html.
-import type { Car } from '../../engine/car.ts';
+import type { Car } from '../../engine/world/car.ts';
 import { state } from '../state.ts';
 import { live } from '../student-code.ts';
 import { createBrainBoard, type BrainBoard } from '../brain-board/board.ts';

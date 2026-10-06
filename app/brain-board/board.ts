@@ -1,10 +1,10 @@
 // «Табло мозга»: живая схема сети. Снаружи — одна функция и три метода; внутри — раскладка (layout.ts),
 // подписи (labels.ts), «теплота» и импульсы (glow.ts), рисунок (fire-skin.ts), формула нейрона (formula-card.tsx),
 // зум и нажатие на сенсор. Форму мозга (сенсоры, слои, заметки) табло узнаёт из самого мозга:
-// она одна на весь курс (engine/brain.ts).
+// она одна на весь курс (engine/net/brain.ts).
 import { effect, mount, signal } from '@reely/dommy';
-import { brainSizes, NOTES } from '../../engine/brain.ts';
-import type { Brain } from '../../engine/brain.ts';
+import { brainSizes, NOTES } from '../../engine/net/brain.ts';
+import type { Brain } from '../../engine/net/brain.ts';
 import { liveSize } from '../ui.ts';
 import { layout, neuronAt, sensorAt } from './layout.ts';
 import type { Layout } from './layout.ts';

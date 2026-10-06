@@ -8,8 +8,8 @@
 //
 // Активации те же, что у варианта мозга «Плавный»: внутри tanh(2·z), на выходе sigmoid(3·z), z = сумма − порог.
 // Поэтому обученный мозг сразу ездит с think = 'smooth'.
-import { sensorsOf, type Brain } from './brain.ts';
-import type { Car } from './car.ts';
+import { sensorsOf, type Brain } from '../net/brain.ts';
+import type { Car } from '../world/car.ts';
 
 /** Пример: что видела сеть на входе (x) и что нажал учитель (y = [газ, тормоз, влево, вправо], 0 или 1) */
 export type Sample = { x: number[]; y: number[] };
