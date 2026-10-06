@@ -38,6 +38,12 @@ export function tint(color: string, dark: number, shine = 0): string | null {
   return out;
 }
 
+/** Смесь двух цветов: t = 0 — первый, 1 — второй. null — цвет не разобрать */
+export function mix(a: string, b: string, t: number): string | null {
+  const x = parseColor(a), y = parseColor(b);
+  return x && y && rgbText(x.slice(0, 3).map((v, i) => v + (y[i] - v) * t), x[3]);
+}
+
 function rgbText([r, g, b]: number[], a: number): string {
   const ch = (v: number): number => Math.round(Math.max(0, Math.min(255, v)));
   return a >= 1 ? `rgb(${ch(r)} ${ch(g)} ${ch(b)})` : `rgb(${ch(r)} ${ch(g)} ${ch(b)} / ${a})`;

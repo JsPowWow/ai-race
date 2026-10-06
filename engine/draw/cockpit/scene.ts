@@ -10,6 +10,7 @@ import { sceneryOf, wallsOf, roofOf, windowColumns, windowRows, blankEnds, FLOOR
 import { paintBoard, paintMuralAd } from '../ads.ts';
 import { startLights, sceneryMoves } from '../scenery-draw.ts';
 import { skidLevels, LEVELS } from '../skids-draw.ts';
+import { toneOf, tonesOf } from '../greens.ts';
 import { local } from '../../core/tilt.ts';
 import { drawCockpitCar } from './car.ts';
 import { tint, clearOf } from '../../core/paint.ts';
@@ -417,7 +418,7 @@ function tree(ctx: Ctx, v: View, t: Tree, p: Palette): void {
     blob(bush, b.x - r * 0.4, b.y - r * 0.45, r * 0.6, r * 0.5, seed);
     blob(bush, b.x + r * 0.4, b.y - r * 0.45, r * 0.6, r * 0.5, seed + 1);
     blob(bush, b.x, b.y - r * 0.75, r * 0.65, r * 0.55, seed + 2);
-    ctx.fillStyle = p.bush; ctx.fill(bush);
+    ctx.fillStyle = tonesOf(p.bush, p)[toneOf(t.x, t.y)]; ctx.fill(bush);
     return;
   }
   const fir = t.kind === 'fir';
@@ -438,7 +439,7 @@ function tree(ctx: Ctx, v: View, t: Tree, p: Palette): void {
       blob(into, b.x + Math.sin(seed + i * 2.1) * r * 0.1, b.y - crown - step * i, w, w * 0.8, seed + i);
     }
   }
-  const base = fir ? p.tree : p.tree2;
+  const base = tonesOf(fir ? p.tree : p.tree2, p)[toneOf(t.x, t.y)]; // как в виде сверху: у каждого дерева свой оттенок
   ctx.fillStyle = tint(base, 0.18) ?? base; ctx.fill(shades[0]);
   ctx.fillStyle = base; ctx.fill(shades[1]);
   ctx.fillStyle = tint(base, 0, 0.14) ?? base; ctx.fill(shades[2]);

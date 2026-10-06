@@ -4,6 +4,7 @@
 import { sceneryOf, houseRadius, wallsOf, roofOf, windowColumns, windowRows, blankEnds, FLOOR, SIZE, type Tree, type House, type Prop, type Dot, type Parked } from '../world/scenery.ts';
 import { TILT, RISE, lift, local, prism, cap } from '../core/tilt.ts';
 import { tint } from '../core/paint.ts';
+import { toneOf, tonesOf } from './greens.ts';
 import { paintBoard, paintMuralAd } from './ads.ts';
 import type { Palette } from './render.ts';
 import type { View } from './track-cache.ts';
@@ -136,8 +137,10 @@ function drawSolid(ctx: Ctx, o: Solid, p: Palette, tick: number, fine: boolean, 
 
 function drawTrees(ctx: Ctx, trees: Soft[], p: Palette, fine = true): void {
   if (!trees.length) return;
-  const shadow = new Path2D(), core = new Path2D(), trunk = new Path2D(), base = new Path2D(), middle = new Path2D(), top = new Path2D(), round = new Path2D(), shine = new Path2D();
-  const bush = new Path2D(), tire = new Path2D(), seam = new Path2D(), tireTop = new Path2D(), hole = new Path2D();
+  const shadow = new Path2D(), core = new Path2D(), trunk = new Path2D(), shine = new Path2D();
+  // зелень — по оттенку на путь: заливок столько, сколько оттенков в пачке, а не по одной на дерево
+  const base = byTone(), middle = byTone(), top = byTone(), round = byTone(), bush = byTone();
+  const tire = new Path2D(), seam = new Path2D(), tireTop = new Path2D(), hole = new Path2D();
   for (const t of trees) {
     if (t.kind === 'tires') {
       // стопка шин — цилиндр: низ, бока и верх одним контуром, стыки шин — дужками, сверху дырка
@@ -152,15 +155,15 @@ function drawTrees(ctx: Ctx, trees: Soft[], p: Palette, fine = true): void {
     if (t.kind === 'bush') {
       // куст — три шара у самой земли, без ствола
       circle(shadow, t.x + SHADOW.x * 0.6, t.y + SHADOW.y * 0.4, t.r * 1.1);
-      const c = lift(t.x, t.y, t.r * 0.55);
-      if (!fine) { circle(bush, c.x, c.y, t.r); continue; }
-      circle(bush, c.x - t.r * 0.5, c.y + t.r * 0.1, t.r * 0.7);
-      circle(bush, c.x + t.r * 0.5, c.y + t.r * 0.15, t.r * 0.65);
-      circle(bush, c.x, c.y - t.r * 0.25, t.r * 0.75);
+      const c = lift(t.x, t.y, t.r * 0.55), b = bush.at(toneOf(t.x, t.y));
+      if (!fine) { circle(b, c.x, c.y, t.r); continue; }
+      circle(b, c.x - t.r * 0.5, c.y + t.r * 0.1, t.r * 0.7);
+      circle(b, c.x + t.r * 0.5, c.y + t.r * 0.15, t.r * 0.65);
+      circle(b, c.x, c.y - t.r * 0.25, t.r * 0.75);
       circle(shine, c.x - t.r * 0.25, c.y - t.r * 0.5, t.r * 0.3);
       continue;
     }
-    const h = t.h;
+    const h = t.h, tone = toneOf(t.x, t.y);
     const turn = (t.x * 7 + t.y * 13) % 6.28; // каждая ёлка повёрнута по-своему — без Math.random, от места
     const outline = t.kind === 'fir' ? star : circle;
     // мягкая тень у ствола — две фигуры, одна чуть больше: размытие на сотне деревьев дорогое.
@@ -175,11 +178,11 @@ function drawTrees(ctx: Ctx, trees: Soft[], p: Palette, fine = true): void {
       const n = Math.max(3, Math.min(6, Math.round(h / t.r / 0.9)));
       for (let k = 0; k < n; k++) {
         const q = at(h * (0.25 + (0.65 * k) / (n - 1))), part = k / (n - 1);
-        star(part < 0.34 ? base : part < 0.99 ? middle : top, q.x, q.y, t.r * (1 - 0.64 * part), turn + k * 0.4);
+        star((part < 0.34 ? base : part < 0.99 ? middle : top).at(tone), q.x, q.y, t.r * (1 - 0.64 * part), turn + k * 0.4);
       }
     } else {
       const c = at(h - t.r);
-      circle(round, c.x, c.y, t.r);
+      circle(round.at(tone), c.x, c.y, t.r);
       circle(shine, c.x - t.r * 0.3, c.y - t.r * 0.3, t.r * 0.45); // блик сверху слева: пластик блестит
     }
   }
@@ -194,16 +197,31 @@ function drawTrees(ctx: Ctx, trees: Soft[], p: Palette, fine = true): void {
     ctx.fillStyle = 'rgb(255 255 255 / 0.1)'; ctx.fill(tireTop); // верх к свету
     ctx.fillStyle = 'rgb(0 0 0 / 0.55)'; ctx.fill(hole);
   }
-  if (bushes) { ctx.fillStyle = p.bush; ctx.fill(bush); }
+  if (bushes) bush.fill(ctx, tonesOf(p.bush, p));
   if (!firs && !rounds) {
     if (bushes) { ctx.fillStyle = 'rgb(255 255 255 / 0.16)'; ctx.fill(shine); }
     return;
   }
   ctx.fillStyle = '#6b4a2e'; ctx.fill(trunk);
-  if (firs) { ctx.fillStyle = p.tree; ctx.fill(base); }
-  ctx.fillStyle = p.tree2; ctx.fill(round); ctx.fill(middle); // средний ярус ёлки светлее нижнего
-  if (firs) { ctx.fillStyle = tint(p.tree2, 0, 0.22) ?? p.tree2; ctx.fill(top); } // верхушка — самая светлая: ближе всех к свету
+  const leaves = tonesOf(p.tree2, p);
+  base.fill(ctx, tonesOf(p.tree, p));
+  round.fill(ctx, leaves);
+  middle.fill(ctx, leaves); // средний ярус ёлки светлее нижнего
+  top.fill(ctx, leaves.map((c) => tint(c, 0, 0.22) ?? c)); // верхушка — самая светлая: ближе всех к свету
   ctx.fillStyle = 'rgb(255 255 255 / 0.16)'; ctx.fill(shine);
+}
+
+/** Пути по оттенкам зелени: в какой оттенок попало дерево — туда и рисуем. Пустых путей нет — лишних заливок тоже */
+function byTone(): { at: (k: number) => Path2D; fill: (ctx: Ctx, colors: string[]) => void } {
+  const paths = new Map<number, Path2D>();
+  return {
+    at: (k) => {
+      let path = paths.get(k);
+      if (!path) paths.set(k, (path = new Path2D()));
+      return path;
+    },
+    fill: (ctx, colors) => { for (const [k, path] of paths) { ctx.fillStyle = colors[k]; ctx.fill(path); } },
+  };
 }
 
 function circle(path: Path2D, x: number, y: number, r: number): void {
