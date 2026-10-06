@@ -6,7 +6,8 @@ import { clipNear, project, toCamera, type View, type ScreenPoint } from './came
 import { getPalette, signFace, worksFace, UI_FONT, type Palette } from '../render.ts';
 import type { CarView } from '../car-draw.ts';
 import { pointAt, freeSide, signShows, worksSigns, type Track, type Branch, type Point, type RoadPoint, type Island } from '../../world/track.ts';
-import { sceneryOf, wallsOf, roofOf, windowColumns, windowRows, SIZE, type Tree, type House, type Prop, type Dot } from '../../world/scenery.ts';
+import { sceneryOf, wallsOf, roofOf, windowColumns, windowRows, blankEnds, FLOOR, SIZE, type Tree, type House, type Prop, type Dot, type Ad } from '../../world/scenery.ts';
+import { paintBoardAd, paintMuralAd } from '../ads.ts';
 import { startLights, sceneryMoves } from '../scenery-draw.ts';
 import { local } from '../../core/tilt.ts';
 import { drawCockpitCar } from './car.ts';
@@ -485,6 +486,8 @@ function house(ctx: Ctx, v: View, h: House, p: Palette): void {
   const detail = px * 7 >= 4 ? 'windows' : px * 10 >= 4 && near < v.range * 0.8 ? 'strips' : null;
   walls(v, rect(h, -w, w, -d, d), 0, top, () => true, (pts, shade) => {
     face(ctx, v, pts, wall, shade);
+    const end = blankEnds(h) && Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y) < h.w - 1; // глухой торец
+    if (end) { if (h.mural && px * h.d >= 8) mural(ctx, v, pts, h.mural, shade, p); return; }
     if (detail) windowsOn(ctx, v, pts, h, detail === 'windows' ? tint(wall, shade) ?? wall : null, p.window);
   });
   if (panel) {
@@ -503,6 +506,23 @@ function house(ctx: Ctx, v: View, h: House, p: Palette): void {
   const depth = (q: Point): number => toCamera(v, q.x, q.y, 0).f;
   parts.sort((a, b) => depth(b.at) - depth(a.at));
   for (const part of parts) face(ctx, v, part.pts, part.color, part.color === p.house ? 0.08 : 0);
+}
+
+/** Роспись на торце pts (низ a, низ b, верх b, верх a) — в осях стены, с её тенью */
+function mural(ctx: Ctx, v: View, pts: P3[], ad: Ad, shade: number, p: Palette): void {
+  let [a, b] = pts;
+  const top = pts[2].z, len = Math.hypot(b.x - a.x, b.y - a.y);
+  let tl = project(v, a.x, a.y, top), tr = project(v, b.x, b.y, top);
+  if (tl && tr && tr.x < tl.x) { [a, b] = [b, a]; [tl, tr] = [tr, tl]; } // слева направо, иначе выйдет зеркальной
+  const bl = project(v, a.x, a.y, 0);
+  if (!tl || !tr || !bl) return; // стена у самой камеры: роспись не рисуем, чтобы не вывернуло
+  const pad = 3, w = len - 2 * pad, h = top - FLOOR * 1.2;
+  ctx.save();
+  ctx.transform((tr.x - tl.x) / len, (tr.y - tl.y) / len, (bl.x - tl.x) / top, (bl.y - tl.y) / top, tl.x, tl.y);
+  ctx.translate(pad, FLOOR * 0.6);
+  paintMuralAd(ctx, ad, w, h, p);
+  ctx.fillStyle = `rgb(0 0 0 / ${shade.toFixed(3)})`; ctx.fillRect(0, 0, w, h);
+  ctx.restore();
 }
 
 /** Окна на стене pts (углы: низ a, низ b, верх b, верх a): полосы стекла по этажам, а поверх — простенки цвета wall */
@@ -574,10 +594,9 @@ function drawProp(ctx: Ctx, v: View, o: Prop, p: Palette, tick: number): void {
       ctx.fillStyle = p.kerb;
       for (const u of [-10, 0, 10]) { ctx.beginPath(); ctx.moveTo(u - 4, 2); ctx.lineTo(u + 2, 6); ctx.lineTo(u - 4, 10); ctx.lineTo(u, 10); ctx.lineTo(u + 6, 6); ctx.lineTo(u, 2); ctx.closePath(); ctx.fill(); }
     }); return;
-    case 'billboard': board(ctx, v, o, SIZE.board.w, 12, 28, p.bill, () => {
-      ctx.fillStyle = p.billInk; ctx.font = `700 9px ${UI_FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText('AI Race', 0, 8);
-    }); return;
+    case 'billboard': board(ctx, v, o, SIZE.board.w, 12, 12 + SIZE.board.h, p.bill, () => {
+      ctx.translate(-SIZE.board.w / 2, 0); paintBoardAd(ctx, o.ad, SIZE.board.w, SIZE.board.h, p);
+    }, true); return;
     case 'lamp': {
       const b = billboard(v, o.x, o.y, 0), t = billboard(v, o.x, o.y, 40);
       if (!b || !t) return;
@@ -631,18 +650,22 @@ function heads(ctx: Ctx, v: View, row: readonly Dot[], z: number, colors: string
  * Щит на двух ножках вдоль направления o.angle, от высоты z0 до z1. paint рисует надпись в осях щита
  * (u — вдоль, от середины; y — вниз от верхнего края, px трассы): щит в перспективе — почти параллелограмм, хватает аффинной картинки
  */
-function board(ctx: Ctx, v: View, o: Point & { angle: number }, w: number, z0: number, z1: number, color: string, paint: () => void): void {
+/** Доска на столбиках. twoSided — напечатано с обеих сторон (рекламный щит), иначе сзади пусто (шевроны) */
+function board(ctx: Ctx, v: View, o: Point & { angle: number }, w: number, z0: number, z1: number, color: string, paint: () => void, twoSided = false): void {
   for (const u of [-w / 2 + 4, w / 2 - 4]) {
     const q = local(o, u, 0), a = project(v, q.x, q.y, 0), b = project(v, q.x, q.y, z0);
     if (a && b) { ctx.strokeStyle = 'rgb(60 62 68)'; ctx.lineWidth = Math.max(1, (1.6 * v.focal) / a.f); ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); }
   }
-  const l = local(o, -w / 2, 0), r = local(o, w / 2, 0);
-  const tl = project(v, l.x, l.y, z1), tr = project(v, r.x, r.y, z1), bl = project(v, l.x, l.y, z0);
-  if (!tl || !tr || !bl) return;
+  let l = local(o, -w / 2, 0), r = local(o, w / 2, 0);
+  let tl = project(v, l.x, l.y, z1), tr = project(v, r.x, r.y, z1);
+  if (!tl || !tr) return;
   face(ctx, v, [{ ...l, z: z0 }, { ...r, z: z0 }, { ...r, z: z1 }, { ...l, z: z1 }], color);
-  // щит виден сзади — надпись не рисуем (она с той стороны)
-  const facing = (tr.x - tl.x) > 0;
-  if (!facing) return;
+  if (tr.x < tl.x) { // видим доску сзади
+    if (!twoSided) return; // на шевронах сзади ничего нет
+    [l, r, tl, tr] = [r, l, tr, tl]; // у щита та же картинка и сзади — читаем её слева направо
+  }
+  const bl = project(v, l.x, l.y, z0);
+  if (!bl) return;
   ctx.save();
   const h = z1 - z0;
   ctx.transform((tr.x - tl.x) / w, (tr.y - tl.y) / w, (bl.x - tl.x) / h, (bl.y - tl.y) / h, (tl.x + tr.x) / 2, (tl.y + tr.y) / 2);

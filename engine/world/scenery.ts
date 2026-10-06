@@ -11,7 +11,18 @@ export type Tree = { x: number; y: number; r: number; h: number; kind: 'fir' | '
  * Дом: w — вдоль дороги, d — вглубь, angle — как дорога рядом (фасадом к ней), floors — этажей.
  * cottage — домик со скатной крышей, panel — панельная многоэтажка с плоской крышей, как в спальном районе
  */
-export type House = { x: number; y: number; w: number; d: number; angle: number; floors: number; style: 'cottage' | 'panel' };
+export type House = { x: number; y: number; w: number; d: number; angle: number; floors: number; style: 'cottage' | 'panel'; mural?: Ad };
+
+/**
+ * Реклама на щитах и росписи на домах: что нарисовано. Сам рисунок — engine/draw/ads.ts, общий для обоих видов.
+ * npm — «экран терминала» с командой установки: на стене дома его не пишут, только на щитах.
+ */
+export const ADS = ['ai-race', 'rs-school', 'reely', 'dommy', 'signals', 'npm'] as const;
+export type Ad = (typeof ADS)[number];
+const MURALS: Ad[] = ['ai-race', 'rs-school', 'reely', 'dommy', 'signals'];
+
+/** Торцы без окон: у длинной многоэтажки они глухие, как в жизни, — на них и рисуют роспись */
+export const blankEnds = (h: House): boolean => h.style === 'panel' && h.w > h.d;
 
 /**
  * Высота этажа, px. Машина длиной 44 px — это примерно 4,4 м, значит метр — 10 px, а этаж — 2,6 м.
@@ -38,7 +49,7 @@ export type Prop =
   | { kind: 'paddock'; x: number; y: number; angle: number; w: number; d: number; cars: Parked[] }
   | { kind: 'tires'; x: number; y: number; r: number; rings: number } // стопка шин на вираже
   | { kind: 'chevron'; x: number; y: number; angle: number }   // щиток «>>>»: angle — куда едут, туда и стрелки
-  | { kind: 'billboard'; x: number; y: number; angle: number } // щит «AI Race»
+  | { kind: 'billboard'; x: number; y: number; angle: number; ad: Ad } // рекламный щит
   | { kind: 'lamp'; x: number; y: number; angle: number }      // фонарь: angle — куда смотрит плафон (на дорогу)
   | { kind: 'windmill'; x: number; y: number; phase: number }
   | { kind: 'pond'; x: number; y: number; rx: number; ry: number; angle: number }
@@ -145,7 +156,7 @@ export const houseRadius = (h: House): number => Math.hypot(h.w, h.d) / 2;
 /** Размеры предметов, px: их знают и расстановка, и рисунок */
 export const SIZE = {
   lights: 44,                   // ширина табло огней
-  board: { w: 48, d: 6 },       // щит «AI Race»
+  board: { w: 64, d: 6, h: 24 }, // рекламный щит: 6,4 × 2,4 м
   chevron: { w: 34, d: 4 },
   tire: 6.5,                    // радиус шины
   lamp: 4,
@@ -227,6 +238,10 @@ function place(track: Track): Scenery {
   // у нового декора свой seed: домики и лес остались там же, где стояли до него
   const rand2 = mulberry32(hashString(`${track.id}|scenery2`));
   const rand3 = mulberry32(hashString(`${track.id}|scenery3`)); // многоэтажки и рост: прежний декор остался на месте
+  // реклама — по кругу из перемешанного списка: соседние щиты разные, а на трассе — почти все
+  const ads = mulberry32(hashString(`${track.id}|ads`));
+  let nextAd = Math.floor(ads() * ADS.length);
+  const ad = (from: readonly Ad[]): Ad => from[nextAd++ % from.length];
   const lines = linesOf(track);
   const signs = signSpots(track);
   const works = track.islands.flatMap((_, i) => worksSigns(track, i)); // у знаков дорожных работ тоже пусто
@@ -320,12 +335,12 @@ function place(track: Track): Scenery {
     }
   }
 
-  // 4. Щиты «AI Race» — на кусках, что идут поперёк экрана: щит стоит вдоль дороги, и надпись так видно целиком
-  const boards = 2 + Math.floor(rand2() * 3);
-  for (let n = 0, tries = 0; n < boards && tries < 80; tries++) {
+  // 4. Рекламные щиты — на кусках, что идут поперёк экрана: щит стоит вдоль дороги, и надпись так видно целиком
+  const boards = 6 + Math.floor(rand2() * 3);
+  for (let n = 0, tries = 0; n < boards && tries < 200; tries++) {
     const at = beside(rand2() * ring.total, edge + 12, rand2() < 0.5 ? -1 : 1);
     if (Math.abs(Math.cos(at.angle)) < 0.85) continue;
-    if (put({ kind: 'billboard', x: at.x, y: at.y, angle: Math.cos(at.angle) < 0 ? at.angle + Math.PI : at.angle })) n++; // надпись читается слева направо
+    if (put({ kind: 'billboard', x: at.x, y: at.y, angle: Math.cos(at.angle) < 0 ? at.angle + Math.PI : at.angle, ad: ad(ADS) })) n++; // надпись читается слева направо
   }
 
   // 5. Фонари: вдоль прямой у старта с обеих сторон и ещё пара рядков где-нибудь на круге
@@ -386,7 +401,7 @@ function place(track: Track): Scenery {
       angle: (rand3() < 0.3 ? Math.PI / 2 : 0) + (rand3() - 0.5) * 0.4, // дома района стоят ровными рядами
     };
     if (roadDistance(lines, c.x, c.y, edge + 120 + CELL) < edge + 120) continue;
-    const rows = 2 + Math.floor(rand3() * 2), long = 120 + rand3() * 50, deep = 36;
+    const rows = 2 + Math.floor(rand3() * 2), long = 120 + rand3() * 50, deep = 48; // 12 м вглубь, как у настоящей панельки
     let built = 0;
     for (let i = 0; i < 2; i++) for (let j = 0; j < rows; j++) {
       const tower = rand3() < 0.25; // точечная башня вместо длинного дома
@@ -398,6 +413,7 @@ function place(track: Track): Scenery {
       const want = tower ? 10 + Math.floor(rand3() * 4) : 5 + Math.floor(rand3() * 5);
       house.floors = Math.min(want, Math.floor(room(spots, want * FLOOR) / FLOOR));
       if (house.floors < 4) continue; // на четыре этажа места нет — тут не город
+      if (blankEnds(house) && ads() < 0.6) house.mural = ad(MURALS);
       houses.push(house);
       for (const q of spots) take(taken, q.x, q.y, q.r);
       built++;

@@ -1,7 +1,7 @@
 // Декор вокруг трассы: из seed, всегда за бордюрами, у знака пусто (ADR 0005).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { sceneryOf, stripScenery, segmentDistance, signSpots, houseRadius, houseSpots, wallsOf, roofOf, FLOOR, WORKS_CLEAR, spotsOf, cornersOf, SCENERY_GAP, SIGN_CLEAR } from '../../engine/world/scenery.ts';
+import { sceneryOf, stripScenery, segmentDistance, signSpots, houseRadius, houseSpots, wallsOf, roofOf, FLOOR, WORKS_CLEAR, spotsOf, cornersOf, SCENERY_GAP, SIGN_CLEAR, ADS, blankEnds } from '../../engine/world/scenery.ts';
 import { getTrainingTrack, generateTrack, buildTrack, worksSigns, TRAINING_TRACKS } from '../../engine/world/track.ts';
 import { drawRing } from '../../engine/world/turtle.ts';
 
@@ -133,7 +133,7 @@ test('у старта — огни, трибуна и паддок, на кру�
     assert.ok(paddock.cars.length >= 3 && paddock.cars.length <= 6, `${track.id}: машинок в паддоке ${paddock.cars.length}`);
     assert.ok(props.find((o) => o.kind === 'stand').rows.flat().length > 20, `${track.id}: на трибуне нет зрителей`);
     assert.ok(cornersOf(track.roads[0]).length > 0 && count('tires') >= 6 && count('chevron') >= 1, `${track.id}: шин ${count('tires')}, шевронов ${count('chevron')}`);
-    assert.ok(count('billboard') >= 2 && count('billboard') <= 4, `${track.id}: щитов ${count('billboard')}`);
+    assert.ok(count('billboard') >= 5 && count('billboard') <= 8, `${track.id}: щитов ${count('billboard')}`);
     assert.ok(count('windmill') === 1 && count('pond') >= 1 && count('pond') <= 2, `${track.id}: ветряк и пруд`);
     assert.ok(count('lamp') >= 8 && count('lamp') <= 40 && count('bed') >= 2 && count('tires') <= 80, `${track.id}: фонарей ${count('lamp')}, клумб ${count('bed')}`);
   }
@@ -161,4 +161,24 @@ test('лес у стенда повторяется без шва: на стык
     const dx = Math.abs(a.x - b.x - period), d = Math.hypot(dx, a.y - b.y);
     assert.ok(d >= Math.min(a.r * a.k + b.r, a.r + b.r * b.k) - 0.01, `на стыке налезли (${a.x | 0}, ${a.y | 0}) и (${b.x | 0}, ${b.y | 0})`);
   }
+});
+
+test('реклама вдоль дороги разная: на каждой трассе 5+ щитов и хотя бы 3 разных', () => {
+  for (const track of tracks) {
+    const boards = sceneryOf(track).props.filter((o) => o.kind === 'billboard');
+    assert.ok(boards.length >= 5, `${track.name}: щитов ${boards.length}`);
+    assert.ok(boards.every((o) => ADS.includes(o.ad)), `${track.name}: неизвестная реклама`);
+    assert.ok(new Set(boards.map((o) => o.ad)).size >= 3, `${track.name}: реклама однообразная`);
+  }
+});
+
+test('роспись — только на глухом торце длинной многоэтажки', () => {
+  const houses = tracks.flatMap((t) => sceneryOf(t).houses);
+  const painted = houses.filter((h) => h.mural);
+  assert.ok(painted.length >= 3, `расписанных домов ${painted.length}`);
+  for (const h of painted) {
+    assert.ok(blankEnds(h), 'роспись — на доме с глухими торцами');
+    assert.ok(ADS.includes(h.mural));
+  }
+  assert.ok(houses.every((h) => !blankEnds(h) || h.style === 'panel'), 'у домиков и башен торцы с окнами');
 });

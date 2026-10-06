@@ -1,10 +1,11 @@
 // Декор под наклоном: пластиковые ёлки ярусами на стволе, пышные круглые деревья, домики со скатной крышей
 // и всё хозяйство трассы: огни старта, трибуна, паддок, шины, шевроны, щиты, фонари, ветряк, пруд и клумбы.
 // Деревья, кусты и шины рисуем слоями — все тени, потом все стволы, потом ярус за ярусом: несколько заливок за кадр вместо сотен.
-import { sceneryOf, houseRadius, wallsOf, roofOf, windowColumns, windowRows, SIZE, type Tree, type House, type Prop, type Dot, type Parked } from '../world/scenery.ts';
+import { sceneryOf, houseRadius, wallsOf, roofOf, windowColumns, windowRows, blankEnds, FLOOR, SIZE, type Tree, type House, type Prop, type Ad, type Dot, type Parked } from '../world/scenery.ts';
 import { TILT, RISE, lift, local, prism, cap } from '../core/tilt.ts';
 import { tint } from '../core/paint.ts';
-import { UI_FONT, type Palette } from './render.ts';
+import { paintBoardAd, paintMuralAd } from './ads.ts';
+import type { Palette } from './render.ts';
 import type { View } from './track-cache.ts';
 import type { Track, Point } from '../world/track.ts';
 
@@ -231,7 +232,7 @@ function drawHouse(ctx: Ctx, h: House, p: Palette, fine: boolean): void {
   corners.forEach((q, i) => { const n = (i + 1) % 4; polyTo(shadow, [q, corners[n], moved[n], moved[i]]); });
   ctx.fillStyle = 'rgb(0 0 0 / 0.2)'; ctx.fill(shadow);
   prism(ctx, corners, 0, top, panel ? p.roof2 : null, panel ? p.panel : p.house);
-  if (fine) windows(ctx, corners, h, p);
+  if (fine) { windows(ctx, corners, h, p); murals(ctx, corners, h, p); }
   if (panel) {
     const rim = 3; // бортик по краю крыши, внутри — крыша чуть темнее
     const inner = ([[w - rim, -d + rim], [w - rim, d - rim], [-w + rim, d - rim], [-w + rim, -d + rim]] as const).map(([u, v]) => local(h, u, v));
@@ -268,10 +269,35 @@ function windows(ctx: Ctx, base: Point[], h: House, p: Palette): void {
     const a = base[i], b = base[(i + 1) % base.length];
     const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
     if ((-(b.x - a.x) / len) * turn <= 0.02) continue; // стенка смотрит от нас
+    if (blankEnds(h) && len < h.w - 1) continue; // глухой торец многоэтажки — без окон
     const q = (u: number, z: number): Point => lift(a.x + ((b.x - a.x) * u) / len, a.y + ((b.y - a.y) * u) / len, z);
     for (const [z0, z1] of windowRows(h)) for (const [u0, u1] of windowColumns(len, h)) polyTo(glass, [q(u0, z0), q(u1, z0), q(u1, z1), q(u0, z1)]);
   }
   ctx.fillStyle = p.window; ctx.fill(glass);
+}
+
+/** Роспись на глухих торцах, что смотрят на нас: картинка в осях стены, тень — как у самой стены (prism) */
+function murals(ctx: Ctx, base: Point[], h: House, p: Palette): void {
+  if (!h.mural) return;
+  const top = wallsOf(h);
+  let area = 0;
+  for (let i = 0; i < base.length; i++) { const a = base[i], b = base[(i + 1) % base.length]; area += a.x * b.y - b.x * a.y; }
+  const turn = area > 0 ? 1 : -1;
+  for (let i = 0; i < base.length; i++) {
+    let a = base[i], b = base[(i + 1) % base.length];
+    const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+    if (len > h.d + 1 || (-(b.x - a.x) / len) * turn <= 0.02) continue; // только торец, и только лицом к нам
+    const nx = ((b.y - a.y) / len) * turn;
+    if (b.x < a.x) [a, b] = [b, a]; // картинку рисуем слева направо, иначе выйдет зеркальной
+    const at = lift(a.x, a.y, top), right = lift(b.x, b.y, top), down = lift(a.x, a.y, 0);
+    ctx.save();
+    ctx.transform((right.x - at.x) / len, (right.y - at.y) / len, (down.x - at.x) / top, (down.y - at.y) / top, at.x, at.y);
+    const pad = 3; // по краю стены — полоска штукатурки
+    ctx.translate(pad, FLOOR * 0.6);
+    paintMuralAd(ctx, h.mural, len - 2 * pad, top - FLOOR * 1.2, p);
+    ctx.fillStyle = `rgb(0 0 0 / ${(0.2 + 0.14 * nx).toFixed(3)})`; ctx.fillRect(0, 0, len - 2 * pad, top - FLOOR * 1.2);
+    ctx.restore();
+  }
 }
 
 function polyTo(path: Path2D, pts: Point[]): void {
@@ -423,19 +449,15 @@ function drawChevron(ctx: Ctx, o: Placed, p: Palette): void {
   });
 }
 
-/** Рекламный щит «AI Race» на ножках */
-function drawBillboard(ctx: Ctx, o: Placed, p: Palette): void {
-  const half = SIZE.board.w / 2, top = 34, tall = 20;
+/** Рекламный щит на ножках: что на нём напечатано — engine/draw/ads.ts */
+function drawBillboard(ctx: Ctx, o: Placed & { ad: Ad }, p: Palette): void {
+  const half = SIZE.board.w / 2, tall = SIZE.board.h, top = tall + 12;
   const a = local(o, -half, 0), b = local(o, half, 0);
   ctx.beginPath(); ctx.moveTo(a.x + SHADOW.x * 3, a.y + SHADOW.y * 3); ctx.lineTo(b.x + SHADOW.x * 3, b.y + SHADOW.y * 3);
   ctx.strokeStyle = 'rgb(0 0 0 / 0.14)'; ctx.lineWidth = 4; ctx.stroke(); // тень щита на земле
   for (const u of [-half + 9, half - 9]) post(ctx, local(o, u, 0), top - tall, p.roof2, 2);
   upright(ctx, o, top, () => {
-    ctx.fillStyle = p.bill; ctx.fillRect(-half, 0, 2 * half, tall);
-    ctx.fillStyle = p.crowd3; ctx.fillRect(-half, tall - 3, 2 * half, 3); // цветная полоска снизу
-    ctx.fillStyle = p.billInk; ctx.font = `700 10px ${UI_FONT}`;
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText('AI Race', 0, tall / 2 - 1);
+    ctx.translate(-half, 0); paintBoardAd(ctx, o.ad, 2 * half, tall, p); ctx.translate(half, 0);
     ctx.strokeStyle = 'rgb(255 255 255 / 0.16)'; ctx.lineWidth = 0.8; ctx.strokeRect(-half + 0.4, 0.4, 2 * half - 0.8, tall - 0.8);
   });
 }
