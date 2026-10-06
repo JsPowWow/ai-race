@@ -1,54 +1,58 @@
-// Декор на виде сверху: пластиковые ёлки ярусами, пышные круглые деревья, домики со скатной крышей.
-// Рисуем слоями — все тени, потом все нижние ярусы, потом верхние: несколько заливок за кадр вместо сотен.
+// Декор под наклоном: пластиковые ёлки ярусами на стволе, пышные круглые деревья, домики со скатной крышей.
+// Деревья рисуем слоями — все тени, потом все стволы, потом ярус за ярусом: несколько заливок за кадр вместо сотен.
 import { sceneryOf, type Tree, type House } from './scenery.ts';
+import { TILT, lift, local, prism } from './tilt.ts';
 import type { Camera, Palette } from './render.ts';
 import type { Track, Point } from './track.ts';
 
 type Ctx = CanvasRenderingContext2D;
 
-const EYE = 640;   // на какой «высоте» висит камера крупного плана: чем ниже, тем сильнее заваливаются верхушки
-const LEAN = 11;   // дальше верхушка не уходит — с зазора у дороги она на асфальт не залезет
 const SHADOW = { x: 3, y: 5 }; // тень падает туда же, куда у трассы: свет сверху слева
-
-/** Насколько сдвинута верхушка высотой h: от центра кадра наружу, как на фото сверху */
-function leanOf(cam: Camera, x: number, y: number, h: number): Point {
-  if (cam.mode === 'fit') return { x: 0, y: 0 }; // вся трасса мелко — плоско: так спокойнее и дешевле
-  const dx = (x - cam.x) * h / EYE, dy = (y - cam.y) * h / EYE;
-  const len = Math.hypot(dx, dy);
-  return len > LEAN ? { x: dx * LEAN / len, y: dy * LEAN / len } : { x: dx, y: dy };
-}
+const WALL = 13, ROOF = 9;     // высота стен и конька над ними, px
 
 export function drawScenery(ctx: Ctx, track: Track, cam: Camera, p: Palette): void {
   const { trees, houses } = sceneryOf(track);
-  // что попало в кадр — с запасом на крону и тень
-  const halfW = ctx.canvas.width / 2 / cam.scale + 60, halfH = ctx.canvas.height / 2 / cam.scale + 60;
+  // что попало в кадр — с запасом на крону, высоту и тень
+  const halfW = ctx.canvas.width / 2 / cam.scale + 60, halfH = ctx.canvas.height / 2 / (cam.scale * TILT) + 80;
   const seen = (o: Point): boolean => Math.abs(o.x - cam.x) < halfW && Math.abs(o.y - cam.y) < halfH;
-  drawHouses(ctx, houses.filter(seen), cam, p);
-  drawTrees(ctx, trees.filter(seen), cam, p);
+  drawDecor(ctx, trees.filter(seen), houses.filter(seen), p);
 }
 
-function drawTrees(ctx: Ctx, trees: Tree[], cam: Camera, p: Palette): void {
-  const shadow = new Path2D(), core = new Path2D(), base = new Path2D(), middle = new Path2D(), top = new Path2D(), round = new Path2D(), shine = new Path2D();
+/** Нарисовать готовый список декора (уже отобранный по кадру). Списки сортирует на месте: дальние — первыми, ближние их загораживают */
+export function drawDecor(ctx: Ctx, trees: Tree[], houses: House[], p: Palette): void {
+  const byDepth = <T extends Point>(list: T[]): T[] => list.sort((a, b) => a.y - b.y);
+  for (const h of byDepth(houses)) drawHouse(ctx, h, p);
+  drawTrees(ctx, byDepth(trees), p);
+}
+
+function drawTrees(ctx: Ctx, trees: Tree[], p: Palette): void {
+  const shadow = new Path2D(), core = new Path2D(), trunk = new Path2D(), base = new Path2D(), middle = new Path2D(), top = new Path2D(), round = new Path2D(), shine = new Path2D();
   for (const t of trees) {
-    const lean = leanOf(cam, t.x, t.y, t.r * 2.2);
+    const h = t.r * 2.4; // высота дерева
     const turn = (t.x * 7 + t.y * 13) % 6.28; // каждая ёлка повёрнута по-своему — без Math.random, от места
     const outline = t.kind === 'fir' ? star : circle;
-    // мягкая тень — две фигуры, одна чуть больше: размытие на сотне деревьев дорогое
-    outline(shadow, t.x + SHADOW.x, t.y + SHADOW.y, t.r + 2, turn);
-    outline(core, t.x + SHADOW.x, t.y + SHADOW.y, t.r, turn);
+    // мягкая тень у ствола — две фигуры, одна чуть больше: размытие на сотне деревьев дорогое.
+    // Крона поднята над землёй, поэтому тень меньше кроны и прячется под ней, а не лежит рядом пятном
+    outline(shadow, t.x + SHADOW.x * 0.6, t.y + SHADOW.y * 0.4, t.r * 0.95, turn);
+    outline(core, t.x + SHADOW.x * 0.4, t.y + SHADOW.y * 0.2, t.r * 0.7, turn);
+    const at = (z: number): Point => lift(t.x, t.y, z);
+    const foot = at(0), neck = at(h * (t.kind === 'fir' ? 0.25 : 0.45));
+    trunk.rect(foot.x - 2, neck.y, 4, foot.y - neck.y);
     if (t.kind === 'fir') {
-      // ёлка сверху — три конуса друг на друге: чем выше ярус, тем он меньше и дальше «завален»
-      star(base, t.x, t.y, t.r, turn);
-      star(middle, t.x + lean.x * 0.5, t.y + lean.y * 0.5, t.r * 0.68, turn + 0.4);
-      star(top, t.x + lean.x, t.y + lean.y, t.r * 0.36, turn + 0.8);
+      // ёлка — три конуса друг на друге: чем выше ярус, тем он меньше
+      const a = at(h * 0.25), b = at(h * 0.6), c = at(h * 0.9);
+      star(base, a.x, a.y, t.r, turn);
+      star(middle, b.x, b.y, t.r * 0.68, turn + 0.4);
+      star(top, c.x, c.y, t.r * 0.36, turn + 0.8);
     } else {
-      const cx = t.x + lean.x * 0.6, cy = t.y + lean.y * 0.6;
-      circle(round, cx, cy, t.r);
-      circle(shine, cx - t.r * 0.3, cy - t.r * 0.3, t.r * 0.45); // блик сверху слева: пластик блестит
+      const c = at(h * 0.6);
+      circle(round, c.x, c.y, t.r);
+      circle(shine, c.x - t.r * 0.3, c.y - t.r * 0.3, t.r * 0.45); // блик сверху слева: пластик блестит
     }
   }
-  ctx.fillStyle = 'rgb(0 0 0 / 0.08)'; ctx.fill(shadow);
-  ctx.fillStyle = 'rgb(0 0 0 / 0.12)'; ctx.fill(core);
+  ctx.fillStyle = 'rgb(0 0 0 / 0.06)'; ctx.fill(shadow);
+  ctx.fillStyle = 'rgb(0 0 0 / 0.11)'; ctx.fill(core);
+  ctx.fillStyle = '#6b4a2e'; ctx.fill(trunk);
   ctx.fillStyle = p.tree; ctx.fill(base);
   ctx.fillStyle = p.tree2; ctx.fill(round); ctx.fill(middle); // средний ярус ёлки светлее нижнего
   ctx.fillStyle = 'rgb(255 255 255 / 0.16)'; ctx.fill(shine); ctx.fill(top);
@@ -71,28 +75,34 @@ function star(path: Path2D, x: number, y: number, r: number, turn: number): void
   path.closePath();
 }
 
-function drawHouses(ctx: Ctx, houses: House[], cam: Camera, p: Palette): void {
-  for (const h of houses) {
-    const lean = leanOf(cam, h.x, h.y, 26);
-    ctx.save();
-    ctx.translate(h.x, h.y);
-    ctx.rotate(h.angle);
-    const lx = lean.x * Math.cos(h.angle) + lean.y * Math.sin(h.angle); // сдвиг крыши — в осях домика
-    const ly = -lean.x * Math.sin(h.angle) + lean.y * Math.cos(h.angle);
-    const w = h.w, d = h.d;
-    ctx.fillStyle = 'rgb(0 0 0 / 0.2)';
-    ctx.fillRect(-w / 2 + SHADOW.x, -d / 2 + SHADOW.y, w, d);
-    // стены: видны, когда крышу «завалило» в сторону
-    ctx.fillStyle = p.house;
-    ctx.fillRect(-w / 2, -d / 2, w, d);
-    ctx.lineWidth = 1; ctx.strokeStyle = 'rgb(0 0 0 / 0.25)';
-    ctx.strokeRect(-w / 2, -d / 2, w, d);
-    // скатная крыша: конёк вдоль дороги, один скат светлее другого
-    ctx.translate(lx, ly);
-    // крыша чуть меньше стен: белый кант кубика виден и на плоском виде всей трассы
-    ctx.fillStyle = p.roof; ctx.fillRect(-w / 2 + 3, -d / 2 + 3, w - 6, d / 2 - 3);
-    ctx.fillStyle = p.roof2; ctx.fillRect(-w / 2 + 3, 0, w - 6, d / 2 - 3);
-    ctx.fillStyle = p.house; ctx.fillRect(w * 0.18, -d * 0.3, 5, 5); // труба
-    ctx.restore();
+/** Домик-кубик: белые стены, двускатная графитовая крыша — конёк вдоль дороги, труба */
+function drawHouse(ctx: Ctx, h: House, p: Palette): void {
+  const at = (u: number, v: number, z: number): Point => { const q = local(h, u, v); return lift(q.x, q.y, z); };
+  const w = h.w / 2, d = h.d / 2;
+  const corners = ([[w, -d], [w, d], [-w, d], [-w, -d]] as const).map(([u, v]) => local(h, u, v));
+  ctx.fillStyle = 'rgb(0 0 0 / 0.2)';
+  poly(ctx, corners.map((q) => ({ x: q.x + SHADOW.x, y: q.y + SHADOW.y }))); ctx.fill();
+  prism(ctx, corners, 0, WALL, null, p.house);
+  // скаты: тот, что смотрит на нас (вниз по экрану), рисуем последним; дальний — к свету, он светлее
+  const slope = (v: number, color: string): void => {
+    poly(ctx, [at(-w - 2, v * (d + 2), WALL - 1), at(w + 2, v * (d + 2), WALL - 1), at(w + 2, 0, WALL + ROOF), at(-w - 2, 0, WALL + ROOF)]);
+    ctx.fillStyle = color; ctx.fill();
+  };
+  const front = Math.cos(h.angle) > 0 ? 1 : -1; // скат со стороны +v смотрит вниз по экрану, если дом не перевёрнут
+  slope(-front, p.roof);
+  for (const u of [-w, w]) { // фронтоны — треугольники стены под крышей, если смотрят на нас
+    if (Math.sin(h.angle) * Math.sign(u) <= 0) continue;
+    poly(ctx, [at(u, -d, WALL), at(u, d, WALL), at(u, 0, WALL + ROOF)]);
+    ctx.fillStyle = p.house; ctx.fill();
+    ctx.fillStyle = 'rgb(0 0 0 / 0.12)'; ctx.fill();
   }
+  slope(front, p.roof2);
+  const pipe = ([[3, 3], [3, -3], [-3, -3], [-3, 3]] as const).map(([u, v]) => local(h, w * 0.45 + u, -front * d * 0.4 + v));
+  prism(ctx, pipe, WALL + ROOF * 0.4, WALL + ROOF + 4, p.roof2, p.house); // труба на дальнем скате
+}
+
+function poly(ctx: Ctx, pts: Point[]): void {
+  ctx.beginPath();
+  pts.forEach((q, i) => (i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y)));
+  ctx.closePath();
 }

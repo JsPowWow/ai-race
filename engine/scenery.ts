@@ -192,3 +192,33 @@ function pointOn(center: Point[], cum: Float64Array, s: number): Point & { angle
   const t = cum[hi] > cum[lo] ? (s - cum[lo]) / (cum[hi] - cum[lo]) : 0;
   return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t, angle: Math.atan2(b.y - a.y, b.x - a.x) };
 }
+
+/**
+ * Декор вдоль бесконечной прямой — для стенда на титульной: дорога бежит под машиной по кругу длиной period.
+ * Координаты свои: дорога идёт по x от 0 до period, её середина — y = 0. Деревья на стыке period → 0 не налезают друг на друга.
+ */
+export function stripScenery(period: number, width: number): Scenery {
+  const rand = mulberry32(hashString('стенд|scenery'));
+  const edge = width / 2 + SCENERY_GAP;
+  const taken: Taken = { cells: new Map() };
+  const trees: Tree[] = [], houses: House[] = [];
+  // свободно ли место — и на самом деле, и «через стык»: копия предмета сдвинута на period
+  const free = (x: number, y: number, r: number): boolean => [0, period, -period].every((d) => isFree(taken, x + d, y, r));
+  for (const side of [-1, 1]) {
+    // домик-другой у обочины: стенд — тоже место на трассе
+    for (let x = rand() * 600; x < period - 120; x += 700 + rand() * 500) {
+      const w = 34 + rand() * 22, d = 26 + rand() * 10;
+      const house = { x, y: 0, w, d, angle: 0 };
+      const r = houseRadius(house);
+      house.y = side * (edge + r + rand() * 14);
+      if (free(house.x, house.y, r)) { houses.push(house); take(taken, house.x, house.y, r); }
+    }
+    for (let x = rand() * 40; x < period; x += 22 + rand() * 30) {
+      const tree = pickTree(rand);
+      tree.x = x;
+      tree.y = side * (edge + tree.r + rand() * 120); // не один рядок, а полоса леса: стенд крупный, видно глубину
+      if (rand() < 0.85 && free(tree.x, tree.y, tree.r)) { trees.push(tree); take(taken, tree.x, tree.y, tree.r * 0.85); }
+    }
+  }
+  return { trees, houses };
+}

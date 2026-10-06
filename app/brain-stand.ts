@@ -1,6 +1,10 @@
 // Стенд: машина бота на прямом участке «Разминки». Колёса крутятся, дорога бежит, а сама машина
 // не уезжает — поэтому можно спокойно зажать сенсор и посмотреть, что сделает мозг.
-import { Camera, fitCanvas, clear, drawTrack, drawCar, cssColor } from '../engine/render.ts';
+// Сенсоры видят настоящую «Разминку», а рисуем бесконечную прямую с лесом: она повторяется через PERIOD px,
+// и на этом шаге совпадают швы, полоски бордюра и деревья — стыка не видно, а пробег не растёт без конца.
+import { Camera, fitCanvas, clear, drawStraight, drawCar, cssColor, getPalette } from '../engine/render.ts';
+import { drawDecor } from '../engine/scenery-draw.ts';
+import { stripScenery, type Tree, type House } from '../engine/scenery.ts';
 import { Car } from '../engine/car.ts';
 import { BUTTONS, NOTES } from '../engine/brain.ts';
 import type { Brain } from '../engine/brain.ts';
@@ -10,8 +14,8 @@ import { thinkVariants, feedForward } from '../student/think.js';
 import { liveSize } from './ui.ts';
 import { listen } from '@reely/dommy-kit';
 
-const SECTION = 150; // шаг швов игрушечной трассы: перескок на секцию назад незаметен
-const LOOP_FROM = 1100; // участок «Разминки» от 1100 до 1250 — длинная прямая напротив старта, черта за кадром
+const PERIOD = 2400; // через сколько px прямая повторяется: кратно секции (150) и паре блоков бордюра (32)
+const HOME = 1150; // место на «Разминке», где стоит машина: длинная прямая напротив старта
 const PRESSED = 0.75; // зажатый сенсор «видит» стену прямо перед машиной (0.9 спряталась бы под капотом)
 const PICK_ANGLE = 0.2; // палец ловит сенсор, если промахнулся не больше чем на ~11°
 
@@ -35,7 +39,13 @@ export function createStand(canvas: HTMLCanvasElement, file: { color: string }):
   // берём исходный вариант «думания», а не правки ученика: демо на титульной работает всегда
   const think = thinkVariants[bot.thinkId as keyof typeof thinkVariants].think;
   const track = getTrainingTrack('warmup');
-  const home = pointAt(track, LOOP_FROM);
+  const home = pointAt(track, HOME);
+  const strip = stripScenery(PERIOD, track.width);
+  // копии декора, сдвинутые на пробег: массивы одни на всё время, каждый кадр только меняем x
+  const trees: Tree[] = strip.trees.map((t) => ({ ...t })), houses: House[] = strip.houses.map((h) => ({ ...h }));
+  let run = 0; // сколько проехали по кругу длиной PERIOD
+  /** Машина на рисунке: в своих осях стенда она всегда в (0, 0) и смотрит вправо */
+  const view = { x: 0, y: 0, angle: 0 };
   const car = new Car(track, { brain: bot.brain, think: null, sensors: bot.sensors });
   const cam = new Camera();
   const size = liveSize(canvas);
@@ -47,7 +57,7 @@ export function createStand(canvas: HTMLCanvasElement, file: { color: string }):
   car.angle = home.angle;
 
   /** Куда смотрит сенсор i (угол в мире) и где у него конец. Лучи те же, что у машины: car.rays */
-  const rayAngle = (i: number) => car.angle + car.rays[i].angle;
+  const rayAngle = (i: number) => view.angle + car.rays[i].angle;
   const frontCount = car.sensors.count; // зажимаются только сенсоры вперёд: их видно на табло кружками s1…
 
   function tick(): number[][] {
@@ -64,14 +74,12 @@ export function createStand(canvas: HTMLCanvasElement, file: { color: string }):
     Object.assign(car.controls, { gas, brake, left, right });
     car.notes = out.slice(BUTTONS.length, BUTTONS.length + NOTES);
     car.move();
-    car.angle = home.angle; // руль виден по колёсам, а сама машина не поворачивает
-    // уехала на секцию вперёд (или назад) — переносим её и камеру обратно: шов дороги не заметен
+    // сколько проехала вдоль дороги — на столько сдвигаем дорогу, а машину ставим обратно: она стоит на месте
     const along = (car.x - home.x) * Math.cos(home.angle) + (car.y - home.y) * Math.sin(home.angle);
-    const back = along > SECTION ? SECTION : along < 0 ? -SECTION : 0;
-    car.x = home.x + (along - back) * Math.cos(home.angle);
-    car.y = home.y + (along - back) * Math.sin(home.angle);
-    cam.x -= back * Math.cos(home.angle);
-    cam.y -= back * Math.sin(home.angle);
+    run = (run + along) % PERIOD;
+    car.x = home.x;
+    car.y = home.y;
+    car.angle = home.angle; // руль виден по колёсам, а сама машина не поворачивает
     return trace;
   }
 
@@ -79,18 +87,22 @@ export function createStand(canvas: HTMLCanvasElement, file: { color: string }):
     if (!ctx) return;
     const dpr = fitCanvas(canvas, size);
     cam.mode = 'follow';
-    cam.update(canvas, track, car, dpr * 0.85); // чуть мельче, чем на «Я учу»: дорога с бордюрами целиком по высоте
+    cam.update(canvas, track, view, dpr * 0.85); // чуть мельче, чем на «Я учу»: дорога с бордюрами целиком по высоте
     clear(ctx, canvas);
     cam.apply(ctx, canvas);
-    drawTrack(ctx, track, cam);
-    drawCar(ctx, car, { color: file.color, sensors: true, cam, number: 1 });
+    const half = canvas.width / cam.scale / 2 + 80; // сколько дороги видно от машины в каждую сторону, с запасом
+    drawStraight(ctx, run, half, track.width, cam);
+    shiftDecor(trees, strip.trees);
+    shiftDecor(houses, strip.houses);
+    drawDecor(ctx, trees.filter((t) => Math.abs(t.x) < half), houses.filter((h) => Math.abs(h.x) < half), getPalette());
+    drawCar(ctx, { ...view, status: car.status, done: car.done, controls: car.controls, steer: car.steer, speed: car.speed, rayT: car.rayT, sensors: car.sensors }, { color: file.color, sensors: true, number: 1 });
     // зажатые сенсоры: у конца — красная «стена», в которую он упёрся
     ctx.strokeStyle = cssColor('--kerb');
     ctx.lineWidth = 5;
     ctx.lineCap = 'round';
     for (const i of pressed) {
-      const a = rayAngle(i), d = car.rays[i].length * (1 - PRESSED);
-      const x = car.x + Math.cos(a) * d, y = car.y + Math.sin(a) * d;
+      const a = car.rays[i].angle, d = car.rays[i].length * (1 - PRESSED);
+      const x = Math.cos(a) * d, y = Math.sin(a) * d;
       ctx.beginPath();
       ctx.moveTo(x - Math.sin(a) * 9, y + Math.cos(a) * 9);
       ctx.lineTo(x + Math.sin(a) * 9, y - Math.cos(a) * 9);
@@ -99,13 +111,20 @@ export function createStand(canvas: HTMLCanvasElement, file: { color: string }):
     ctx.lineCap = 'butt';
   }
 
+  /** Декор на прямой — туда, где он сейчас относительно машины: x от −PERIOD/2 до PERIOD/2 */
+  function shiftDecor(out: (Tree | House)[], from: (Tree | House)[]): void {
+    for (let i = 0; i < from.length; i++) {
+      out[i].x = (((from[i].x - run) % PERIOD) + PERIOD + PERIOD / 2) % PERIOD - PERIOD / 2;
+    }
+  }
+
   /** Сенсор вперёд, ближайший к точке холста (или -1, если палец не у сенсора) */
   function sensorAt(e: PointerEvent): number {
     const r = canvas.getBoundingClientRect(), dpr = canvas.width / r.width;
     const w = cam.toWorld(canvas, (e.clientX - r.left) * dpr, (e.clientY - r.top) * dpr);
-    const dist = Math.hypot(w.x - car.x, w.y - car.y);
+    const dist = Math.hypot(w.x - view.x, w.y - view.y); // в осях стенда машина в (0, 0)
     if (dist < 20 || dist > car.sensors.length + 20) return -1;
-    const a = Math.atan2(w.y - car.y, w.x - car.x);
+    const a = Math.atan2(w.y - view.y, w.x - view.x);
     let best = -1, bestMiss = PICK_ANGLE;
     for (let i = 0; i < frontCount; i++) {
       const miss = Math.abs(Math.atan2(Math.sin(a - rayAngle(i)), Math.cos(a - rayAngle(i))));

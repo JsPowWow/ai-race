@@ -1,5 +1,6 @@
 // Холст с трассой: камера, отрисовка сцены, подсказки поверх (HUD, баннер).
 import { Camera, fitCanvas, clear, drawTrack, drawTraffic, drawCar, drawSensors, drawPack, type CarView, type CarLook, type PackCar } from '../engine/render.ts';
+import { TILT } from '../engine/tilt.ts';
 import { trafficAt, type TrafficSpot } from '../engine/traffic.ts';
 import { lapOf, type Track } from '../engine/track.ts';
 import type { Point } from '../engine/turtle.ts';
@@ -33,7 +34,7 @@ const phone = matchMedia('(max-width: 700px)');
 let viewportRatio = '';
 function fitViewport(track: Track, camera: string): void {
   const b = track.bbox;
-  const ratio = camera === 'fit' && phone.matches ? clamp((b.maxX - b.minX + 80) / (b.maxY - b.minY + 80), 0.9, 2.2).toFixed(2) : '';
+  const ratio = camera === 'fit' && phone.matches ? clamp((b.maxX - b.minX + 80) / ((b.maxY - b.minY + 80) * TILT), 0.9, 2.2).toFixed(2) : ''; // пол сжат наклоном
   if (ratio !== viewportRatio) viewport.style.aspectRatio = viewportRatio = ratio;
 }
 
@@ -86,7 +87,7 @@ export function paintScreen(draw: (ctx: CanvasRenderingContext2D, width: number,
 }
 
 /** Точка трассы → пиксели экрана (для подписей поверх) */
-export const toScreen = (x: number, y: number): Point => ({ x: (x - cam.x) * cam.scale + canvas.width / 2, y: (y - cam.y) * cam.scale + canvas.height / 2 });
+export const toScreen = (x: number, y: number): Point => cam.toScreen(canvas, x, y);
 
 /** Машина под пальцем или курсором (или null) */
 export function carAt<C extends Point>(event: { clientX: number; clientY: number }, cars: readonly C[], radiusPx = 28): C | null {
