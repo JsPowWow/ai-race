@@ -3,6 +3,7 @@
 // Деревья, кусты и шины рисуем слоями — все тени, потом все стволы, потом ярус за ярусом: несколько заливок за кадр вместо сотен.
 import { sceneryOf, houseRadius, wallsOf, roofOf, windowColumns, windowRows, SIZE, type Tree, type House, type Prop, type Dot, type Parked } from '../world/scenery.ts';
 import { TILT, RISE, lift, local, prism, cap } from '../core/tilt.ts';
+import { tint } from '../core/paint.ts';
 import { UI_FONT, type Palette } from './render.ts';
 import type { View } from './track-cache.ts';
 import type { Track, Point } from '../world/track.ts';
@@ -195,8 +196,8 @@ function drawTrees(ctx: Ctx, trees: Soft[], p: Palette, fine = true): void {
   ctx.fillStyle = '#6b4a2e'; ctx.fill(trunk);
   if (firs) { ctx.fillStyle = p.tree; ctx.fill(base); }
   ctx.fillStyle = p.tree2; ctx.fill(round); ctx.fill(middle); // средний ярус ёлки светлее нижнего
-  ctx.fillStyle = 'rgb(255 255 255 / 0.16)'; ctx.fill(shine); ctx.fill(top);
-  if (firs) { ctx.fillStyle = 'rgb(255 255 255 / 0.12)'; ctx.fill(top); } // верхушка — самая светлая: ближе всех к свету
+  if (firs) { ctx.fillStyle = tint(p.tree2, 0, 0.22) ?? p.tree2; ctx.fill(top); } // верхушка — самая светлая: ближе всех к свету
+  ctx.fillStyle = 'rgb(255 255 255 / 0.16)'; ctx.fill(shine);
 }
 
 function circle(path: Path2D, x: number, y: number, r: number): void {
