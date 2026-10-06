@@ -137,7 +137,7 @@ export function drawTrack(ctx: Ctx, track: Track, cam: Camera, tick = 0): void {
   const px = 1 / cam.scale;
   track.islands.forEach((island, i) => {
     drawSlowZone(ctx, track, island, freeSide(track, i, tick), p);
-    drawSign(ctx, track, island.sign, signShows(track, i, tick), Math.max(1, 0.9 * px), p);
+    drawSign(ctx, track, island.sign, signShows(track, i, tick), Math.min(1.8, Math.max(1, 0.9 * px)), p);
   });
   checkered(ctx, pointAt(track, 0), track.width, p); // старт и финиш — одна черта: круг за кругом
 }
@@ -325,19 +325,27 @@ function cone(ctx: Ctx, x: number, y: number, p: Palette): void {
 }
 
 /**
- * Дорожный знак у обочины: синий круг с белой стрелкой — «свободно направо» или «налево». dir 0 — знак погас.
- * size — во сколько раз крупнее: когда видна вся трасса, знак рисуем больше, иначе стрелку не разглядеть
+ * Дорожный знак у обочины: синий круг с белой стрелкой на столбе — «свободно направо» или «налево». dir 0 — знак погас.
+ * Стоит, а не лежит: столб растёт вверх (lift), круг повёрнут к нам. size — во сколько раз крупнее: когда видна
+ * вся трасса, знак чуть больше, иначе стрелку не разглядеть
  */
 function drawSign(ctx: Ctx, track: Track, { x, y, angle }: RoadPoint, dir: Side | 0, size: number, p: Palette): void {
-  const r = 17, off = track.width / 2 + 9 + r * size;
+  const r = 10, pole = 26; // круг ≈ 2 м, столб ≈ 2,6 м — машине по крышу и выше
+  const off = track.width / 2 + 14;
   const cx = x - Math.sin(angle) * off, cy = y + Math.cos(angle) * off; // справа по ходу, как у настоящей дороги
+  ctx.fillStyle = 'rgb(0 0 0 / 0.2)';
+  ctx.beginPath(); ctx.ellipse(cx + 3, cy + 2, 3 * size, 2 * size, 0, 0, Math.PI * 2); ctx.fill();
+  const top = lift(cx, cy, (pole + r) * size);
+  ctx.strokeStyle = p.roof2; ctx.lineWidth = 2 * size; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(top.x, top.y); ctx.stroke();
   ctx.save();
-  ctx.translate(cx, cy);
-  ctx.scale(size, size);
-  ctx.beginPath(); ctx.arc(0, 0, r + 2.5, 0, Math.PI * 2); ctx.fillStyle = p.kerb2; ctx.fill();
+  ctx.translate(top.x, top.y);
+  ctx.scale(size, size / TILT); // камера сожмёт пол по высоте — круг знака заранее растянут, чтобы на экране был кругом
+  ctx.beginPath(); ctx.arc(0, 0, r + 1.8, 0, Math.PI * 2); ctx.fillStyle = p.kerb2; ctx.fill();
   ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fillStyle = dir ? p.sign : p.signOff; ctx.fill();
   if (!dir) { ctx.restore(); return; }
   ctx.rotate(angle); // стрелка — относительно направления езды
+  ctx.scale(0.6, 0.6); // стрелка нарисована под круг радиусом 17
   ctx.strokeStyle = p.kerb2; ctx.fillStyle = p.kerb2; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   ctx.beginPath(); ctx.moveTo(-9, 0); ctx.lineTo(2, 0); ctx.lineTo(2, dir * 7); ctx.stroke(); // прямо, потом поворот
   ctx.beginPath(); ctx.moveTo(-4, dir * 5); ctx.lineTo(8, dir * 5); ctx.lineTo(2, dir * 13); ctx.closePath(); ctx.fill();

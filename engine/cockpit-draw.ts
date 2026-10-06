@@ -372,15 +372,15 @@ function cone(ctx: Ctx, v: View, x: number, y: number, p: Palette): void {
 
 /** Где стоит знак: справа по ходу, за бордюром — как в виде сверху */
 function signSpot(track: Track, { x, y, angle }: RoadPoint): Point {
-  const off = track.width / 2 + 9 + 17;
+  const off = track.width / 2 + 14; // там же, где в виде сверху (drawSign в render.ts)
   return { x: x - Math.sin(angle) * off, y: y + Math.cos(angle) * off };
 }
 
 /** Знак на столбике: синий круг, белая стрелка «прямо, потом направо / налево»; dir 0 — погас */
 function sign(ctx: Ctx, v: View, x: number, y: number, dir: number, p: Palette): void {
-  const foot = billboard(v, x, y, 0), c = billboard(v, x, y, 40);
+  const foot = billboard(v, x, y, 0), c = billboard(v, x, y, 36); // как в виде сверху: столб 2,6 м, круг ≈ 2 м
   if (!foot || !c) return;
-  const k = c.k, r = 15 * k;
+  const k = c.k * (10 / 15), r = 15 * k; // стрелка нарисована под круг радиусом 15
   ctx.fillStyle = p.roof2; ctx.fillRect(foot.x - 1.5 * k, c.y, 3 * k, foot.y - c.y);
   ctx.beginPath(); ctx.arc(c.x, c.y, r + 2.5 * k, 0, Math.PI * 2); ctx.fillStyle = p.kerb2; ctx.fill();
   ctx.beginPath(); ctx.arc(c.x, c.y, r, 0, Math.PI * 2); ctx.fillStyle = dir ? p.sign : p.signOff; ctx.fill();
