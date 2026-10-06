@@ -45,3 +45,11 @@ test('камера едет позади машины и догоняет её �
   chase.follow({ x: 0, y: 0, angle: Math.PI }); // машину поставили на старт — камера прыгает сразу
   assert.equal(chase.angle, Math.PI);
 });
+
+test('на разгоне камера отстаёт на пружине, но машина не убегает из кадра', () => {
+  const chase = new Chase();
+  for (let x = 0; x < 2000; x += 6) chase.follow({ x, y: 0, angle: 0 }); // едем быстро по прямой
+  const gap = 1994 - chase.x;
+  assert.ok(gap > CHASE.back && gap <= CHASE.back * 1.12 + 1e-9, `камера в ${gap.toFixed(1)} px позади`);
+  assert.ok(Math.abs(chase.angle) < 1e-9, 'на прямой смотрит ровно вперёд');
+});

@@ -10,8 +10,9 @@ export const CHASE = {
   fov: 90,      // обзор по ширине, градусы
   near: 4,      // ближе этого к камере ничего не рисуем — иначе точка «за спиной» попадёт на экран
   range: 760,   // дальше этого — туман: видно, куда едешь, а рисовать немного
-  smooth: 0.15, // камера догоняет поворот машины за несколько кадров: так не укачивает
-  calm: 0.07,   // то же, если в системе просили меньше движения
+  ahead: 24,    // камера смотрит на точку чуть впереди машины
+  smooth: 0.1,  // какую долю пути камера догоняет за кадр: плавно, но не отстаёт
+  calm: 0.05,   // то же, если в системе просили меньше движения
 };
 
 /** Где камера на столе и куда смотрит */
@@ -76,20 +77,28 @@ export function clipNear(v: View, pts: readonly (Point & { z: number })[]): Scre
 const turn = (a: number, b: number): number => Math.atan2(Math.sin(a - b), Math.cos(a - b));
 
 /**
- * Камера за машиной. Поворот машины догоняет плавно; позиция — всегда ровно позади по направлению камеры,
- * поэтому машина в кадре стоит на месте, а на повороте видно, как она «разворачивается» относительно дороги.
+ * Камера за машиной — на «пружине», как в гоночных играх. Её место догоняет точку позади машины за несколько кадров,
+ * а смотрит она всегда на точку чуть впереди машины. На повороте машина плавно уходит вбок кадра и разворачивается
+ * в нём, а камера мягко заходит следом; разгонишься — машина чуть отъедет вперёд. Расстояние держим в рамках —
+ * машина не убегает из кадра и не наезжает на камеру.
  */
 export class Chase {
   x = 0; y = 0; angle = 0;
   private last: Point | null = null;
 
-  /** Новый кадр. smooth — какую долю поворота догнать за кадр */
+  /** Новый кадр. smooth — какую долю пути до нужного места камера проходит за кадр */
   follow(car: Pose, smooth = CHASE.smooth): void {
-    const d = turn(car.angle, this.angle);
-    const jumped = !this.last || Math.hypot(car.x - this.last.x, car.y - this.last.y) > 40 || Math.abs(d) > 1.6; // машину поставили на старт
-    this.angle = jumped ? car.angle : this.angle + d * smooth;
+    const jumped = !this.last || Math.hypot(car.x - this.last.x, car.y - this.last.y) > 40
+      || Math.abs(turn(car.angle, this.angle)) > 1.6; // машину поставили на старт
     this.last = { x: car.x, y: car.y };
-    this.x = car.x - Math.cos(this.angle) * CHASE.back;
-    this.y = car.y - Math.sin(this.angle) * CHASE.back;
+    const wantX = car.x - Math.cos(car.angle) * CHASE.back, wantY = car.y - Math.sin(car.angle) * CHASE.back;
+    if (jumped) { this.x = wantX; this.y = wantY; } else { this.x += (wantX - this.x) * smooth; this.y += (wantY - this.y) * smooth; }
+    // не дальше и не ближе, чем нужно: пружина тянет, но машина остаётся у нижнего края кадра
+    const dx = car.x - this.x, dy = car.y - this.y, d = Math.hypot(dx, dy) || 1;
+    const keep = Math.max(CHASE.back * 0.9, Math.min(CHASE.back * 1.12, d));
+    this.x = car.x - (dx / d) * keep; this.y = car.y - (dy / d) * keep;
+    // смотрим на точку впереди машины: камера поворачивает к ней сама, без рывка
+    const aheadX = car.x + Math.cos(car.angle) * CHASE.ahead, aheadY = car.y + Math.sin(car.angle) * CHASE.ahead;
+    this.angle = Math.atan2(aheadY - this.y, aheadX - this.x);
   }
 }

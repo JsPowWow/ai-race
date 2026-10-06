@@ -8,7 +8,8 @@ import { pointAt, freeSide, signShows, type Track, type Branch, type Point, type
 import { sceneryOf, SIZE, type Tree, type House, type Prop, type Dot } from './scenery.ts';
 import { startLights, sceneryMoves } from './scenery-draw.ts';
 import { local } from './tilt.ts';
-import { rays, wheelAngle, CAR, WHEELBASE } from './car.ts';
+import { drawCockpitCar } from './cockpit-car.ts';
+import { rays, CAR } from './car.ts';
 import type { TrafficSpot } from './traffic.ts';
 
 type Ctx = CanvasRenderingContext2D;
@@ -185,6 +186,15 @@ function billboard(v: View, x: number, y: number, z: number): (ScreenPoint & { k
   return p && { ...p, k: v.focal / p.f };
 }
 
+/**
+ * Тот же цвет, но совсем прозрачный. Градиент к 'transparent' идёт через прозрачный чёрный —
+ * на середине туман стал бы серой полосой; к своему же цвету с нулевой непрозрачностью — чисто.
+ */
+function clear(color: string): string {
+  const rgb = /^rgba?\(\s*([\d.]+)[ ,]+([\d.]+)[ ,]+([\d.]+)/.exec(color);
+  return rgb ? `rgb(${rgb[1]} ${rgb[2]} ${rgb[3]} / 0)` : 'transparent';
+}
+
 /** Нарисовать вид из машины. ctx — холст в пикселях экрана */
 export function drawCockpit(ctx: Ctx, track: Track, v: View, scene: CockpitScene): void {
   const p = getPalette();
@@ -211,7 +221,7 @@ export function drawCockpit(ctx: Ctx, track: Track, v: View, scene: CockpitScene
   const fog = ctx.createLinearGradient(0, v.horizon, 0, y(v.range * 0.45));
   fog.addColorStop(0, p.board);
   fog.addColorStop(Math.min(0.99, (y(v.range * 0.85) - v.horizon) / (y(v.range * 0.45) - v.horizon)), p.board);
-  fog.addColorStop(1, 'transparent');
+  fog.addColorStop(1, clear(p.board));
   ctx.fillStyle = fog; ctx.fillRect(0, v.horizon - 1, W, y(v.range * 0.45) - v.horizon + 1);
 
   // всё, у чего есть высота, — по глубине
@@ -502,26 +512,9 @@ function box(ctx: Ctx, v: View, o: Point & { angle: number }, color: string, p: 
   }
 }
 
-/** Своя машина или призрак: корпус её цвета, кабина со стёклами, колёса (передние — с поворотом руля) */
+/** Своя машина или призрак (полупрозрачный) и подпись над ним */
 function carShape(ctx: Ctx, v: View, { car, color, alpha = 1, label = null }: CockpitCar, p: Palette, dpr: number): void {
-  ctx.globalAlpha *= alpha;
-  const L = CAR.length / 2, W = CAR.width / 2;
-  const steer = wheelAngle(car.steer ?? 0, car.speed ?? 0);
-  for (const [u, s] of [[-WHEELBASE / 2, -W], [-WHEELBASE / 2, W], [WHEELBASE / 2, -W], [WHEELBASE / 2, W]]) {
-    const c = local(car, u, s);
-    const wheel = { x: c.x, y: c.y, angle: car.angle + (u > 0 ? steer : 0) };
-    block(ctx, v, rect(wheel, -4.6, 4.6, -1.8, 1.8), 0, 9, 'rgb(28 30 34)', 'rgb(48 52 60)');
-  }
-  const crashed = car.status === 'crashed';
-  block(ctx, v, rect(car, -L, L, -W + 1, W - 1), CAR_H.floor, CAR_H.body, crashed ? p.crashed : color, crashed ? p.crashed : color);
-  block(ctx, v, rect(car, -L * 0.62, L * 0.2, -W * 0.74, W * 0.74), CAR_H.body, CAR_H.roof, 'rgb(34 44 58)', crashed ? p.crashed : color);
-  // стоп-сигналы горят, когда тормозишь
-  const braking = (car.controls?.brake ?? 0) > 0;
-  for (const s of [-W * 0.62, W * 0.62]) {
-    const q = local(car, -L - 0.3, s), c = billboard(v, q.x, q.y, CAR_H.body - 2.5);
-    if (c) { ctx.fillStyle = braking ? p.kerb : p.lightOff; ctx.fillRect(c.x - 2.6 * c.k, c.y - 1.4 * c.k, 5.2 * c.k, 2.8 * c.k); }
-  }
-  ctx.globalAlpha = 1;
+  drawCockpitCar(ctx, v, car, color, p, alpha);
   if (!label) return;
   const top = billboard(v, car.x, car.y, CAR_H.roof + 10);
   if (!top) return;
