@@ -1,8 +1,8 @@
 // Декор под наклоном: пластиковые ёлки ярусами на стволе, пышные круглые деревья, домики со скатной крышей
 // и всё хозяйство трассы: огни старта, трибуна, паддок, шины, шевроны, щиты, фонари, ветряк, пруд и клумбы.
 // Деревья, кусты и шины рисуем слоями — все тени, потом все стволы, потом ярус за ярусом: несколько заливок за кадр вместо сотен.
-import { sceneryOf, houseRadius, SIZE, type Tree, type House, type Prop, type Dot, type Parked } from './scenery.ts';
-import { TILT, RISE, lift, local, prism } from './tilt.ts';
+import { sceneryOf, houseRadius, wallsOf, roofOf, windowColumns, windowRows, SIZE, type Tree, type House, type Prop, type Dot, type Parked } from './scenery.ts';
+import { TILT, RISE, lift, local, prism, cap } from './tilt.ts';
 import { UI_FONT, type Palette } from './render.ts';
 import type { View } from './track-cache.ts';
 import type { Track, Point } from './track.ts';
@@ -14,7 +14,6 @@ type Soft = Tree | Extract<Prop, { kind: 'tires' }>;
 type Solid = House | Prop;
 
 const SHADOW = { x: 3, y: 5 }; // тень падает туда же, куда у трассы: свет сверху слева
-const WALL = 13, ROOF = 9;     // высота стен и конька над ними, px
 const RING = 3.4;              // высота одной шины в стопке, px
 const LIGHTS = 5;              // огней на табло старта
 
@@ -44,9 +43,9 @@ export const sceneryMoves = (): boolean => motion;
  */
 export function drawScenery(ctx: Ctx, track: Track, cam: View, p: Palette, tick: number | null = 0): void {
   const { trees, houses, bushes, props } = sceneryOf(track);
-  const { seen, seenWide } = inFrame(ctx, cam);
+  const { seen, seenWide, seenTall } = inFrame(ctx, cam);
   // вся трасса целиком — предметы мелкие: мелочь (кабины машинок, стыки шин) не видна, её и не рисуем
-  drawDecor(ctx, trees.filter(seen), houses.filter(seen), p, { bushes: bushes.filter(seen), props: props.filter(seenWide), tick: tick ?? 0, blades: tick !== null, fine: cam.scale >= 1 });
+  drawDecor(ctx, trees.filter(seen), houses.filter(seenTall), p, { bushes: bushes.filter(seen), props: props.filter(seenWide), tick: tick ?? 0, blades: tick !== null, fine: cam.scale >= 1 });
 }
 
 /** Лопасти ветряков на тике tick — поверх неподвижного слоя, нарисованного drawScenery(…, null) */
@@ -55,12 +54,19 @@ export function drawBlades(ctx: Ctx, track: Track, cam: View, p: Palette, tick: 
   for (const o of sceneryOf(track).props) if (o.kind === 'windmill' && seenWide(o)) blades(ctx, o, p, turnAt(tick));
 }
 
-/** Что попало в кадр — с запасом на крону, высоту и тень; большим предметам (трибуна, паддок) — запас побольше */
-function inFrame(ctx: Ctx, cam: View): { seen: (o: Point) => boolean; seenWide: (o: Point) => boolean } {
+/**
+ * Что попало в кадр — с запасом на крону, высоту и тень; большим предметам (трибуна, паддок) — запас побольше.
+ * Дом стоит ниже кадра, а крыша в кадре: высокое растёт вверх по экрану — ему запас снизу по его росту
+ */
+function inFrame(ctx: Ctx, cam: View): { seen: (o: Point) => boolean; seenWide: (o: Point) => boolean; seenTall: (h: House) => boolean } {
   const halfW = ctx.canvas.width / 2 / cam.scale + 60, halfH = ctx.canvas.height / 2 / (cam.scale * TILT) + 80;
   return {
     seen: (o) => Math.abs(o.x - cam.x) < halfW && Math.abs(o.y - cam.y) < halfH,
     seenWide: (o) => Math.abs(o.x - cam.x) < halfW + 80 && Math.abs(o.y - cam.y) < halfH + 60,
+    seenTall: (h) => {
+      const r = houseRadius(h), dy = h.y - cam.y;
+      return Math.abs(h.x - cam.x) < halfW + r && dy > -halfH - r && dy < halfH + r + (wallsOf(h) + roofOf(h)) * RISE;
+    },
   };
 }
 
@@ -108,7 +114,7 @@ function reachOf(o: Solid): number {
 }
 
 function drawSolid(ctx: Ctx, o: Solid, p: Palette, tick: number, fine: boolean, withBlades: boolean): void {
-  if (!('kind' in o)) { drawHouse(ctx, o, p); return; }
+  if (!('kind' in o)) { drawHouse(ctx, o, p, fine); return; }
   switch (o.kind) {
     case 'lights': drawLights(ctx, o, p); break;
     case 'stand': drawStand(ctx, o, p); break;
@@ -147,7 +153,7 @@ function drawTrees(ctx: Ctx, trees: Soft[], p: Palette, fine = true): void {
       circle(shine, c.x - t.r * 0.25, c.y - t.r * 0.5, t.r * 0.3);
       continue;
     }
-    const h = t.r * 2.4; // высота дерева
+    const h = t.h;
     const turn = (t.x * 7 + t.y * 13) % 6.28; // каждая ёлка повёрнута по-своему — без Math.random, от места
     const outline = t.kind === 'fir' ? star : circle;
     // мягкая тень у ствола — две фигуры, одна чуть больше: размытие на сотне деревьев дорогое.
@@ -155,16 +161,17 @@ function drawTrees(ctx: Ctx, trees: Soft[], p: Palette, fine = true): void {
     outline(shadow, t.x + SHADOW.x * 0.6, t.y + SHADOW.y * 0.4, t.r * 0.95, turn);
     outline(core, t.x + SHADOW.x * 0.4, t.y + SHADOW.y * 0.2, t.r * 0.7, turn);
     const at = (z: number): Point => lift(t.x, t.y, z);
-    const foot = at(0), neck = at(h * (t.kind === 'fir' ? 0.25 : 0.45));
+    const foot = at(0), neck = at(t.kind === 'fir' ? h * 0.25 : h - t.r * 1.3);
     trunk.rect(foot.x - 2, neck.y, 4, foot.y - neck.y);
     if (t.kind === 'fir') {
-      // ёлка — три конуса друг на друге: чем выше ярус, тем он меньше
-      const a = at(h * 0.25), b = at(h * 0.6), c = at(h * 0.9);
-      star(base, a.x, a.y, t.r, turn);
-      star(middle, b.x, b.y, t.r * 0.68, turn + 0.4);
-      star(top, c.x, c.y, t.r * 0.36, turn + 0.8);
+      // ёлка — ярусы друг на друге: чем выше, тем меньше. У высокой ярусов больше — иначе между ними просветы
+      const n = Math.max(3, Math.min(6, Math.round(h / t.r / 0.9)));
+      for (let k = 0; k < n; k++) {
+        const q = at(h * (0.25 + (0.65 * k) / (n - 1))), part = k / (n - 1);
+        star(part < 0.34 ? base : part < 0.99 ? middle : top, q.x, q.y, t.r * (1 - 0.64 * part), turn + k * 0.4);
+      }
     } else {
-      const c = at(h * 0.6);
+      const c = at(h - t.r);
       circle(round, c.x, c.y, t.r);
       circle(shine, c.x - t.r * 0.3, c.y - t.r * 0.3, t.r * 0.45); // блик сверху слева: пластик блестит
     }
@@ -208,30 +215,67 @@ function star(path: Path2D, x: number, y: number, r: number, turn: number): void
   path.closePath();
 }
 
-/** Домик-кубик: белые стены, двускатная графитовая крыша — конёк вдоль дороги, труба */
-function drawHouse(ctx: Ctx, h: House, p: Palette): void {
+/**
+ * Дом по этажам, с окнами. Домик — белые стены, двускатная крыша, конёк вдоль дороги, труба;
+ * многоэтажка — панельные стены и плоская крыша с бортиком и будкой лифта
+ */
+function drawHouse(ctx: Ctx, h: House, p: Palette, fine: boolean): void {
   const at = (u: number, v: number, z: number): Point => { const q = local(h, u, v); return lift(q.x, q.y, z); };
-  const w = h.w / 2, d = h.d / 2;
+  const w = h.w / 2, d = h.d / 2, top = wallsOf(h), roof = roofOf(h), panel = h.style === 'panel';
   const corners = ([[w, -d], [w, d], [-w, d], [-w, -d]] as const).map(([u, v]) => local(h, u, v));
-  ctx.fillStyle = 'rgb(0 0 0 / 0.2)';
-  poly(ctx, corners.map((q) => ({ x: q.x + SHADOW.x, y: q.y + SHADOW.y }))); ctx.fill();
-  prism(ctx, corners, 0, WALL, null, p.house);
+  // тень тем длиннее, чем выше дом: основание и оно же, сдвинутое по свету, со стенками между ними — одной заливкой
+  const k = 0.4 + (top + roof) / 40, shadow = new Path2D();
+  const moved = corners.map((q) => ({ x: q.x + SHADOW.x * k, y: q.y + SHADOW.y * k }));
+  polyTo(shadow, corners); polyTo(shadow, moved);
+  corners.forEach((q, i) => { const n = (i + 1) % 4; polyTo(shadow, [q, corners[n], moved[n], moved[i]]); });
+  ctx.fillStyle = 'rgb(0 0 0 / 0.2)'; ctx.fill(shadow);
+  prism(ctx, corners, 0, top, panel ? p.roof2 : null, panel ? p.panel : p.house);
+  if (fine) windows(ctx, corners, h, p);
+  if (panel) {
+    const rim = 3; // бортик по краю крыши, внутри — крыша чуть темнее
+    const inner = ([[w - rim, -d + rim], [w - rim, d - rim], [-w + rim, d - rim], [-w + rim, -d + rim]] as const).map(([u, v]) => local(h, u, v));
+    cap(ctx, inner, top, p.roof);
+    const box = ([[6, -7], [6, 7], [-6, 7], [-6, -7]] as const).map(([u, v]) => local(h, u - w * 0.3, v));
+    prism(ctx, box, top, top + 10, p.roof2, p.panel); // будка лифта
+    return;
+  }
   // скаты: тот, что смотрит на нас (вниз по экрану), рисуем последним; дальний — к свету, он светлее
   const slope = (v: number, color: string): void => {
-    poly(ctx, [at(-w - 2, v * (d + 2), WALL - 1), at(w + 2, v * (d + 2), WALL - 1), at(w + 2, 0, WALL + ROOF), at(-w - 2, 0, WALL + ROOF)]);
+    poly(ctx, [at(-w - 2, v * (d + 2), top - 1), at(w + 2, v * (d + 2), top - 1), at(w + 2, 0, top + roof), at(-w - 2, 0, top + roof)]);
     ctx.fillStyle = color; ctx.fill();
   };
   const front = Math.cos(h.angle) > 0 ? 1 : -1; // скат со стороны +v смотрит вниз по экрану, если дом не перевёрнут
   slope(-front, p.roof);
   for (const u of [-w, w]) { // фронтоны — треугольники стены под крышей, если смотрят на нас
     if (Math.sin(h.angle) * Math.sign(u) <= 0) continue;
-    poly(ctx, [at(u, -d, WALL), at(u, d, WALL), at(u, 0, WALL + ROOF)]);
+    poly(ctx, [at(u, -d, top), at(u, d, top), at(u, 0, top + roof)]);
     ctx.fillStyle = p.house; ctx.fill();
     ctx.fillStyle = 'rgb(0 0 0 / 0.12)'; ctx.fill();
   }
   slope(front, p.roof2);
   const pipe = ([[3, 3], [3, -3], [-3, -3], [-3, 3]] as const).map(([u, v]) => local(h, w * 0.45 + u, -front * d * 0.4 + v));
-  prism(ctx, pipe, WALL + ROOF * 0.4, WALL + ROOF + 4, p.roof2, p.house); // труба на дальнем скате
+  prism(ctx, pipe, top + roof * 0.4, top + roof + 4, p.roof2, p.house); // труба на дальнем скате
+}
+
+/** Окна на стенах, что смотрят на нас (как в prism): ряд на этаж, все дома — одной заливкой */
+function windows(ctx: Ctx, base: Point[], h: House, p: Palette): void {
+  const glass = new Path2D();
+  let area = 0;
+  for (let i = 0; i < base.length; i++) { const a = base[i], b = base[(i + 1) % base.length]; area += a.x * b.y - b.x * a.y; }
+  const turn = area > 0 ? 1 : -1;
+  for (let i = 0; i < base.length; i++) {
+    const a = base[i], b = base[(i + 1) % base.length];
+    const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+    if ((-(b.x - a.x) / len) * turn <= 0.02) continue; // стенка смотрит от нас
+    const q = (u: number, z: number): Point => lift(a.x + ((b.x - a.x) * u) / len, a.y + ((b.y - a.y) * u) / len, z);
+    for (const [z0, z1] of windowRows(h)) for (const [u0, u1] of windowColumns(len, h)) polyTo(glass, [q(u0, z0), q(u1, z0), q(u1, z1), q(u0, z1)]);
+  }
+  ctx.fillStyle = p.window; ctx.fill(glass);
+}
+
+function polyTo(path: Path2D, pts: Point[]): void {
+  pts.forEach((q, i) => (i ? path.lineTo(q.x, q.y) : path.moveTo(q.x, q.y)));
+  path.closePath();
 }
 
 function poly(ctx: Ctx, pts: Point[]): void {

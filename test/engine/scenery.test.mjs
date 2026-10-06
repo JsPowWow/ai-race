@@ -1,14 +1,14 @@
 // Декор вокруг трассы: из seed, всегда за бордюрами, у знака пусто (ADR 0005).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { sceneryOf, stripScenery, segmentDistance, signSpots, houseRadius, spotsOf, cornersOf, SCENERY_GAP, SIGN_CLEAR } from '../../engine/scenery.ts';
+import { sceneryOf, stripScenery, segmentDistance, signSpots, houseRadius, houseSpots, wallsOf, roofOf, FLOOR, spotsOf, cornersOf, SCENERY_GAP, SIGN_CLEAR } from '../../engine/scenery.ts';
 import { getTrainingTrack, generateTrack, buildTrack, TRAINING_TRACKS } from '../../engine/track.ts';
 import { drawRing } from '../../engine/turtle.ts';
 
 const tracks = [...TRAINING_TRACKS.map((t) => getTrainingTrack(t.id)), generateTrack('витрина'), generateTrack('финал-2026')];
 
-/** Все предметы декора кругами: дерево и куст — крона, домик — круг, в который он влезает, остальное — его круги на земле */
-const items = (s) => [...s.trees, ...s.bushes, ...s.houses.map((h) => ({ x: h.x, y: h.y, r: houseRadius(h) })), ...s.props.flatMap(spotsOf)];
+/** Все предметы декора кругами: дерево и куст — крона, дом и остальное — его круги на земле */
+const items = (s) => [...s.trees, ...s.bushes, ...s.houses.flatMap(houseSpots), ...s.props.flatMap(spotsOf)];
 
 /** Честное расстояние до ближайшей центральной линии — перебором всех отрезков всех дорог */
 function nearestRoad(track, x, y) {
@@ -44,14 +44,51 @@ test('у знака пусто: его видно издалека', () => {
   }
 });
 
-test('домики не налезают на деревья и друг на друга', () => {
+test('дома не налезают на деревья и друг на друга', () => {
   for (const track of tracks) {
     const { trees, houses } = sceneryOf(track);
     for (const [i, h] of houses.entries()) {
-      for (const o of [...houses.slice(i + 1).map((g) => ({ x: g.x, y: g.y, r: houseRadius(g) })), ...trees]) {
-        assert.ok(Math.hypot(o.x - h.x, o.y - h.y) >= houseRadius(h) + o.r * 0.85 - 0.01, `${track.id}: домик в (${h.x | 0}, ${h.y | 0}) налез на соседа`);
+      for (const a of houseSpots(h)) {
+        for (const b of [...houses.slice(i + 1).flatMap(houseSpots), ...trees.map((t) => ({ ...t, r: t.r * 0.85 }))]) {
+          assert.ok(Math.hypot(a.x - b.x, a.y - b.y) >= a.r + b.r - 0.01, `${track.id}: дом в (${h.x | 0}, ${h.y | 0}) налез на соседа`);
+        }
       }
     }
+  }
+});
+
+test('спальные районы: многоэтажки в 4 этажа и выше, домики — в 1–3', () => {
+  for (const track of tracks) {
+    const { houses } = sceneryOf(track);
+    const panels = houses.filter((h) => h.style === 'panel');
+    assert.ok(panels.length >= 2, `${track.id}: многоэтажек ${panels.length}`);
+    for (const h of panels) assert.ok(h.floors >= 4 && h.floors <= 13, `${track.id}: многоэтажка в ${h.floors} этажей`);
+    for (const h of houses.filter((h) => h.style === 'cottage')) assert.ok(h.floors >= 1 && h.floors <= 3, `${track.id}: домик в ${h.floors} этажей`);
+  }
+});
+
+test('в виде сверху высокое не закрывает дорогу: дома и деревья растут, пока за ними нет асфальта', () => {
+  const RISE = Math.cos((55 * Math.PI) / 180) / Math.sin((55 * Math.PI) / 180); // как в engine/tilt.ts
+  for (const track of tracks) {
+    const { houses, trees } = sceneryOf(track);
+    const tall = [
+      ...houses.map((h) => ({ spots: houseSpots(h), h: wallsOf(h) + roofOf(h), what: `дом в ${h.floors} эт.`, low: h.floors === 1 })),
+      ...trees.map((t) => ({ spots: [{ x: t.x, y: t.y, r: t.r * 0.8 }], h: t.h, what: 'дерево', low: t.h <= t.r * 2.2 + 0.01 })),
+    ];
+    for (const o of tall) {
+      if (o.low) continue; // самый низкий рост — такой бывает и у самой обочины
+      for (const q of o.spots) {
+        const gap = nearestRoad(track, q.x, q.y - (o.h - 6) * RISE) - track.width / 2 - 10 - q.r;
+        assert.ok(gap >= -0.01, `${track.id}: ${o.what} в (${q.x | 0}, ${q.y | 0}) закрывает дорогу`);
+      }
+    }
+  }
+});
+
+test('ёлки разного роста', () => {
+  for (const track of tracks) {
+    const firs = sceneryOf(track).trees.filter((t) => t.kind === 'fir').map((t) => t.h / FLOOR);
+    assert.ok(Math.max(...firs) >= 3 * Math.min(...firs), `${track.id}: ёлки почти одного роста`);
   }
 });
 
@@ -59,7 +96,7 @@ test('новые предметы не налезают на соседей: н�
   for (const track of tracks) {
     const s = sceneryOf(track);
     // круги одного предмета (трибуна — цепочка кругов) могут касаться друг друга, чужие — нет
-    const solid = [...s.houses.map((h) => [{ x: h.x, y: h.y, r: houseRadius(h) }]), ...s.props.map(spotsOf)];
+    const solid = [...s.houses.map(houseSpots), ...s.props.map(spotsOf)];
     const soft = [...s.trees, ...s.bushes]; // кроны могут касаться, но не залезать на предмет дальше 15%
     solid.forEach((spots, i) => {
       if (i < s.houses.length) return; // дома с лесом проверяет тест выше

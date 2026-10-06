@@ -3,12 +3,25 @@
 // Расставляется из seed трассы: у всех учеников на одной трассе один и тот же лес.
 import { hashString, mulberry32, type Random } from './utils.ts';
 import type { Track, Point, Road } from './track.ts';
-import { local } from './tilt.ts';
+import { local, RISE } from './tilt.ts';
 
-/** Дерево: ёлка (ярусы конусов), круглое (пышная крона) или низкий куст. r — радиус кроны, px */
-export type Tree = { x: number; y: number; r: number; kind: 'fir' | 'round' | 'bush' };
-/** Домик: w — вдоль дороги, d — вглубь, angle — как дорога рядом (фасадом к ней) */
-export type House = { x: number; y: number; w: number; d: number; angle: number };
+/** Дерево: ёлка (ярусы конусов), круглое (пышная крона) или низкий куст. r — радиус кроны, h — высота до макушки, px */
+export type Tree = { x: number; y: number; r: number; h: number; kind: 'fir' | 'round' | 'bush' };
+/**
+ * Дом: w — вдоль дороги, d — вглубь, angle — как дорога рядом (фасадом к ней), floors — этажей.
+ * cottage — домик со скатной крышей, panel — панельная многоэтажка с плоской крышей, как в спальном районе
+ */
+export type House = { x: number; y: number; w: number; d: number; angle: number; floors: number; style: 'cottage' | 'panel' };
+
+/**
+ * Высота этажа, px. Машина длиной 44 px — это примерно 4,4 м, значит метр — 10 px, а этаж — 2,6 м.
+ * Так дома и ёлки рядом с машиной — в настоящий рост, а не по колено ей
+ */
+export const FLOOR = 26;
+/** Высота стен дома, px */
+export const wallsOf = (h: House): number => h.floors * FLOOR;
+/** На сколько конёк скатной крыши выше стен; у многоэтажки крыша плоская */
+export const roofOf = (h: House): number => (h.style === 'cottage' ? Math.min(h.d * 0.5, 18) : 0);
 /** Точка с номером цвета (0–3): голова зрителя на трибуне, цветок на клумбе */
 export type Dot = { x: number; y: number; c: number };
 /** Машинка на стоянке паддока: angle — куда смотрит нос, c — номер цвета */
@@ -38,6 +51,7 @@ export const SCENERY_GAP = 16;
 /** Вокруг знака пусто: его должно быть видно издалека */
 export const SIGN_CLEAR = 70;
 const MARGIN = 160; // насколько декор выходит за края трассы
+const OUTSKIRTS = 300; // многоэтажки — ещё дальше: окраина видна из машины издалека
 const CELL = 64;
 
 /** Отрезки центральных линий всех дорог, разложенные по ячейкам: чтобы быстро найти ближние */
@@ -112,7 +126,18 @@ function take(taken: Taken, x: number, y: number, r: number): void {
   taken.maxR = Math.max(taken.maxR, r);
 }
 
-/** Радиус круга, в который влезает домик: им и проверяем, что он не налез на дорогу и соседей */
+/** Окна на стене длиной len: столбцы окон [от, до] вдоль стены */
+export function windowColumns(len: number, h: House): [number, number][] {
+  const panel = h.style === 'panel', wide = panel ? 7 : 8, step = panel ? 12 : 16;
+  const n = Math.max(1, Math.floor((len - 6) / step)), pad = (len - n * step) / 2 + (step - wide) / 2;
+  return Array.from({ length: n }, (_, c) => [pad + c * step, pad + c * step + wide]);
+}
+
+/** Ряды окон по высоте: [низ, верх] — ряд на этаж */
+export const windowRows = (h: House): [number, number][] =>
+  Array.from({ length: h.floors }, (_, f) => [f * FLOOR + 9, f * FLOOR + 19]);
+
+/** Радиус круга, в который влезает дом: докуда он простирается */
 export const houseRadius = (h: House): number => Math.hypot(h.w, h.d) / 2;
 
 /** Размеры предметов, px: их знают и расстановка, и рисунок */
@@ -137,6 +162,39 @@ function rectSpots(x: number, y: number, angle: number, w: number, d: number): S
     const t = -long / 2 + step * (i + 0.5);
     return { x: x + ux * t, y: y + uy * t, r };
   });
+}
+
+/** Где дом стоит на земле — кругами: домик — одним, длинная многоэтажка — цепочкой вдоль неё */
+export const houseSpots = (h: House): Spot[] =>
+  h.style === 'cottage' ? [{ x: h.x, y: h.y, r: houseRadius(h) }] : rectSpots(h.x, h.y, h.angle, h.w, h.d);
+
+/**
+ * Какой высоты (не выше want) можно поставить предмет на кругах spots, чтобы в виде сверху он не закрыл дорогу.
+ * Под наклоном высокое «растёт» вверх по экрану (RISE) и заслоняет то, что за ним, — а дорогу должно быть видно всю.
+ * far(x, y) — расстояние от точки до ближайшей дороги, clear — сколько от неё держаться
+ */
+function headroom(far: (x: number, y: number, need: number) => number, clear: number, spots: Spot[], want: number): number {
+  const STEP = 6;
+  for (let z = 0; z <= want; z += STEP) {
+    for (const q of spots) if (far(q.x, q.y - z * RISE, clear + q.r) < clear + q.r) return Math.max(0, z - STEP);
+  }
+  return want;
+}
+
+/**
+ * Рост деревьев и этажи домиков: свой seed — лес и деревни стоят там же, где стояли, только выросли.
+ * Ёлки бывают разные: от молодой в два человеческих роста до высокой, как дом
+ */
+function grow(rand: Random, trees: Tree[], houses: House[], room: (spots: Spot[], want: number) => number): void {
+  for (const t of trees) {
+    const want = t.r * (t.kind === 'fir' ? 3.4 + rand() * 3.4 : 2.4 + rand() * 1.8);
+    t.h = Math.max(t.r * 2.2, room([{ x: t.x, y: t.y, r: t.r * 0.8 }], want));
+  }
+  for (const h of houses) {
+    if (h.style !== 'cottage') continue;
+    const want = h.floors > 1 ? h.floors : rand() < 0.5 ? 1 : 2; // у обочины — больше одноэтажных
+    h.floors = Math.max(1, Math.min(want, Math.floor((room(houseSpots(h), want * FLOOR + roofOf(h)) - roofOf(h)) / FLOOR)));
+  }
 }
 
 /** Где предмет стоит на земле — кругами */
@@ -166,6 +224,7 @@ function place(track: Track): Scenery {
   const rand = mulberry32(hashString(`${track.id}|scenery`));
   // у нового декора свой seed: домики и лес остались там же, где стояли до него
   const rand2 = mulberry32(hashString(`${track.id}|scenery2`));
+  const rand3 = mulberry32(hashString(`${track.id}|scenery3`)); // многоэтажки и рост: прежний декор остался на месте
   const lines = linesOf(track);
   const signs = signSpots(track);
   const taken: Taken = { cells: new Map(), maxR: 0 };
@@ -240,7 +299,7 @@ function place(track: Track): Scenery {
       const w = 34 + rand() * 22, d = 26 + rand() * 10;
       const at = pointOn(ring.center, ring.cum, s % ring.total);
       const off = edge + d / 2 + 8 + rand() * 14;
-      const house = { x: at.x - Math.sin(at.angle) * off * side, y: at.y + Math.cos(at.angle) * off * side, w, d, angle: at.angle };
+      const house = { x: at.x - Math.sin(at.angle) * off * side, y: at.y + Math.cos(at.angle) * off * side, w, d, angle: at.angle, floors: 1, style: 'cottage' as const };
       const r = houseRadius(house);
       if (fits(house.x, house.y, r)) { houses.push(house); take(taken, house.x, house.y, r); }
       s += w + 14 + rand() * 18;
@@ -298,11 +357,55 @@ function place(track: Track): Scenery {
     if (put({ kind: 'bed', x: at.x, y: at.y, r, flowers })) n++;
   }
 
-  // 7. Кусты у обочин — низкие, их ставим до деревьев: под ёлкой куст не видно
+  // 7. Спальные районы: панельные многоэтажки рядами, дворы между ними. Им нужен простор — ставим подальше от дороги:
+  // на окраине и внутри кольца. Этажей — сколько позволяет место: в виде сверху дом не должен закрыть дорогу
+  const room = (spots: Spot[], want: number): number =>
+    headroom((x, y, need) => roadDistance(lines, x, y, need + CELL), track.width / 2 + 10, spots, want);
+  // и ещё деревеньки — подальше от обочины, дома в два-три этажа
+  for (let k = Math.max(2, Math.round(ring.total / 900)); k > 0; k--) {
+    const side = rand3() < 0.5 ? -1 : 1, count = 2 + Math.floor(rand3() * 3);
+    let s = rand3() * ring.total;
+    for (let n = 0; n < count; n++) {
+      const w = 40 + rand3() * 24, d = 30 + rand3() * 12;
+      const at = beside(s, edge + d / 2 + 40 + rand3() * 50, side);
+      const house: House = { x: at.x, y: at.y, w, d, angle: at.angle, floors: 2 + Math.floor(rand3() * 2), style: 'cottage' };
+      const r = houseRadius(house);
+      if (fits(house.x, house.y, r)) { houses.push(house); take(taken, house.x, house.y, r); }
+      s += w + 16 + rand3() * 20;
+    }
+  }
+  const districts = Math.max(1, Math.round(ring.total / 1400));
+  for (let n = 0, tries = 0; n < districts && tries < 120; tries++) {
+    const c = {
+      x: b.minX - OUTSKIRTS + rand3() * (b.maxX - b.minX + 2 * OUTSKIRTS),
+      y: b.minY - OUTSKIRTS + rand3() * (b.maxY - b.minY + 2 * OUTSKIRTS),
+      angle: (rand3() < 0.3 ? Math.PI / 2 : 0) + (rand3() - 0.5) * 0.4, // дома района стоят ровными рядами
+    };
+    if (roadDistance(lines, c.x, c.y, edge + 120 + CELL) < edge + 120) continue;
+    const rows = 2 + Math.floor(rand3() * 2), long = 120 + rand3() * 50, deep = 36;
+    let built = 0;
+    for (let i = 0; i < 2; i++) for (let j = 0; j < rows; j++) {
+      const tower = rand3() < 0.25; // точечная башня вместо длинного дома
+      const w = tower ? 46 : long, d = tower ? 46 : deep;
+      const at = local(c, (i - 0.5) * (long + 40), (j - (rows - 1) / 2) * (deep + 70));
+      const house: House = { x: at.x, y: at.y, w, d, angle: c.angle, floors: 0, style: 'panel' };
+      const spots = houseSpots(house);
+      if (!spots.every((q) => fits(q.x, q.y, q.r))) continue;
+      const want = tower ? 10 + Math.floor(rand3() * 4) : 5 + Math.floor(rand3() * 5);
+      house.floors = Math.min(want, Math.floor(room(spots, want * FLOOR) / FLOOR));
+      if (house.floors < 4) continue; // на четыре этажа места нет — тут не город
+      houses.push(house);
+      for (const q of spots) take(taken, q.x, q.y, q.r);
+      built++;
+    }
+    if (built >= 2) n++;
+  }
+
+  // 8. Кусты у обочин — низкие, их ставим до деревьев: под ёлкой куст не видно
   for (let k = Math.round(ring.total / 55); k > 0; k--) {
     const r = 5 + rand2() * 3.5;
     const at = beside(rand2() * ring.total, edge + r + rand2() * 26, rand2() < 0.5 ? -1 : 1);
-    if (fits(at.x, at.y, r)) { bushes.push({ x: at.x, y: at.y, r, kind: 'bush' }); take(taken, at.x, at.y, r * 0.85); }
+    if (fits(at.x, at.y, r)) { bushes.push({ x: at.x, y: at.y, r, h: r * 1.1, kind: 'bush' }); take(taken, at.x, at.y, r * 0.85); }
   }
 
   /** Зрители на трибуне: ряд на каждой ступени, кое-где пустые места */
@@ -318,7 +421,7 @@ function place(track: Track): Scenery {
     });
   }
 
-  // 8. Рядок деревьев вдоль обочин — с прогалинами, чтобы не было забора
+  // 9. Рядок деревьев вдоль обочин — с прогалинами, чтобы не было забора
   for (const road of track.roads) {
     for (const side of [-1, 1]) {
       let s = rand() * 40;
@@ -336,7 +439,7 @@ function place(track: Track): Scenery {
     }
   }
 
-  // 9. Рощи: кучки деревьев в стороне от дороги и внутри кольца
+  // 10. Рощи: кучки деревьев в стороне от дороги и внутри кольца
   const area = (b.maxX - b.minX + 2 * MARGIN) * (b.maxY - b.minY + 2 * MARGIN);
   const groves = Math.round(area / 50000);
   for (let g = 0; g < groves; g++) {
@@ -352,6 +455,7 @@ function place(track: Track): Scenery {
       addTree(tree);
     }
   }
+  grow(rand3, trees, houses, room);
   return { trees, houses, bushes, props };
 
   function addTree(tree: Tree): void {
@@ -385,7 +489,7 @@ export function cornersOf(road: Road): { apex: number; outer: number }[] {
 function pickTree(rand: Random, firs = 0.55): Tree {
   const kind = rand() < firs ? 'fir' : 'round';
   const r = kind === 'fir' ? 9 + rand() * 7 : 11 + rand() * 9;
-  return { x: 0, y: 0, r, kind };
+  return { x: 0, y: 0, r, h: r * 2.4, kind }; // рост задаст grow()
 }
 
 /** Точка и направление на центральной линии — как pointAt в track.ts, но без кольца по кругу */
@@ -415,7 +519,7 @@ export function stripScenery(period: number, width: number): Scenery {
     // домик-другой у обочины: стенд — тоже место на трассе
     for (let x = rand() * 600; x < period - 120; x += 700 + rand() * 500) {
       const w = 34 + rand() * 22, d = 26 + rand() * 10;
-      const house = { x, y: 0, w, d, angle: 0 };
+      const house: House = { x, y: 0, w, d, angle: 0, floors: 1, style: 'cottage' };
       const r = houseRadius(house);
       house.y = side * (edge + r + rand() * 14);
       if (free(house.x, house.y, r)) { houses.push(house); take(taken, house.x, house.y, r); }
@@ -427,5 +531,7 @@ export function stripScenery(period: number, width: number): Scenery {
       if (rand() < 0.85 && free(tree.x, tree.y, tree.r)) { trees.push(tree); take(taken, tree.x, tree.y, tree.r * 0.85); }
     }
   }
+  const room = (spots: Spot[], want: number): number => headroom((_x, y) => Math.abs(y), width / 2 + 10, spots, want);
+  grow(mulberry32(hashString('стенд|scenery3')), trees, houses, room);
   return { trees, houses, bushes: [], props: [] };
 }

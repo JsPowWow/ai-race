@@ -6,7 +6,7 @@ import { clipNear, project, toCamera, type View, type ScreenPoint } from './cock
 import { getPalette, UI_FONT, type Palette } from './render.ts';
 import type { CarView } from './car-draw.ts';
 import { pointAt, freeSide, signShows, type Track, type Branch, type Point, type RoadPoint, type Island } from './track.ts';
-import { sceneryOf, SIZE, type Tree, type House, type Prop, type Dot } from './scenery.ts';
+import { sceneryOf, wallsOf, roofOf, windowColumns, windowRows, SIZE, type Tree, type House, type Prop, type Dot } from './scenery.ts';
 import { startLights, sceneryMoves } from './scenery-draw.ts';
 import { local } from './tilt.ts';
 import { drawCockpitCar } from './cockpit-car.ts';
@@ -22,8 +22,8 @@ type Flat = { pts: Point[]; x: number; y: number; dark?: boolean };
 type Kerb = { a: Point; b: Point; red: boolean; end: { a: boolean; b: boolean } };
 /** Несколько блоков бордюра подряд: рисуются одним куском — несколько заливок вместо сотни */
 type KerbRun = { blocks: Kerb[]; x: number; y: number; reach: number };
-/** Что рисовать по глубине: f — расстояние вперёд от камеры */
-type Item = { f: number; draw: () => void };
+/** Что рисовать по глубине: f — расстояние вперёд от камеры, haze — во сколько раз тоньше для него туман */
+type Item = { f: number; haze: number; draw: () => void };
 
 /** Машина в виде из машины: какая, каким цветом, прозрачность и подпись над ней («мозг», «ты») */
 export type CockpitCar = { car: CarView; color: string; alpha?: number; label?: string | null };
@@ -33,7 +33,6 @@ export type CockpitScene = { me: CockpitCar; ghost?: CockpitCar | null; traffic?
 const KERB = { h: 6, w: 7, dash: 16 }; // бордюр: высота, ширина, длина блока — как в виде сверху
 const SECTION = 150, DASH = 20, GAP = 28, LINE = 2.6, EDGE_INSET = 12; // секции, пунктир и сплошная — как в render.ts
 const CAR_H = { floor: 2, body: 10, roof: 17 };
-const WALL = 13, ROOF = 9; // домик: стены и конёк
 const LIGHT = { x: -0.55, y: -0.83 }; // свет сверху слева, как у теней трассы
 
 // ── плоское: считается один раз на трассу ──
@@ -137,9 +136,9 @@ function runOf(blocks: Kerb[]): KerbRun {
 // ── рисование ──
 
 /** Что видно: перед камерой, ближе тумана, не дальше сбоку, чем позволяет обзор. pad — запас на размер предмета */
-function visible(v: View, x: number, y: number, pad: number): number | null {
+function visible(v: View, x: number, y: number, pad: number, haze = 1): number | null {
   const c = toCamera(v, x, y, 0);
-  if (c.f < -pad || c.f > v.range + pad || Math.abs(c.s) > c.f * 1.05 + pad + 20) return null;
+  if (c.f < -pad || c.f > v.range * haze + pad || Math.abs(c.s) > c.f * 1.05 + pad + 20) return null;
   return c.f;
 }
 
@@ -255,14 +254,19 @@ export function drawCockpit(ctx: Ctx, track: Track, v: View, scene: CockpitScene
 
   // всё, у чего есть высота, — по глубине
   const items: Item[] = [];
-  const add = (x: number, y: number, pad: number, draw: () => void): void => {
-    const f = visible(v, x, y, pad);
-    if (f !== null) items.push({ f, draw });
+  const add = (x: number, y: number, pad: number, draw: () => void, haze = 1): void => {
+    const f = visible(v, x, y, pad, haze);
+    if (f !== null) items.push({ f, haze, draw });
   };
   for (const run of g.kerbs) add(run.x, run.y, run.reach, () => kerbs(ctx, v, run, p));
   for (const t of trees) add(t.x, t.y, t.r * 2, () => tree(ctx, v, t, p));
   for (const t of bushes) add(t.x, t.y, t.r, () => tree(ctx, v, t, p));
-  for (const h of houses) add(h.x, h.y, Math.max(h.w, h.d), () => house(ctx, v, h, p));
+  // многоэтажки видно из-за тумана: окраина на горизонте. По глубине дом стоит ближней к камере точкой —
+  // иначе длинный дом, чья середина дальше дерева у его края, нарисовался бы поверх этого дерева
+  for (const h of houses) {
+    const tall = h.style === 'panel' ? 1.8 : 1, at = nearestOf(v, h);
+    add(at.x, at.y, Math.max(h.w, h.d), () => house(ctx, v, h, p), tall);
+  }
   for (const o of props) if (o.kind !== 'pond' && o.kind !== 'bed') add(o.x, o.y, propSize(o), () => drawProp(ctx, v, o, p, tick));
   track.islands.forEach((island, i) => {
     cones(track, island, freeSide(track, i, tick), (x, y) => add(x, y, 6, () => cone(ctx, v, x, y, p)));
@@ -274,7 +278,7 @@ export function drawCockpit(ctx: Ctx, track: Track, v: View, scene: CockpitScene
   if (ghost) add(ghost.car.x, ghost.car.y, 30, () => carShape(ctx, v, ghost, p, dpr));
   items.sort((a, b) => b.f - a.f);
   for (const item of items) {
-    ctx.globalAlpha = fade(v, item.f);
+    ctx.globalAlpha = fade(v, item.f / item.haze);
     item.draw();
   }
   ctx.globalAlpha = 1;
@@ -389,40 +393,98 @@ function sign(ctx: Ctx, v: View, x: number, y: number, dir: number, p: Palette):
   ctx.restore();
 }
 
-/** Дерево — картонка лицом к камере: ёлка ярусами, круглое — шаром на стволе, куст — низкой копной */
+/**
+ * Дерево — картонка лицом к камере, как у Раду: стопка неровных ярусов-«облачков», внизу темнее, к макушке светлее.
+ * Ёлка сужается к верху, круглое — шар кроны на стволе, куст — низкая копна. Зубцы у каждого дерева свои — от его места
+ */
 function tree(ctx: Ctx, v: View, t: Tree, p: Palette): void {
   const b = billboard(v, t.x, t.y, 0);
   if (!b) return;
-  const k = b.k, r = t.r * k;
+  const k = b.k, r = t.r * k, h = t.h * k, seed = t.x * 7.13 + t.y * 3.71;
   if (t.kind === 'bush') {
-    ctx.beginPath(); ctx.ellipse(b.x, b.y - r * 0.55, r, r * 0.7, 0, Math.PI, 0); ctx.lineTo(b.x + r, b.y); ctx.lineTo(b.x - r, b.y); ctx.closePath();
-    ctx.fillStyle = p.bush; ctx.fill();
+    const bush = new Path2D();
+    blob(bush, b.x - r * 0.4, b.y - r * 0.45, r * 0.6, r * 0.5, seed);
+    blob(bush, b.x + r * 0.4, b.y - r * 0.45, r * 0.6, r * 0.5, seed + 1);
+    blob(bush, b.x, b.y - r * 0.75, r * 0.65, r * 0.55, seed + 2);
+    ctx.fillStyle = p.bush; ctx.fill(bush);
     return;
   }
-  ctx.fillStyle = p.roof2;
-  if (t.kind === 'fir') {
-    ctx.fillRect(b.x - r * 0.12, b.y - r * 0.6, r * 0.24, r * 0.6);
-    ctx.beginPath(); // два нижних яруса одного цвета — одной заливкой, верхний светлее
-    for (let i = 0; i < 3; i++) {
-      const y0 = b.y - r * (0.45 + i * 0.7), w = r * (1 - i * 0.22);
-      if (i === 2) { ctx.fillStyle = p.tree; ctx.fill(); ctx.beginPath(); }
-      ctx.moveTo(b.x - w, y0); ctx.lineTo(b.x + w, y0); ctx.lineTo(b.x, y0 - r * 1.15); ctx.closePath();
+  const fir = t.kind === 'fir';
+  ctx.fillStyle = p.roof2; // ствол
+  const crown = fir ? r * 0.4 : h - r * 1.6; // где начинается крона
+  ctx.fillRect(b.x - r * 0.12, b.y - crown - r * 0.3, r * 0.24, crown + r * 0.3);
+  // ярусы снизу вверх, внахлёст: три цвета — три заливки на дерево, сколько бы ярусов ни было
+  const n = fir ? Math.max(4, Math.min(7, Math.round(t.h / t.r / 0.8))) : 4;
+  const shades = [new Path2D(), new Path2D(), new Path2D()];
+  const span = h - crown - r * (fir ? 0 : 0.8), step = span / (fir ? n + 0.6 : n - 1);
+  for (let i = 0; i < n; i++) {
+    const q = i / (n - 1), into = shades[Math.min(2, Math.floor(q * 3))];
+    if (fir) { // ярус ёлки — лапы: зубчатый низ и острый верх
+      const y = b.y - crown - step * i, w = r * (1.15 - 0.75 * q);
+      skirt(into, b.x, y, w, step * 1.9, seed + i);
+    } else {
+      const w = r * (0.75 + 0.35 * Math.sin(Math.PI * (0.25 + 0.6 * q)));
+      blob(into, b.x + Math.sin(seed + i * 2.1) * r * 0.1, b.y - crown - step * i, w, w * 0.8, seed + i);
     }
-    ctx.fillStyle = p.tree2; ctx.fill();
-    return;
   }
-  ctx.fillRect(b.x - r * 0.14, b.y - r * 1.1, r * 0.28, r * 1.1);
-  ctx.beginPath(); ctx.arc(b.x, b.y - r * 1.75, r, 0, Math.PI * 2); ctx.fillStyle = p.tree2; ctx.fill();
-  ctx.beginPath(); ctx.arc(b.x - r * 0.35, b.y - r * 2.1, r * 0.35, 0, Math.PI * 2); ctx.fillStyle = 'rgb(255 255 255 / 0.12)'; ctx.fill();
+  const base = fir ? p.tree : p.tree2;
+  ctx.fillStyle = tint(base, 0.18) ?? base; ctx.fill(shades[0]);
+  ctx.fillStyle = base; ctx.fill(shades[1]);
+  ctx.fillStyle = tint(base, 0, 0.14) ?? base; ctx.fill(shades[2]);
 }
 
-/** Домик: белые стены и двускатная крыша, конёк — вдоль дороги */
+/** Ярус ёлки: низ — зубцами (кончики лап), от его краёв — к верхушке на высоте tall. Зубцы — от seed */
+function skirt(path: Path2D, x: number, y: number, w: number, tall: number, seed: number): void {
+  const N = 5;
+  path.moveTo(x - w, y);
+  for (let i = 0; i < N; i++) { // от лапы к лапе: между кончиками ветки чуть приподняты
+    const u = x - w + ((i + 0.5) / N) * 2 * w, lift = tall * (0.1 + 0.06 * Math.abs(Math.sin(seed * 9.7 + i * 4.3)));
+    path.lineTo(u, y - lift); path.lineTo(x - w + ((i + 1) / N) * 2 * w, y);
+  }
+  path.lineTo(x, y - tall);
+  path.closePath();
+}
+
+/** Неровный круг: середина (x, y), полуоси rx, ry, зубцы — от seed. Без Math.random: в каждом кадре та же форма */
+function blob(path: Path2D, x: number, y: number, rx: number, ry: number, seed: number): void {
+  const N = 8;
+  for (let i = 0; i <= N; i++) {
+    const a = (i / N) * Math.PI * 2, jag = 0.84 + 0.16 * Math.abs(Math.sin(seed * 12.99 + (i % N) * 78.23));
+    const px = x + Math.cos(a) * rx * jag, py = y + Math.sin(a) * ry * jag;
+    if (i) path.lineTo(px, py); else path.moveTo(px, py);
+  }
+  path.closePath();
+}
+
+/** Ближняя к камере точка дома на земле: по ней дом встаёт в очередь по глубине */
+function nearestOf(v: View, h: House): Point {
+  const c = Math.cos(h.angle), s = Math.sin(h.angle), dx = v.x - h.x, dy = v.y - h.y;
+  const u = Math.max(-h.w / 2, Math.min(h.w / 2, dx * c + dy * s)), w = Math.max(-h.d / 2, Math.min(h.d / 2, -dx * s + dy * c));
+  return local(h, u, w);
+}
+
+/**
+ * Дом по этажам. Стены, что смотрят на камеру, и на них окна. Сотня окошек — сотня крошечных фигур, а каждая
+ * стоит холсту времени. Поэтому стекло — полосой на этаж, а поверх неё — простенки между окнами столбиками во всю
+ * высоту: фигур «этажи + столбцы» вместо «этажи × столбцы», а выглядит так же. Окна мельче 3 px не различить —
+ * тогда только полосы, а ещё дальше — без окон (как у Раду: дальнее рисуем проще)
+ */
 function house(ctx: Ctx, v: View, h: House, p: Palette): void {
-  const w = h.w / 2, d = h.d / 2;
-  block(ctx, v, rect(h, -w, w, -d, d), 0, WALL, p.house, null);
+  const w = h.w / 2, d = h.d / 2, top = wallsOf(h), roof = roofOf(h), panel = h.style === 'panel';
+  const wall = panel ? p.panel : p.house;
+  const near = toCamera(v, h.x, h.y, 0).f, px = v.focal / Math.max(near, v.near); // пикселей экрана на 1 px трассы у дома
+  const detail = px * 7 >= 4 ? 'windows' : px * 10 >= 4 && near < v.range * 0.8 ? 'strips' : null;
+  walls(v, rect(h, -w, w, -d, d), 0, top, () => true, (pts, shade) => {
+    face(ctx, v, pts, wall, shade);
+    if (detail) windowsOn(ctx, v, pts, h, detail === 'windows' ? tint(wall, shade) ?? wall : null, p.window);
+  });
+  if (panel) {
+    walls(v, rect(h, -w, w, -d, d), top - 4, top, () => true, (pts, shade) => face(ctx, v, pts, p.roof2, shade)); // бортик крыши
+    return;
+  }
   // скаты и торцы — по удалённости от камеры: дальний первым
-  const ridgeA = { ...local(h, -w, 0), z: WALL + ROOF }, ridgeB = { ...local(h, w, 0), z: WALL + ROOF };
-  const corner = (u: number, s: number): P3 => ({ ...local(h, u, s), z: WALL });
+  const ridgeA = { ...local(h, -w, 0), z: top + roof }, ridgeB = { ...local(h, w, 0), z: top + roof };
+  const corner = (u: number, s: number): P3 => ({ ...local(h, u, s), z: top });
   const parts: { at: Point; pts: P3[]; color: string }[] = [
     { at: local(h, 0, -d), pts: [corner(-w, -d), corner(w, -d), ridgeB, ridgeA], color: p.roof },
     { at: local(h, 0, d), pts: [corner(-w, d), corner(w, d), ridgeB, ridgeA], color: p.roof2 },
@@ -432,6 +494,25 @@ function house(ctx: Ctx, v: View, h: House, p: Palette): void {
   const depth = (q: Point): number => toCamera(v, q.x, q.y, 0).f;
   parts.sort((a, b) => depth(b.at) - depth(a.at));
   for (const part of parts) face(ctx, v, part.pts, part.color, part.color === p.house ? 0.08 : 0);
+}
+
+/** Окна на стене pts (углы: низ a, низ b, верх b, верх a): полосы стекла по этажам, а поверх — простенки цвета wall */
+function windowsOn(ctx: Ctx, v: View, pts: P3[], h: House, wall: string | null, glassColor: string): void {
+  const [a, b] = pts, len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+  const q = (u: number, z: number): P3 => ({ x: a.x + ((b.x - a.x) * u) / len, y: a.y + ((b.y - a.y) * u) / len, z });
+  const quad = (path: Path2D, u0: number, u1: number, z0: number, z1: number): void => {
+    const s = clipNear(v, [q(u0, z0), q(u1, z0), q(u1, z1), q(u0, z1)]);
+    if (s.length >= 3) addPoly(path, s);
+  };
+  const cols = windowColumns(len, h), rows = windowRows(h);
+  const from = cols[0][0], to = cols[cols.length - 1][1], low = rows[0][0], high = rows[rows.length - 1][1];
+  const glass = new Path2D();
+  for (const [z0, z1] of rows) quad(glass, from, to, z0, z1);
+  ctx.fillStyle = glassColor; ctx.fill(glass);
+  if (!wall) return;
+  const piers = new Path2D();
+  for (let i = 1; i < cols.length; i++) quad(piers, cols[i - 1][1], cols[i][0], low, high);
+  ctx.fillStyle = wall; ctx.fill(piers);
 }
 
 const propSize = (o: Prop): number => ('w' in o ? Math.max(o.w, o.d) : o.kind === 'windmill' ? SIZE.windmill * 2 : 40);
