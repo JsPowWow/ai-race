@@ -28,6 +28,8 @@ import { makeGhost, stepGhost, paintGhost, ghostGap, type Ghost } from './teach-
 import { controlNames } from '../variants.ts';
 import { ViewSwitch, SoundSwitch, cockpitOn, soundOn } from './teach-view.tsx';
 import { hearFrame } from '../engine-sound.ts';
+import { aimStick } from '../joystick.ts';
+import { TILT } from '../../engine/tilt.ts';
 
 /** После финиша или аварии машина постоит столько (мс) — видно, чем кончилось, — и поедет заново */
 const RESTART_DELAY = 1100;
@@ -110,12 +112,14 @@ function drive(): void {
       ghost: ghost && { car: ghost.car, color: ghost.color(), alpha: 0.4, label: ghost.label },
     });
     setStageLabel('Трасса, вид из машины');
+    aimStick(null); // из машины «вперёд» — всегда вверх по экрану
     hearFrame(soundOn() ? {
       me: { x: car.x, y: car.y, angle: car.angle, speed: car.speed, gas: Math.min(1, car.controls.gas), done: car.done },
       others: [...(traffic ?? []), ...(ghost ? [{ x: ghost.car.x, y: ghost.car.y, speed: ghost.car.speed, loud: 0.6 }] : [])],
     } : null);
   } else {
     hearFrame(null);
+    aimStick(Math.atan2(Math.sin(car.angle) * TILT, Math.cos(car.angle))); // сверху: куда машина смотрит на экране (пол сжат по высоте)
     drawScene(track, { camera: 'follow', follow: car, traffic, tick: car.ticks });
     paintGhost(ghost);
     paintCar(car, { color, sensors: true, number: 1 });

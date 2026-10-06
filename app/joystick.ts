@@ -1,5 +1,9 @@
-// Джойстик на сенсорном экране (#25): один большой палец рулит всем — вверх газ, вниз тормоз, вбок руль,
-// по диагонали — газ с поворотом. Стик появляется там, куда поставил палец, и возвращается в середину, когда отпустил.
+// Джойстик на сенсорном экране (#25): один большой палец рулит всем. Стик появляется там, куда поставил палец,
+// и возвращается в середину, когда отпустил. Два режима — по тому, откуда смотришь:
+//  • из машины «вверх» на экране — это вперёд: вверх газ, вниз тормоз, вбок руль, по диагонали — газ с поворотом;
+//  • сверху машина едет по экрану куда угодно — поэтому стик ведёт её туда, куда показывает палец:
+//    газ и руль в сторону пальца, пока машина не повернёт к нему; палец назад — тормоз. Засечка газа
+//    поворачивается вместе с машиной — видно, где у неё «вперёд».
 // Он не рулит машиной сам: наклон превращается в те же стрелки, что на клавиатуре, — их ловит handleKey() студента.
 // Виден только при пальце вместо мыши (pointer: coarse), иначе — кнопки пульта (стили — app/styles/teach.css).
 import { listen } from '@reely/dommy-kit';
@@ -13,8 +17,14 @@ type Key = typeof KEYS[number];
 /** Засечка на основании, которая горит при этой стрелке */
 const MARK: Record<Key, string> = { ArrowUp: 'is-gas', ArrowDown: 'is-brake', ArrowLeft: 'is-left', ArrowRight: 'is-right' };
 
+/** Палец почти по ходу машины (рад) — руль прямо: иначе машина виляла бы туда-сюда вокруг пальца */
+const AIMED = (12 * Math.PI) / 180;
+/** Палец дальше этого от хода машины (рад) — это «назад»: тормоз */
+const BACK = (115 * Math.PI) / 180;
+
 /** Какие стрелки «нажаты» при наклоне (dx, dy) от центра стика радиусом r (y экрана — вниз) */
 function stickKeys(dx: number, dy: number, r: number): Set<Key> {
+  if (heading !== null) return aimKeys(dx, dy, r, heading);
   const on = new Set<Key>();
   if (dy < -DEAD * r) on.add('ArrowUp');
   if (dy > DEAD * r) on.add('ArrowDown');
@@ -23,11 +33,40 @@ function stickKeys(dx: number, dy: number, r: number): Set<Key> {
   return on;
 }
 
+/** Вид сверху: куда показывает палец — туда и едем. ahead — куда смотрит машина на экране (рад, y вниз) */
+function aimKeys(dx: number, dy: number, r: number, ahead: number): Set<Key> {
+  const on = new Set<Key>();
+  if (Math.hypot(dx, dy) < DEAD * r) return on;
+  const off = Math.atan2(Math.sin(Math.atan2(dy, dx) - ahead), Math.cos(Math.atan2(dy, dx) - ahead)); // −π…π, + — правее
+  if (Math.abs(off) > BACK) { on.add('ArrowDown'); return on; }
+  on.add('ArrowUp');
+  if (off < -AIMED) on.add('ArrowLeft');
+  if (off > AIMED) on.add('ArrowRight');
+  return on;
+}
+
 const zone = element('#stick');
 const base = element('#stickBase');
 const knob = element('#stickKnob');
 let finger: number | null = null; // какой палец держит стик: второй палец не перехватывает
 let held = new Set<Key>();
+let heading: number | null = null; // куда смотрит машина на экране; null — вид из машины, там «вперёд» всегда вверх
+let tilt = { dx: 0, dy: 0, r: 1 }; // где ручка: машина поворачивает и под неподвижным пальцем
+const marks = base.querySelector('svg');
+const hints = [...zone.querySelectorAll('.stick-hint')];
+const HINTS = { axes: ['← руль →', '↑ газ · ↓ тормоз'], aim: ['Веди пальцем', 'туда, куда ехать'] };
+
+/**
+ * Каждый кадр: куда смотрит машина на экране (рад, y вниз) — или null в виде из машины.
+ * Сверху машина поворачивает к пальцу, даже если палец стоит, — поэтому пересчитываем нажатое и здесь.
+ */
+export function aimStick(ahead: number | null): void {
+  const modeChanged = (heading === null) !== (ahead === null);
+  heading = ahead;
+  if (marks) marks.style.rotate = ahead === null ? '' : `${(ahead + Math.PI / 2).toFixed(3)}rad`;
+  if (modeChanged) hints.forEach((h, i) => (h.textContent = HINTS[ahead === null ? 'axes' : 'aim'][i]));
+  if (finger !== null) hold(stickKeys(tilt.dx, tilt.dy, tilt.r));
+}
 
 /** Отжать то, что отпустили, и нажать новое — в handleKey() только перемены, как у клавиатуры */
 function hold(next: Set<Key>): void {
@@ -51,6 +90,7 @@ function moveKnob(x: number, y: number): void {
   const d = Math.hypot(dx, dy), reach = r * 0.62; // дальше края основания ручка не уходит
   if (d > reach) { dx *= reach / d; dy *= reach / d; }
   knob.style.transform = `translate(${dx}px, ${dy}px)`;
+  tilt = { dx, dy, r: reach };
   hold(stickKeys(dx, dy, reach));
 }
 

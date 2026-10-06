@@ -92,7 +92,7 @@ for (const screen of SCREENS) {
   });
 }
 
-test('телефон: вместо кнопок — джойстик; вверх — газ, машина едет, отпустил — всё отжато', async () => {
+test('телефон: вместо кнопок — джойстик; сверху палец по ходу машины — газ, машина едет, отпустил — всё отжато', async () => {
   const { page, problems, close } = await openPage(SCREENS[1]);
   await page.goto(`${base}#teach`);
   await page.waitForFunction(() => document.body.dataset.tab === 'teach');
@@ -101,8 +101,10 @@ test('телефон: вместо кнопок — джойстик; вверх
   const x = box.x + box.width * 0.3, y = box.y + box.height / 2;
   await page.mouse.move(x, y);
   await page.mouse.down();
-  await page.mouse.move(x, y - 40, { steps: 4 }); // палец вверх — газ
-  assert.match(await page.getAttribute('#stickBase', 'class'), /is-gas/);
+  // сверху стик ведёт машину туда, куда показывает палец; засечка газа повёрнута по ходу машины
+  const ahead = await page.evaluate(() => (parseFloat(getComputedStyle(document.querySelector('#stickBase svg')).rotate) || 0) * Math.PI / 180 - Math.PI / 2);
+  await page.mouse.move(x + Math.cos(ahead) * 40, y + Math.sin(ahead) * 40, { steps: 4 });
+  assert.equal(await page.getAttribute('#stickBase', 'class'), 'stick-base is-gas', 'по ходу — только газ, руль прямо');
   await page.waitForFunction(() => /скорость [1-9]/.test(document.querySelector('#hud').textContent), null, { timeout: 3000 });
   await page.mouse.up();
   assert.equal(await page.getAttribute('#stickBase', 'class'), 'stick-base');

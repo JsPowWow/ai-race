@@ -10,7 +10,6 @@ import { renderLesson } from './lesson.tsx';
 import { beginFrame, showBanner, hideBanner } from './stage.ts';
 import { stopCountdown } from './countdown.ts';
 import { steerWith } from './manual-drive.ts';
-import './joystick.ts'; // джойстик на сенсорном экране — сам слушает касания
 import { onStorageFull, load, save, remove } from './storage.ts';
 import { startGarage } from './garage.ts';
 import { $$, secs, pct } from './ui.ts';
