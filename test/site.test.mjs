@@ -198,6 +198,33 @@ test('«Учится само»: рой идёт, панель и кнопки �
   assert.deepEqual(problems, []);
 });
 
+test('«Учится само»: машина времени — лучшие разных поколений едут вместе и помнятся после перезагрузки', async () => {
+  const { page, problems, close } = await openPage(SCREENS[0]);
+  await page.goto(`${base}#train`);
+  await page.waitForFunction(() => document.body.dataset.tab === 'train');
+  assert.ok(await page.isVisible('#tMomentsEmpty'), 'пока роя не было, снимков нет');
+  assert.ok(await page.isDisabled('#tTimeMachine'));
+  await page.click('.toolbar[data-for="train"] button:has-text("Турбо")');
+  await page.click('#tToggle');
+  // поколение 1 — веха, и лучший роя «сейчас» — второй снимок
+  await page.waitForFunction(() => document.querySelectorAll('#timeMachine .moments li').length >= 2, null, { timeout: 30000 });
+  await page.click('#tToggle');
+  assert.equal(await page.textContent('#timeMachine .moments li:first-child'), '1');
+  await page.click('#tTimeMachine');
+  assert.equal(await page.textContent('#tTimeMachine'), 'Вернуться к рою');
+  await page.waitForFunction(() => /Машина времени/.test(document.querySelector('#trainFlaps').textContent), null, { timeout: 5000 });
+  await page.waitForFunction(() => /машина времени/.test(document.querySelector('#hud').textContent), null, { timeout: 5000 });
+  await page.click('#tTimeMachine');
+  assert.equal(await page.textContent('#tTimeMachine'), 'Показать заезд');
+  // снимки живут в машине гаража: после перезагрузки поколение 1 на месте
+  await page.waitForTimeout(1500); // гараж пишет машину не сразу
+  await page.reload();
+  await page.waitForFunction(() => document.body.dataset.tab === 'train');
+  await page.waitForFunction(() => document.querySelector('#timeMachine .moments li')?.textContent === '1', null, { timeout: 10000 });
+  await close();
+  assert.deepEqual(problems, []);
+});
+
 test('финал не грузится, пока его не открыли', async () => {
   const { page, close } = await openPage(SCREENS[0]);
   const loaded = [];

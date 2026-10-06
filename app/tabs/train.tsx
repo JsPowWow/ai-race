@@ -13,7 +13,8 @@ import { currentSwarm, currentTrack, pickedCars, togglePick, results, trackForGe
 import { TrainToolbar, SwarmNow } from './train-controls.tsx';
 import { TrainPanel, drawSwarmChart } from './train-panel.tsx';
 import { showLeaderBrain } from './train-leader.ts';
-import { updateTrainFlaps } from './train-flaps.tsx';
+import { updateTrainFlaps, updateReplayFlaps } from './train-flaps.tsx';
+import { currentReplay, stepReplay, type Replay, type Rider } from './train-timeline.ts';
 import { rivalInfo } from './train-rivals.tsx';
 import { listen } from '@reely/dommy-kit';
 import { Tries } from '../components/tries.tsx';
@@ -61,12 +62,42 @@ function drawIdle(): void {
   updateTrainFlaps(null, null, results().generation);
 }
 
+/** Тиков за кадр в «Машине времени»: скорость — та же кнопка, что у роя (турбо — как ×16) */
+const replaySpeed = (): number => (train().speed === 'turbo' ? 16 : +train().speed);
+
+const riderLabel = ({ gen, now }: Rider): string => (now ? `сейчас ${gen}` : `пок. ${gen}`);
+
+/** «Машина времени»: лучшие разных поколений едут вместе; старые — бледнее */
+function drawReplay(replay: Replay): void {
+  const driving = stepReplay(replaySpeed());
+  const { track, riders, tick, traffic } = replay;
+  const lead = leaderOf(riders.map((r) => r.car));
+  drawScene(track, { camera: train().camera, follow: lead, traffic: traffic ?? trafficOn(track, 0), tick });
+  const color = state.profile.color;
+  riders.forEach((rider, i) => {
+    const fresh = riders.length > 1 ? i / (riders.length - 1) : 1; // 0 — самое старое поколение, 1 — самое новое
+    if (rider.car !== lead) paintCar(rider.car, { color, alpha: (rider.car.done ? 0.5 : 1) * (0.35 + 0.65 * fresh), label: riderLabel(rider) });
+  });
+  const leader = riders.find((r) => r.car === lead);
+  if (leader) paintCar(leader.car, { color, sensors: true, label: riderLabel(leader) }); // лидер — поверх всех, с сенсорами
+  showLeaderBrain(lead, driving);
+  updateReplayFlaps(replay);
+  setHud([
+    '<b>машина времени</b>',
+    `время <b>${secs(tick)}</b>`,
+    driving ? `едут <b>${riders.filter((r) => !r.car.done).length}</b>/${riders.length}` : 'заезд окончен — итог на табло',
+    `<b>${esc(track.name)}</b>`,
+  ]);
+}
+
 export const trainTab = {
   enter(): void {
     drawSwarmChart(true); // пока вкладка была скрыта, холст графика мог поменять размер
   },
   frame(): void {
     drawSwarmChart();
+    const replay = currentReplay();
+    if (replay) return drawReplay(replay);
     const evo = currentSwarm(), track = currentTrack();
     if (!evo || !track) return drawIdle();
     const color = state.profile.color;

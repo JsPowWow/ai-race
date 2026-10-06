@@ -10,6 +10,7 @@ import { state } from '../state.ts';
 import { element } from '../dom.ts';
 import { rivalInfo } from './train-rivals.tsx';
 import { isYours } from './train-swarm.ts';
+import type { Replay } from './train-timeline.ts';
 
 type Key = 'place' | 'name' | 'lap' | 'result';
 const COLUMNS: readonly FlapColumn<Key>[] = [
@@ -43,6 +44,21 @@ const ahead = (a: Car, b: Car) => {
   return fa ? (a.finishTick ?? 0) - (b.finishTick ?? 0) : b.bestS - a.bestS;
 };
 
+/** Перещёлкнуть табло: кто едет — по местам */
+function show(heading: string, track: Track, shown: Shown[]): void {
+  shown.sort((a, b) => ahead(a.car, b.car));
+  title.value = heading;
+  rows.value = shown.map(({ id, car, name, color, avatar, you }, i) => ({
+    id, color, avatar, you, rank: i + 1,
+    cells: {
+      place: String(i + 1),
+      name,
+      lap: car.status === 'finished' ? 'ФИН' : `${lapOf(track, car.bestS)}/${track.laps}`,
+      result: resultOf(car, track),
+    },
+  }));
+}
+
 let frames = 0;
 /** Зовёт кадр вкладки: lead — лидер роя сейчас */
 export function updateTrainFlaps(evo: Evolution | null, lead: Car | null, generation: number): void {
@@ -52,7 +68,6 @@ export function updateTrainFlaps(evo: Evolution | null, lead: Car | null, genera
     title.value = 'Рой';
     return;
   }
-  const { track } = evo;
   const me = state.profile;
   const shown: Shown[] = [];
   if (lead) shown.push({ id: 'lead', car: lead, name: 'Лучший роя', color: me.color });
@@ -65,17 +80,14 @@ export function updateTrainFlaps(evo: Evolution | null, lead: Car | null, genera
     const info = rival && rivalInfo(rival);
     shown.push({ id: `rival-${info?.id ?? i}`, car, name: info?.name ?? 'Соперник', color: info?.color ?? me.color, avatar: info?.avatar });
   });
-  shown.sort((a, b) => ahead(a.car, b.car));
-  title.value = `Поколение ${generation + 1}`;
-  rows.value = shown.map(({ id, car, name, color, avatar, you }, i) => ({
-    id, color, avatar, you, rank: i + 1,
-    cells: {
-      place: String(i + 1),
-      name,
-      lap: car.status === 'finished' ? 'ФИН' : `${lapOf(track, car.bestS)}/${track.laps}`,
-      result: resultOf(car, track),
-    },
-  }));
+  show(`Поколение ${generation + 1}`, evo.track, shown);
+}
+
+/** «Машина времени»: на табло — поколения, кто как едет */
+export function updateReplayFlaps(replay: Replay): void {
+  if (frames++ % EVERY_FRAMES) return;
+  const { color } = state.profile;
+  show('Машина времени', replay.track, replay.riders.map(({ gen, now, car }) => ({ id: `gen-${gen}`, car, name: `${now ? 'Сейчас' : 'Пок.'} ${gen}`, color })));
 }
 
 /** Где ты среди соперников — для читалки экрана */

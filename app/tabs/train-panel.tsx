@@ -8,10 +8,12 @@ import { showBanner } from '../stage.ts';
 import { secs, pct } from '../ui.ts';
 import { BrainLibrary } from '../components/brain-library.tsx';
 import { train, setTrain } from './train-settings.ts';
-import { results, pickedCars, clearPicked, errorText } from './train-swarm.ts';
+import { results, pickedCars, clearPicked, errorText, currentSwarm, trackForGeneration } from './train-swarm.ts';
+import { MILESTONES, moments, startReplay, stopReplay, currentReplay, type Latest } from './train-timeline.ts';
 import type { HallEntry, HistoryEntry } from '../state.ts';
 import { Recipe } from './train-recipe.tsx';
 import { Rivals } from './train-rivals.tsx';
+import { element } from '../dom.ts';
 
 // ── поколение ──
 
@@ -93,6 +95,44 @@ function Learning(): Node {
   );
 }
 
+// ── машина времени ──
+
+function TimeMachine(): Node {
+  // results() — чтобы перечитать снимки в конце поколения; лучший роя сейчас — у самого роя
+  const latest = (): Latest => {
+    void results();
+    const evo = currentSwarm();
+    return evo?.parent ? { gen: evo.generation, brain: evo.parent } : null;
+  };
+  const list = () => moments(results().timeline, latest());
+  const toggle = () => {
+    if (currentReplay()) return stopReplay();
+    startReplay(trackForGeneration(0), latest());
+    element('.stage').scrollIntoView({ block: 'start' }); // панель длинная: заезд — на трассе, её надо видеть
+  };
+  return (
+    <section className="block" id="timeMachine">
+      <h2>Машина времени</h2>
+      <p className="hint">
+        Лучшие роя из разных поколений едут вместе по трассе урока — видно, как рой учился.
+        Рой запоминает поколения {MILESTONES.slice(0, 4).join(', ')}, {MILESTONES[4]}…
+      </p>
+      <Show when={() => list().length > 0} fallback={() => <p className="hint" id="tMomentsEmpty">Нажми «Старт»: первое поколение роя запомнится само.</p>}>
+        {() => (
+          <ol className="moments" aria={{ ariaLabel: 'Запомненные поколения' }}>
+            <For each={list} by={(m) => (m.now ? 'now' : m.gen)}>
+              {(m) => <li data-now={() => String(m().now)}>{() => (m().now ? `сейчас · ${m().gen}` : String(m().gen))}</li>}
+            </For>
+          </ol>
+        )}
+      </Show>
+      <button className="btn" id="tTimeMachine" disabled={() => !currentReplay() && list().length < 2} onClick={toggle}>
+        {() => (currentReplay() ? 'Вернуться к рою' : 'Показать заезд')}
+      </button>
+    </section>
+  );
+}
+
 // ── рекорды роя ──
 
 function takeRecord(record: HallEntry): void {
@@ -136,6 +176,7 @@ export function TrainPanel(): Node {
       <Generation />
       <Rivals />
       <Learning />
+      <TimeMachine />
       <section className="block library"><BrainLibrary /></section>
       <Hall />
     </>

@@ -12,7 +12,7 @@ import type { CarStore } from './car-store.ts';
 import type { DiskFolder } from './car-disk.ts';
 import type { Run } from './runs.ts';
 import { parseCarFile, checkAvatar, NAME_MAX } from '../engine/car-file.ts';
-import { state, blankCar, CAR_KEYS, CAR_COLORS, sizesOf, emit, on } from './state.ts';
+import { state, blankCar, blankProgress, isMoment, CAR_KEYS, CAR_COLORS, sizesOf, emit, on } from './state.ts';
 import { openCarStore, bytes } from './car-store.ts';
 import { runs, setRuns, legacyRuns } from './runs.ts';
 import { diskSupported, savedFolder, pickFolder, folderAccess, forgetFolder, diskStore } from './car-disk.ts';
@@ -114,9 +114,8 @@ function toCar(car: CarJson | null, versions: unknown, runList: unknown): FullCa
     delete next.profile.avatar;
   }
   // Мозг другой формы (например, сохранённый до памяти, #4): на нём машина не поедет — начинаем с чистого листа
-  if (next.champion && checkBrain(next.champion, sizesOf(next.config))) {
-    Object.assign(next, { champion: null, generation: 0, history: [], hall: [], handEdited: false, brainNote: '' });
-  }
+  if (next.champion && checkBrain(next.champion, sizesOf(next.config))) Object.assign(next, blankProgress());
+  next.timeline = Array.isArray(next.timeline) ? next.timeline.filter(isMoment) : [];
   return next;
 }
 

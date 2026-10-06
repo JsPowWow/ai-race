@@ -18,6 +18,7 @@ import { fromEvents } from '../signals.ts';
 import { train, setTrain } from './train-settings.ts';
 import type { TrainSettings } from './train-settings.ts';
 import { rivals } from './train-rivals.tsx';
+import { rememberMoment } from './train-timeline.ts';
 
 /** Сколько миллисекунд кадра рой может думать: остальное — на рисование, чтобы страница не тормозила */
 const FRAME_BUDGET_MS = 22;
@@ -58,12 +59,13 @@ export const generationsShown = (): number => shownEnds.value;
 /** Что рой копит в машине. state.js пока на JS, и у пустых массивов там тип never[] — описываем сами */
 
 /**
- * Итоги роя в машине: график, рекорды, номер поколения и есть ли мозг вообще. Меняются в конце поколения
+ * Итоги роя в машине: график, рекорды, «Машина времени», номер поколения и есть ли мозг вообще. Меняются в конце поколения
  * (событие generation) и снаружи: сброс, другая машина гаража, «Взять».
  */
 export const results = fromEvents(['generation', 'champion', 'reset', 'car'], () => ({
   history: state.history,
   hall: state.hall,
+  timeline: state.timeline,
   generation: state.generation,
   trained: !!state.champion,
 }));
@@ -170,7 +172,8 @@ export function endGeneration(): void {
     if (!best) throw new Error('после отбора у роя нет родителя');
     const row = { ...entry, trackName: now.name, population: evo.cars.length } satisfies HistoryEntry;
     state.history = [...state.history, row].slice(-HISTORY_KEEP);
-    addToHall(row, report, best); // до setChampion: по его событию страница перечитает и график, и рекорды
+    addToHall(row, report, best); // до события generation: по нему страница перечитает график, рекорды и «Машину времени»
+    rememberMoment(evo.generation, best);
     slowdowns.value = parentCar.slowdowns;
     lastGenerationError = errorOf(evo);
     state.generation = evo.generation;

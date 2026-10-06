@@ -1,7 +1,7 @@
 // Общее состояние приложения, его сохранение и простые события между вкладками.
-import { forEachSettled } from '@reely/basics';
+import { forEachSettled, isPlainObject } from '@reely/basics';
 import { DEFAULT_SENSORS, rayCount, type Sensors } from '../engine/car.ts';
-import { layerSizes, type Brain } from '../engine/brain.ts';
+import { checkBrain, layerSizes, type Brain } from '../engine/brain.ts';
 import { CAR_COLORS } from '../engine/car-file.ts';
 import { DEFAULT_PARTS } from '../engine/recipes.ts';
 import type { GenerationEntry } from '../engine/evolution.ts';
@@ -19,6 +19,8 @@ export type Shape = { sensors: Sensors; hidden: number[]; think: string };
 export type HistoryEntry = GenerationEntry & { trackName?: string; population?: number };
 /** Рекорд роя на трассе: мозг и чем он лучше других */
 export type HallEntry = { gen: number; trackName: string; finished: boolean; ticks: number; progressPct: number; brain: Brain };
+/** Снимок для «Машины времени»: лучший роя в поколении gen и форма машины тогда (чтобы он ехал как тогда) */
+export type Moment = { gen: number; brain: Brain; config: Shape };
 /** Версия мозга в «Истории» */
 export type Version = {
   id: string; at: string; brain: Brain; config: Shape; generation: number;
@@ -35,6 +37,8 @@ export type CarData = {
   generation: number;
   history: HistoryEntry[];
   hall: HallEntry[];
+  /** «Машина времени»: лучшие роя в поколениях 1, 5, 10, 25… */
+  timeline: Moment[];
   handEdited: boolean;
   /** Откуда текущий мозг — одной строкой для людей («рой, поколение 12», «обучен на 3 заездах»…) */
   brainNote: string;
@@ -42,18 +46,23 @@ export type CarData = {
   versions: Version[];
 };
 
+/** Всё, что машина накопила, пока её учили: «Сбросить мозг» и мозг другой формы начинают это с чистого листа */
+export const blankProgress = (): Pick<CarData, 'champion' | 'generation' | 'history' | 'hall' | 'timeline' | 'handEdited' | 'brainNote'> => ({
+  champion: null, generation: 0, history: [], hall: [], timeline: [], handEdited: false, brainNote: '',
+});
+
 /** Пустая машина гаража */
 export const blankCar = (profile: Partial<Profile> = {}): CarData => ({
   profile: { name: '', color: CAR_COLORS[0], ...profile },
   config: { sensors: { ...DEFAULT_SENSORS }, hidden: [6], think: live.think.DEFAULT_THINK ?? 'step' },
-  champion: null,
-  generation: 0,
-  history: [],
-  hall: [],
-  handEdited: false,
-  brainNote: '',
+  ...blankProgress(),
   versions: [],
 });
+
+/** Снимок «Машины времени» из файла: поколение, форма и мозг этой формы. Испорченный — выбрасываем */
+export const isMoment = (m: unknown): m is Moment =>
+  isPlainObject(m) && Number.isInteger(m.gen) && isPlainObject(m.config) && isPlainObject(m.config.sensors) && Array.isArray(m.config.hidden) &&
+  !checkBrain(m.brain, sizesOf(m.config as Shape));
 
 /** Всё, что принадлежит машине: уезжает вместе с ней в гараж (app/garage.ts) */
 export const CAR_KEYS = Object.keys(blankCar()) as (keyof CarData)[];
@@ -197,7 +206,7 @@ export function setChampion(brain: Brain, { by, generation = state.generation, h
 }
 
 export function resetProgress(): void {
-  Object.assign(state, { champion: null, generation: 0, history: [], hall: [], handEdited: false, brainNote: '' });
+  Object.assign(state, blankProgress());
   persist();
   emit('reset');
   emit('champion', { by: 'reset' });
