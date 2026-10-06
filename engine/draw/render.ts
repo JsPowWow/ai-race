@@ -1,6 +1,7 @@
 // Рисование трассы на canvas: цвета темы, камера, асфальт, бордюры, острова, старт. Машины — engine/draw/car-draw.ts.
 import { pointAt, freeSide, signShows, worksSigns, SLOW_SPEED, LANE_WIDTH, type Track, type Road, type Branch, type Island, type Point, type RoadPoint, type Side } from '../world/track.ts';
 import { drawScenery, drawBlades, startLights } from './scenery-draw.ts';
+import { drawSkids } from './skids-draw.ts';
 import { pasteGround, type View } from './track-cache.ts';
 import { TILT, RISE, lift } from '../core/tilt.ts';
 import { mulberry32 } from '../core/utils.ts';
@@ -20,7 +21,7 @@ export function cssColor(name: string): string {
 }
 
 /** Цвета холста — из CSS-переменных, для текущей темы */
-export type Palette = Record<'board' | 'road' | 'roadEdge' | 'seam' | 'marking' | 'kerb' | 'kerb2' | 'sign' | 'signOff' | 'slow' | 'checkLight' | 'checkDark' | 'you' | 'ray' | 'rayHit' | 'traffic' | 'trafficOncoming' | 'trafficEdge' | 'crashed' | 'tree' | 'tree2' | 'house' | 'roof' | 'roof2' | 'panel' | 'window' | 'sky' | 'sky2', string> & DecorPalette;
+export type Palette = Record<'board' | 'road' | 'roadEdge' | 'seam' | 'skid' | 'marking' | 'kerb' | 'kerb2' | 'sign' | 'signOff' | 'slow' | 'checkLight' | 'checkDark' | 'you' | 'ray' | 'rayHit' | 'traffic' | 'trafficOncoming' | 'trafficEdge' | 'crashed' | 'tree' | 'tree2' | 'house' | 'roof' | 'roof2' | 'panel' | 'window' | 'sky' | 'sky2', string> & DecorPalette;
 /** Цвета остального декора: паддок, трибуны, зрители и цветы, шины, щиты, вода, кусты, фонари */
 type DecorPalette = Record<'pad' | 'stand' | 'crowd1' | 'crowd2' | 'crowd3' | 'crowd4' | 'tire' | 'bill' | 'billInk' | 'lightOff' | 'water' | 'waterEdge' | 'bush' | 'soil' | 'lamp', string>;
 
@@ -29,7 +30,7 @@ let palette: Palette | null = null;
 export function readPalette(): Palette {
   const v = cssColor;
   palette = {
-    board: v('--board'), road: v('--road'), roadEdge: v('--road-edge'), seam: v('--seam'), marking: v('--marking'),
+    board: v('--board'), road: v('--road'), roadEdge: v('--road-edge'), seam: v('--seam'), skid: v('--skid'), marking: v('--marking'),
     kerb: v('--kerb'), kerb2: v('--kerb-2'), sign: v('--sign'), signOff: v('--sign-off'), slow: v('--slow'), checkLight: v('--check-light'), checkDark: v('--check-dark'),
     you: v('--you'), ray: v('--ray'), rayHit: v('--ray-hit'),
     traffic: v('--traffic'), trafficOncoming: v('--traffic-oncoming'), trafficEdge: v('--traffic-edge'), crashed: v('--crashed'),
@@ -163,6 +164,7 @@ function drawGround(ctx: Ctx, track: Track, cam: View, p: Palette, tick: number 
     for (const road of roads) { roadPath(ctx, road); ctx.fill(); }
     ctx.globalAlpha = 1;
   }
+  drawSkids(ctx, track, p); // следы шин — под швами и разметкой: разметка должна читаться
   for (const road of roads) {
     // швы между секциями
     for (let s = SECTION; s < road.total; s += SECTION) line(ctx, pointAt(road, s), track.width, p.seam, Math.max(2, 1.5 * px));

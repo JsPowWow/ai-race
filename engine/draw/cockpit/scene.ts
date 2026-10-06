@@ -9,6 +9,7 @@ import { pointAt, freeSide, signShows, worksSigns, type Track, type Branch, type
 import { sceneryOf, wallsOf, roofOf, windowColumns, windowRows, blankEnds, FLOOR, SIZE, type Tree, type House, type Prop, type Dot, type Ad } from '../../world/scenery.ts';
 import { paintBoardAd, paintMuralAd } from '../ads.ts';
 import { startLights, sceneryMoves } from '../scenery-draw.ts';
+import { skidLevels, LEVELS } from '../skids-draw.ts';
 import { local } from '../../core/tilt.ts';
 import { drawCockpitCar } from './car.ts';
 import { tint, clearOf } from '../../core/paint.ts';
@@ -245,6 +246,11 @@ export function drawCockpit(ctx: Ctx, track: Track, v: View, scene: CockpitScene
   // плоское: пруды, площадки, клумбы — под дорогой их не бывает, порядок между ними не важен
   for (const o of props) drawFlatProp(ctx, v, o, p);
   fillFlats(ctx, v, g.road, p.road, 0, 40);
+  skidLevels(track).forEach((pieces, k) => { // следы шин — как сверху: под швами и разметкой
+    ctx.globalAlpha = (k + 1) / LEVELS;
+    fillFlats(ctx, v, pieces, p.skid, 0, 10);
+  });
+  ctx.globalAlpha = 1;
   track.islands.forEach((island, i) => zone(ctx, v, track, island, freeSide(track, i, tick), p));
   fillFlats(ctx, v, g.seams, p.seam);
   fillFlats(ctx, v, g.marks, p.marking, 0.2);

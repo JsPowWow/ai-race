@@ -49,6 +49,7 @@
   --road: light-dark(#5b5c60, #3c3d41);
   --road-edge: light-dark(#48494d, #2d2e31);
   --seam: light-dark(rgb(0 0 0 / 0.22), rgb(0 0 0 / 0.45));
+  --skid: light-dark(rgb(0 0 0 / 0.34), rgb(0 0 0 / 0.6)); /* следы шин: свежий кусок; стёртые — прозрачнее */
   --marking: light-dark(rgb(244 244 238 / 0.85), rgb(216 216 210 / 0.6)); /* белая краска, в тёмной теме не слепит */
   --kerb: #d11f28;
   --kerb-2: #f4f4f0;
