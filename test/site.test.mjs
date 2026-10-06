@@ -67,6 +67,27 @@ for (const screen of SCREENS) {
   });
 }
 
+for (const screen of SCREENS) {
+  test(`${screen.name}: «Я учу» в виде из машины — без ошибок и горизонтальной прокрутки`, async () => {
+    const { page, problems, close } = await openPage(screen);
+    await page.goto(`${base}#teach`);
+    await page.waitForFunction(() => document.body.dataset.tab === 'teach');
+    await page.click('#dView');
+    assert.equal(await page.getAttribute('#dView', 'aria-pressed'), 'true');
+    await page.waitForFunction(() => document.querySelector('#stage').getAttribute('aria-label') === 'Трасса, вид из машины');
+    await page.keyboard.down('ArrowUp'); // поехали: камера едет за машиной
+    await page.waitForTimeout(800);
+    await page.keyboard.up('ArrowUp');
+    const { scroll, width } = await page.evaluate(() => ({ scroll: document.documentElement.scrollWidth, width: innerWidth }));
+    assert.ok(scroll <= width, `горизонтальная прокрутка (${scroll} > ${width})`);
+    await page.keyboard.press('KeyV'); // V — снова вид сверху
+    await page.waitForFunction(() => document.querySelector('#stage').getAttribute('aria-label') === 'Трасса');
+    assert.equal(await page.getAttribute('#dView', 'aria-pressed'), 'false');
+    await close();
+    assert.deepEqual(problems, []);
+  });
+}
+
 test('«Я учу»: машина ждёт на старте, пока не нажмёшь газ, — не глохнет', async () => {
   const { page, problems, close } = await openPage(SCREENS[0]);
   await page.goto(`${base}#teach`);

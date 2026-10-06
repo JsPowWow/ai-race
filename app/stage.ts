@@ -1,6 +1,8 @@
 // Холст с трассой: камера, отрисовка сцены, подсказки поверх (HUD, баннер).
 import { Camera, fitCanvas, clear, drawTrack, drawTraffic, drawCar, drawSensors, drawPack, type CarView, type CarLook, type PackCar } from '../engine/render.ts';
 import { TILT } from '../engine/tilt.ts';
+import { Chase, viewOf, CHASE } from '../engine/cockpit.ts';
+import { drawCockpit, type CockpitScene } from '../engine/cockpit-draw.ts';
 import { setSceneryMotion } from '../engine/scenery-draw.ts';
 import { trafficAt, type TrafficSpot } from '../engine/traffic.ts';
 import { lapOf, type Track } from '../engine/track.ts';
@@ -72,12 +74,29 @@ export type SceneView = { camera?: string; follow?: CarView | null; traffic?: Tr
 /** Трасса и трафик на тике tick */
 export function drawScene(track: Track, { camera = 'fit', follow = null, traffic = null, tick = 0 }: SceneView = {}): void {
   fitViewport(track, camera);
+  setStageLabel('Трасса');
   cam.mode = camera;
   cam.update(canvas, track, follow, dpr);
   clear(ctx, canvas);
   cam.apply(ctx, canvas);
   drawTrack(ctx, track, cam, tick);
   drawTraffic(ctx, traffic);
+}
+
+const chase = new Chase();
+/**
+ * Вид из машины (#25): камера позади машины scene.me, всё — по глубине. Машины вкладка не рисует сама:
+ * в перспективе дерево может стоять перед машиной, поэтому всё высокое рисуется одним списком
+ */
+export function drawCockpitScene(track: Track, scene: CockpitScene): void {
+  fitViewport(track, 'follow');
+  chase.follow(scene.me.car, calm.matches ? CHASE.calm : CHASE.smooth); // меньше движения — камера поворачивает мягче
+  drawCockpit(ctx, track, viewOf(chase, canvas), { ...scene, dpr });
+}
+
+/** Подпись холста для читалки экрана: какой вид сейчас */
+export function setStageLabel(text: string): void {
+  if (canvas.getAttribute('aria-label') !== text) canvas.setAttribute('aria-label', text);
 }
 
 export const paintCar = (car: CarView, options: CarLook = {}): void => drawCar(ctx, car, { ...options, cam });

@@ -162,4 +162,4 @@ npm run demo       # папка demo-entries с выдуманными запе�
 
 ## Спасибо
 
-Декор вокруг трассы и будущий вид из машины — по мотивам курсов [Раду Мариеску-Истодора](https://github.com/gniziemazity) ([self-driving-car](https://github.com/gniziemazity/self-driving-car), [virtual-world](https://github.com/gniziemazity/virtual-world)): у него мы подсмотрели идеи — «заваленные» верхушки сверху, деревья и домики вдоль дорог, камеру за машиной. Код свой: расстановка из seed, чтобы у всех был один и тот же лес.
+Декор вокруг трассы и вид из машины — по мотивам курсов [Раду Мариеску-Истодора](https://github.com/gniziemazity) ([self-driving-car](https://github.com/gniziemazity/self-driving-car), [virtual-world](https://github.com/gniziemazity/virtual-world)): у него мы подсмотрели идеи — «заваленные» верхушки сверху, деревья и домики вдоль дорог, камеру за машиной и проекцию «камера-обскура» ([understanding_ai](https://github.com/gniziemazity/understanding_ai)). Код свой: расстановка из seed, чтобы у всех был один и тот же лес.

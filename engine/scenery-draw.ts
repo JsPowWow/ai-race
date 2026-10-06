@@ -26,11 +26,16 @@ export function setStartLights(n: number): void {
   lightsOn = Math.max(0, Math.min(LIGHTS, Math.round(n)));
 }
 
+/** Сколько огней горит сейчас — для вида из машины (engine/cockpit-draw.ts) */
+export const startLights = (): number => lightsOn;
+
 let motion = true;
 /** Можно ли декору двигаться (ветряк). false — человек попросил в системе меньше движения */
 export function setSceneryMotion(on: boolean): void {
   motion = on;
 }
+/** Можно ли декору двигаться — для вида из машины */
+export const sceneryMoves = (): boolean => motion;
 
 /** tick — тик заезда: от него крутится то, что движется (ветряк); на заезд декор не влияет */
 export function drawScenery(ctx: Ctx, track: Track, cam: Camera, p: Palette, tick = 0): void {

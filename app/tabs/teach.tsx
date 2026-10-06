@@ -14,7 +14,7 @@ import { state, thinkFn, on, emit } from '../state.ts';
 import { live } from '../student-code.ts';
 import { runs, addRun, sampleCount, MAX_SAMPLES, type RunStatus } from '../runs.ts';
 import { steerWith } from '../manual-drive.ts';
-import { drawScene, paintCar, trafficOn, setHud, lapText, showBanner } from '../stage.ts';
+import { drawScene, drawCockpitScene, setStageLabel, paintCar, trafficOn, setHud, lapText, showBanner } from '../stage.ts';
 import { secs, pct } from '../ui.ts';
 import { element } from '../dom.ts';
 import { BrainLibrary } from '../components/brain-library.tsx';
@@ -26,6 +26,7 @@ import { createMicroscope } from './network-editor.tsx';
 import { Tries } from '../components/tries.tsx';
 import { makeGhost, stepGhost, paintGhost, ghostGap, type Ghost } from './teach-ghost.ts';
 import { controlNames } from '../variants.ts';
+import { ViewSwitch, cockpitOn } from './teach-view.tsx';
 
 /** После финиша или аварии машина постоит столько (мс) — видно, чем кончилось, — и поедет заново */
 const RESTART_DELAY = 1100;
@@ -44,6 +45,7 @@ const microscope = createMicroscope({
   onEdit: () => (mode.peek() === 'brain' ? resetCar() : setMode('brain')), // поправил вес — смотри, как мозг едет теперь
 });
 
+mount(element('#teachView'), () => <ViewSwitch />);
 mount(element('#teachToolbar'), () => <DriveBar mode={() => mode.value} onMode={setMode} onRestart={resetCar} />);
 mount(element('#teachTries'), () => (
   <Tries source="teach" empty="Научи мозг на своих заездах: новый вариант проедет контрольный заезд против твоего мозга, и будет видно, стал ли он лучше."
@@ -99,10 +101,19 @@ function drive(): void {
     if (!byBrain) record();
     traffic = trafficOn(track, car.ticks);
   }
-  drawScene(track, { camera: 'follow', follow: car, traffic, tick: car.ticks });
-  paintGhost(ghost);
   const me = mode.peek() === 'me';
-  paintCar(car, { color: me ? state.profile.color : cssColor('--brain'), sensors: true, number: 1 }); // едет мозг — машина синяя, цвета мозга
+  const color = me ? state.profile.color : cssColor('--brain'); // едет мозг — машина синяя, цвета мозга
+  if (cockpitOn()) {
+    drawCockpitScene(track, {
+      me: { car, color }, traffic, tick: car.ticks,
+      ghost: ghost && { car: ghost.car, color: ghost.color(), alpha: 0.4, label: ghost.label },
+    });
+    setStageLabel('Трасса, вид из машины');
+  } else {
+    drawScene(track, { camera: 'follow', follow: car, traffic, tick: car.ticks });
+    paintGhost(ghost);
+    paintCar(car, { color, sensors: true, number: 1 });
+  }
   setHud([
     me ? (recording ? `<b class="rec">запись</b> ${recording.length}` : 'рулишь <b class="word">ты</b>') : 'рулит <b class="word">мозг</b>',
     `скорость <b>${car.speed.toFixed(1)}</b>`,

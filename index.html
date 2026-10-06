@@ -13,8 +13,8 @@
 <script>try{const t=JSON.parse(localStorage.getItem('ai-race:theme'));if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch{}</script>
 <link rel="icon" href="app/icon.svg" type="image/svg+xml">
 <link rel="preload" href="app/generated/assets/rubik-cyrillic-DveCct9I.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="app/generated/app.css?v=d106b6490d">
-<script type="module" src="app/generated/app.js?v=016b2ed8fd"></script>
+<link rel="stylesheet" href="app/generated/app.css?v=dd2f4b51c5">
+<script type="module" src="app/generated/app.js?v=8742f2f859"></script>
 </head>
 <body>
 <a class="skip-link" href="#content">К содержимому</a>
@@ -160,6 +160,8 @@
       <div class="hud" id="hud"></div>
       <div class="banner" id="banner" hidden></div>
       <div class="countdown" id="countdown" hidden><span></span></div>
+      <!-- «Я учу»: вид сверху или из машины — app/tabs/teach-view.tsx -->
+      <div class="view-switch" id="teachView"></div>
       <div class="pad" aria-label="Управление касанием">
         <div class="pad-steer">
           <button data-key="ArrowLeft" aria-label="Влево"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4 7 12l8 8"/></svg></button>

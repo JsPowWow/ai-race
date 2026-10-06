@@ -1,0 +1,560 @@
+// Рисунок вида из машины: та же игрушечная трасса на столе, только смотрим с дороги, позади своей машины.
+// Сначала всё плоское (асфальт одним путём — без швов между кусками, разметка, черта), потом туман у горизонта,
+// потом всё, у чего есть высота (бордюры, лес, дома, машины), — от дальнего к ближнему, как художник. Последними — лучи и своя машина.
+// Камера и проекция — engine/cockpit.ts. Что не видно (позади, дальше тумана, сбоку от обзора), не рисуем вовсе.
+import { clipNear, project, toCamera, type View, type ScreenPoint } from './cockpit.ts';
+import { getPalette, UI_FONT, type CarView, type Palette } from './render.ts';
+import { pointAt, freeSide, signShows, type Track, type Branch, type Point, type RoadPoint, type Island } from './track.ts';
+import { sceneryOf, SIZE, type Tree, type House, type Prop, type Dot } from './scenery.ts';
+import { startLights, sceneryMoves } from './scenery-draw.ts';
+import { local } from './tilt.ts';
+import { rays, wheelAngle, CAR, WHEELBASE } from './car.ts';
+import type { TrafficSpot } from './traffic.ts';
+
+type Ctx = CanvasRenderingContext2D;
+type P3 = Point & { z: number };
+/** Плоский кусок трассы: многоугольник на столе и его середина — по ней решаем, виден ли он */
+type Flat = { pts: Point[]; x: number; y: number; dark?: boolean };
+/** Блок бордюра: отрезок a–b по краю дороги, красный или белый */
+type Kerb = { a: Point; b: Point; red: boolean; x: number; y: number };
+/** Что рисовать по глубине: f — расстояние вперёд от камеры */
+type Item = { f: number; draw: () => void };
+
+/** Машина в виде из машины: какая, каким цветом, прозрачность и подпись над ней («мозг», «ты») */
+export type CockpitCar = { car: CarView; color: string; alpha?: number; label?: string | null };
+/** Что на трассе в этом кадре */
+export type CockpitScene = { me: CockpitCar; ghost?: CockpitCar | null; traffic?: TrafficSpot[] | null; tick?: number; dpr?: number };
+
+const KERB = { h: 6, w: 7, dash: 16 }; // бордюр: высота, ширина, длина блока — как в виде сверху
+const SECTION = 150, DASH = 20, GAP = 28, LINE = 2.6, EDGE_INSET = 12; // секции, пунктир и сплошная — как в render.ts
+const CAR_H = { floor: 2, body: 10, roof: 17 };
+const WALL = 13, ROOF = 9; // домик: стены и конёк
+const LIGHT = { x: -0.55, y: -0.83 }; // свет сверху слева, как у теней трассы
+
+// ── плоское: считается один раз на трассу ──
+
+type Ground = { road: Flat[]; seams: Flat[]; marks: Flat[]; checker: Flat[]; kerbs: Kerb[] };
+const grounds = new WeakMap<Track, Ground>();
+
+/** Прямоугольник поперёк направления angle: середина (x, y), длина вдоль len, ширина поперёк wide */
+function strip(x: number, y: number, angle: number, len: number, wide: number, dark?: boolean): Flat {
+  const c = Math.cos(angle), s = Math.sin(angle), hl = len / 2, hw = wide / 2;
+  const pts = [[-hl, -hw], [hl, -hw], [hl, hw], [-hl, hw]].map(([u, v]) => ({ x: x + u * c - v * s, y: y + u * s + v * c }));
+  return { pts, x, y, dark };
+}
+
+/** Отрезок a–b толщиной wide — плоская полоска на асфальте */
+function band(a: Point, b: Point, wide: number): Flat {
+  const len = Math.hypot(b.x - a.x, b.y - a.y);
+  return strip((a.x + b.x) / 2, (a.y + b.y) / 2, Math.atan2(b.y - a.y, b.x - a.x), len, wide);
+}
+
+/** Точка на ломаной pts на расстоянии s от начала (cum — длины до точек центральной линии; у разметки те же номера точек) */
+function along(pts: Point[], cum: Float64Array, s: number, from: number): { p: Point; i: number } {
+  let i = from;
+  while (i < cum.length - 2 && cum[i + 1] < s) i++;
+  const t = Math.max(0, Math.min(1, (s - cum[i]) / (cum[i + 1] - cum[i] || 1)));
+  return { p: { x: pts[i].x + (pts[i + 1].x - pts[i].x) * t, y: pts[i].y + (pts[i + 1].y - pts[i].y) * t }, i };
+}
+
+function groundOf(track: Track): Ground {
+  let g = grounds.get(track);
+  if (g) return g;
+  g = { road: [], seams: [], marks: [], checker: [], kerbs: [] };
+  for (const road of track.roads) {
+    const { left, right } = road;
+    for (let i = 0; i < left.length - 1; i++) {
+      const pts = [left[i], left[i + 1], right[i + 1], right[i]];
+      g.road.push({ pts, x: (left[i].x + right[i + 1].x) / 2, y: (left[i].y + right[i + 1].y) / 2 });
+    }
+    for (let s = SECTION; s < road.total; s += SECTION) {
+      const pt = pointAt(road, s);
+      g.seams.push(strip(pt.x, pt.y, pt.angle, 1.6, track.width - 2));
+    }
+    for (const divider of road.dividers) {
+      let i = 0;
+      for (let s = 0; s + DASH < road.total; s += DASH + GAP) {
+        const a = along(divider, road.cum, s, i), b = along(divider, road.cum, s + DASH, a.i);
+        i = a.i;
+        g.marks.push(band(a.p, b.p, LINE));
+      }
+    }
+    const t = EDGE_INSET / track.width;
+    for (const [from, to] of [[left, right], [right, left]]) {
+      for (let i = 0; i < from.length - 1; i++) {
+        const a = { x: from[i].x + (to[i].x - from[i].x) * t, y: from[i].y + (to[i].y - from[i].y) * t };
+        const b = { x: from[i + 1].x + (to[i + 1].x - from[i + 1].x) * t, y: from[i + 1].y + (to[i + 1].y - from[i + 1].y) * t };
+        g.marks.push(band(a, b, LINE));
+      }
+    }
+  }
+  // черта старта и финиша — клетками, как в виде сверху
+  const start = pointAt(track, 0), sq = 10, cols = Math.round(track.width / sq), cw = track.width / cols;
+  for (let r = 0; r < 2; r++) for (let c = 0; c < cols; c++) {
+    const u = r * sq - sq / 2, v = -track.width / 2 + (c + 0.5) * cw;
+    const p = local(start, u, v);
+    g.checker.push(strip(p.x, p.y, start.angle, sq, cw, (r + c) % 2 === 1));
+  }
+  // бордюры — блоками по 16 px: красный, белый, красный…
+  for (const wall of track.walls) {
+    let red = true, left = KERB.dash, a = wall[0];
+    for (let i = 1; i < wall.length; i++) {
+      const b = wall[i];
+      let len = Math.hypot(b.x - a.x, b.y - a.y);
+      while (len >= left) {
+        const t = left / len, cut = { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+        g.kerbs.push(kerbOf(a, cut, red));
+        a = cut; red = !red; left = KERB.dash;
+        len = Math.hypot(b.x - a.x, b.y - a.y);
+      }
+      left -= len; // блок продолжается на следующем отрезке бордюра
+    }
+    if (left < KERB.dash) g.kerbs.push(kerbOf(a, wall[wall.length - 1], red));
+  }
+  grounds.set(track, g);
+  return g;
+}
+const kerbOf = (a: Point, b: Point, red: boolean): Kerb => ({ a, b, red, x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
+
+// ── рисование ──
+
+/** Что видно: перед камерой, ближе тумана, не дальше сбоку, чем позволяет обзор. pad — запас на размер предмета */
+function visible(v: View, x: number, y: number, pad: number): number | null {
+  const c = toCamera(v, x, y, 0);
+  if (c.f < -pad || c.f > v.range + pad || Math.abs(c.s) > c.f * 1.05 + pad + 20) return null;
+  return c.f;
+}
+
+/** Туман: чем ближе к краю дальности, тем прозрачнее — дальнее не выскакивает из ниоткуда */
+const fade = (v: View, f: number): number => Math.max(0, Math.min(1, (v.range - f) / (v.range * 0.3)));
+
+function addPoly(path: Path2D | Ctx, pts: ScreenPoint[]): void {
+  if (pts.length < 3) return;
+  path.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length; i++) path.lineTo(pts[i].x, pts[i].y);
+  path.closePath();
+}
+
+const flat = (pts: Point[], z = 0): P3[] => pts.map((p) => ({ x: p.x, y: p.y, z }));
+
+/** Много плоских кусков одним путём и одной заливкой: на стыках кусков нет светлых швов */
+function fillFlats(ctx: Ctx, v: View, list: readonly Flat[], color: string, z = 0, pad = 30): void {
+  const path = new Path2D();
+  for (const piece of list) if (visible(v, piece.x, piece.y, pad) !== null) addPoly(path, clipNear(v, flat(piece.pts, z)));
+  ctx.fillStyle = color;
+  ctx.fill(path);
+}
+
+/** Многоугольник в 3D → экран (с обрезкой по ближней плоскости) и заливка */
+function face(ctx: Ctx, v: View, pts: P3[], color: string, shade = 0): void {
+  const s = clipNear(v, pts);
+  if (s.length < 3) return;
+  ctx.beginPath(); addPoly(ctx, s);
+  ctx.fillStyle = color; ctx.fill();
+  if (shade > 0) { ctx.fillStyle = `rgb(0 0 0 / ${shade.toFixed(3)})`; ctx.fill(); }
+}
+
+/** Насколько затенить стенку с наружной нормалью (nx, ny): к свету — светлее */
+const shadeOf = (nx: number, ny: number): number => 0.16 + 0.14 * (nx * -LIGHT.x + ny * -LIGHT.y);
+
+/**
+ * Брусок: выпуклое основание base, от высоты z0 до z1. Видны стенки, повёрнутые к камере, и верх.
+ * side/top — цвета стенок и верха (top null — верх не рисовать)
+ */
+function block(ctx: Ctx, v: View, base: Point[], z0: number, z1: number, side: string, top: string | null): void {
+  let area = 0;
+  for (let i = 0; i < base.length; i++) { const a = base[i], b = base[(i + 1) % base.length]; area += a.x * b.y - b.x * a.y; }
+  const turn = area > 0 ? 1 : -1;
+  for (let i = 0; i < base.length; i++) {
+    const a = base[i], b = base[(i + 1) % base.length];
+    const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+    const nx = ((b.y - a.y) / len) * turn, ny = (-(b.x - a.x) / len) * turn;
+    if (nx * (v.x - (a.x + b.x) / 2) + ny * (v.y - (a.y + b.y) / 2) <= 0) continue; // стенка смотрит от камеры
+    face(ctx, v, [{ ...a, z: z0 }, { ...b, z: z0 }, { ...b, z: z1 }, { ...a, z: z1 }], side, shadeOf(nx, ny));
+  }
+  if (top && v.z > z1) face(ctx, v, flat(base, z1), top);
+}
+
+/** Прямоугольник в осях предмета o: вдоль (u) от u0 до u1, вбок (w) от w0 до w1 */
+const rect = (o: Point & { angle: number }, u0: number, u1: number, w0: number, w1: number): Point[] =>
+  [local(o, u0, w0), local(o, u1, w0), local(o, u1, w1), local(o, u0, w1)];
+
+/** Картонка, всегда повёрнутая к камере: точка на земле (x, y), draw рисует в пикселях вокруг неё; k — пикселей на 1 px трассы */
+function billboard(v: View, x: number, y: number, z: number): (ScreenPoint & { k: number }) | null {
+  const p = project(v, x, y, z);
+  return p && { ...p, k: v.focal / p.f };
+}
+
+/** Нарисовать вид из машины. ctx — холст в пикселях экрана */
+export function drawCockpit(ctx: Ctx, track: Track, v: View, scene: CockpitScene): void {
+  const p = getPalette();
+  const W = ctx.canvas.width, H = ctx.canvas.height, tick = scene.tick ?? 0, dpr = scene.dpr ?? 1;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  // фон фотостудии: стол уходит вдаль и сливается со стеной — игрушка на столе, а не небо над полем
+  const sky = ctx.createLinearGradient(0, 0, 0, v.horizon);
+  sky.addColorStop(0, p.sky); sky.addColorStop(1, p.sky2);
+  ctx.fillStyle = sky; ctx.fillRect(0, 0, W, v.horizon + 1);
+  ctx.fillStyle = p.board; ctx.fillRect(0, v.horizon, W, H - v.horizon);
+
+  const g = groundOf(track);
+  const { trees, houses, bushes, props } = sceneryOf(track);
+  // плоское: пруды, площадки, клумбы — под дорогой их не бывает, порядок между ними не важен
+  for (const o of props) drawFlatProp(ctx, v, o, p);
+  fillFlats(ctx, v, g.road, p.road, 0, 40);
+  track.islands.forEach((island, i) => zone(ctx, v, track, island, freeSide(track, i, tick), p));
+  fillFlats(ctx, v, g.seams, p.seam);
+  fillFlats(ctx, v, g.marks, p.marking, 0.2);
+  fillFlats(ctx, v, g.checker.filter((c) => !c.dark), p.checkLight, 0.3);
+  fillFlats(ctx, v, g.checker.filter((c) => c.dark), p.checkDark, 0.3);
+  // туман у горизонта: дальняя дорога растворяется в столе (y(d) — где на экране земля на расстоянии d)
+  const y = (d: number): number => v.horizon + (v.z / d) * v.focal;
+  const fog = ctx.createLinearGradient(0, v.horizon, 0, y(v.range * 0.45));
+  fog.addColorStop(0, p.board);
+  fog.addColorStop(Math.min(0.99, (y(v.range * 0.85) - v.horizon) / (y(v.range * 0.45) - v.horizon)), p.board);
+  fog.addColorStop(1, 'transparent');
+  ctx.fillStyle = fog; ctx.fillRect(0, v.horizon - 1, W, y(v.range * 0.45) - v.horizon + 1);
+
+  // всё, у чего есть высота, — по глубине
+  const items: Item[] = [];
+  const add = (x: number, y: number, pad: number, draw: () => void): void => {
+    const f = visible(v, x, y, pad);
+    if (f !== null) items.push({ f, draw });
+  };
+  for (const k of g.kerbs) add(k.x, k.y, 10, () => kerb(ctx, v, k, p));
+  for (const t of trees) add(t.x, t.y, t.r * 2, () => tree(ctx, v, t, p));
+  for (const t of bushes) add(t.x, t.y, t.r, () => tree(ctx, v, t, p));
+  for (const h of houses) add(h.x, h.y, Math.max(h.w, h.d), () => house(ctx, v, h, p));
+  for (const o of props) if (o.kind !== 'pond' && o.kind !== 'bed') add(o.x, o.y, propSize(o), () => drawProp(ctx, v, o, p, tick));
+  track.islands.forEach((island, i) => {
+    cones(track, island, freeSide(track, i, tick), (x, y) => add(x, y, 6, () => cone(ctx, v, x, y, p)));
+    const { x, y } = signSpot(track, island.sign);
+    add(x, y, 20, () => sign(ctx, v, x, y, signShows(track, i, tick), p));
+  });
+  for (const o of scene.traffic ?? []) add(o.x, o.y, 30, () => box(ctx, v, o, o.oncoming ? p.trafficOncoming : p.traffic, p, o.oncoming ? 'front' : 'back'));
+  const ghost = scene.ghost;
+  if (ghost) add(ghost.car.x, ghost.car.y, 30, () => carShape(ctx, v, ghost, p, dpr));
+  items.sort((a, b) => b.f - a.f);
+  for (const item of items) {
+    ctx.globalAlpha = fade(v, item.f);
+    item.draw();
+  }
+  ctx.globalAlpha = 1;
+  beams(ctx, v, scene.me.car, p, dpr);
+  carShape(ctx, v, scene.me, p, dpr);
+}
+
+/** Блок бордюра: стенка, повёрнутая к камере, и верх */
+function kerb(ctx: Ctx, v: View, k: Kerb, p: Palette): void {
+  const len = Math.hypot(k.b.x - k.a.x, k.b.y - k.a.y) || 1;
+  const nx = -(k.b.y - k.a.y) / len * (KERB.w / 2), ny = (k.b.x - k.a.x) / len * (KERB.w / 2);
+  const base = [{ x: k.a.x + nx, y: k.a.y + ny }, { x: k.b.x + nx, y: k.b.y + ny }, { x: k.b.x - nx, y: k.b.y - ny }, { x: k.a.x - nx, y: k.a.y - ny }];
+  const color = k.red ? p.kerb : p.kerb2;
+  block(ctx, v, base, 0, KERB.h, color, color);
+}
+
+/** Медленная зона: жёлтая подкраска занятого пути, на въезде и выезде — полосатая лента */
+function zoneAt(track: Track, island: Island, free: number): (s: number) => RoadPoint {
+  const onMain = free !== island.side;
+  const branch = track.roads[island.road] as Branch;
+  return (s) => (onMain ? pointAt(track, s) : pointAt(branch, ((s - branch.fromS) / (branch.toS - branch.fromS)) * branch.total));
+}
+
+function zone(ctx: Ctx, v: View, track: Track, island: Island, free: number, p: Palette): void {
+  const [from, to] = island.zone, at = zoneAt(track, island, free);
+  const tint: Flat[] = [];
+  for (let s = from; s < to; s += 12) {
+    const a = at(s), b = at(Math.min(to, s + 13));
+    tint.push(strip((a.x + b.x) / 2, (a.y + b.y) / 2, Math.atan2(b.y - a.y, b.x - a.x), Math.hypot(b.x - a.x, b.y - a.y) + 1, track.width - 8));
+  }
+  ctx.globalAlpha = 0.22;
+  fillFlats(ctx, v, tint, p.slow);
+  ctx.globalAlpha = 1;
+  const tape: Flat[] = [], stripes: Flat[] = [];
+  for (const s of [from, to]) {
+    const pt = at(s), n = 10, w = (track.width - 10) / n;
+    tape.push(strip(pt.x, pt.y, pt.angle, 6, track.width - 10));
+    for (let k = 0; k < n; k += 2) { const q = local(pt, 0, -(track.width - 10) / 2 + (k + 0.5) * w); stripes.push(strip(q.x, q.y, pt.angle, 6, w)); }
+  }
+  fillFlats(ctx, v, tape, p.slow, 0.3);
+  fillFlats(ctx, v, stripes, p.checkDark, 0.4);
+}
+
+function cones(track: Track, island: Island, free: number, put: (x: number, y: number) => void): void {
+  const [from, to] = island.zone, at = zoneAt(track, island, free), edge = track.width / 2 - 7;
+  for (let s = from; s <= to; s += 36) {
+    const pt = at(s), nx = -Math.sin(pt.angle), ny = Math.cos(pt.angle);
+    for (const side of [-1, 1]) put(pt.x + nx * edge * side, pt.y + ny * edge * side);
+  }
+}
+
+/** Конус: тёмное основание, жёлтый треугольник с белым пояском */
+function cone(ctx: Ctx, v: View, x: number, y: number, p: Palette): void {
+  const b = billboard(v, x, y, 0), t = billboard(v, x, y, 13);
+  if (!b || !t) return;
+  ctx.fillStyle = p.checkDark; ctx.fillRect(b.x - 5.5 * b.k, b.y - 1.5 * b.k, 11 * b.k, 2 * b.k);
+  ctx.beginPath(); ctx.moveTo(b.x - 4.5 * b.k, b.y - b.k); ctx.lineTo(b.x + 4.5 * b.k, b.y - b.k); ctx.lineTo(t.x, t.y); ctx.closePath();
+  ctx.fillStyle = p.slow; ctx.fill();
+  ctx.fillStyle = p.kerb2; ctx.fillRect(b.x - 2.6 * b.k, (b.y + t.y) / 2 - b.k, 5.2 * b.k, 2 * b.k);
+}
+
+/** Где стоит знак: справа по ходу, за бордюром — как в виде сверху */
+function signSpot(track: Track, { x, y, angle }: RoadPoint): Point {
+  const off = track.width / 2 + 9 + 17;
+  return { x: x - Math.sin(angle) * off, y: y + Math.cos(angle) * off };
+}
+
+/** Знак на столбике: синий круг, белая стрелка «прямо, потом направо / налево»; dir 0 — погас */
+function sign(ctx: Ctx, v: View, x: number, y: number, dir: number, p: Palette): void {
+  const foot = billboard(v, x, y, 0), c = billboard(v, x, y, 40);
+  if (!foot || !c) return;
+  const k = c.k, r = 15 * k;
+  ctx.fillStyle = p.roof2; ctx.fillRect(foot.x - 1.5 * k, c.y, 3 * k, foot.y - c.y);
+  ctx.beginPath(); ctx.arc(c.x, c.y, r + 2.5 * k, 0, Math.PI * 2); ctx.fillStyle = p.kerb2; ctx.fill();
+  ctx.beginPath(); ctx.arc(c.x, c.y, r, 0, Math.PI * 2); ctx.fillStyle = dir ? p.sign : p.signOff; ctx.fill();
+  if (!dir) return;
+  ctx.save();
+  ctx.translate(c.x, c.y); ctx.scale(k, k);
+  ctx.strokeStyle = p.kerb2; ctx.fillStyle = p.kerb2; ctx.lineWidth = 3.6; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.beginPath(); ctx.moveTo(0, 8); ctx.lineTo(0, -2); ctx.lineTo(dir * 6, -2); ctx.stroke(); // прямо, потом поворот
+  ctx.beginPath(); ctx.moveTo(dir * 5, -8); ctx.lineTo(dir * 5, 4); ctx.lineTo(dir * 12, -2); ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+/** Дерево — картонка лицом к камере: ёлка ярусами, круглое — шаром на стволе, куст — низкой копной */
+function tree(ctx: Ctx, v: View, t: Tree, p: Palette): void {
+  const b = billboard(v, t.x, t.y, 0);
+  if (!b) return;
+  const k = b.k, r = t.r * k;
+  if (t.kind === 'bush') {
+    ctx.beginPath(); ctx.ellipse(b.x, b.y - r * 0.55, r, r * 0.7, 0, Math.PI, 0); ctx.lineTo(b.x + r, b.y); ctx.lineTo(b.x - r, b.y); ctx.closePath();
+    ctx.fillStyle = p.bush; ctx.fill();
+    return;
+  }
+  ctx.fillStyle = p.roof2;
+  if (t.kind === 'fir') {
+    ctx.fillRect(b.x - r * 0.12, b.y - r * 0.6, r * 0.24, r * 0.6);
+    for (let i = 0; i < 3; i++) {
+      const y0 = b.y - r * (0.45 + i * 0.7), w = r * (1 - i * 0.22);
+      ctx.beginPath(); ctx.moveTo(b.x - w, y0); ctx.lineTo(b.x + w, y0); ctx.lineTo(b.x, y0 - r * 1.15); ctx.closePath();
+      ctx.fillStyle = i === 2 ? p.tree2 : p.tree; ctx.fill();
+    }
+    return;
+  }
+  ctx.fillRect(b.x - r * 0.14, b.y - r * 1.1, r * 0.28, r * 1.1);
+  ctx.beginPath(); ctx.arc(b.x, b.y - r * 1.75, r, 0, Math.PI * 2); ctx.fillStyle = p.tree2; ctx.fill();
+  ctx.beginPath(); ctx.arc(b.x - r * 0.35, b.y - r * 2.1, r * 0.35, 0, Math.PI * 2); ctx.fillStyle = 'rgb(255 255 255 / 0.12)'; ctx.fill();
+}
+
+/** Домик: белые стены и двускатная крыша, конёк — вдоль дороги */
+function house(ctx: Ctx, v: View, h: House, p: Palette): void {
+  const w = h.w / 2, d = h.d / 2;
+  block(ctx, v, rect(h, -w, w, -d, d), 0, WALL, p.house, null);
+  // скаты и торцы — по удалённости от камеры: дальний первым
+  const ridgeA = { ...local(h, -w, 0), z: WALL + ROOF }, ridgeB = { ...local(h, w, 0), z: WALL + ROOF };
+  const corner = (u: number, s: number): P3 => ({ ...local(h, u, s), z: WALL });
+  const parts: { at: Point; pts: P3[]; color: string }[] = [
+    { at: local(h, 0, -d), pts: [corner(-w, -d), corner(w, -d), ridgeB, ridgeA], color: p.roof },
+    { at: local(h, 0, d), pts: [corner(-w, d), corner(w, d), ridgeB, ridgeA], color: p.roof2 },
+    { at: local(h, -w, 0), pts: [corner(-w, -d), corner(-w, d), ridgeA], color: p.house },
+    { at: local(h, w, 0), pts: [corner(w, -d), corner(w, d), ridgeB], color: p.house },
+  ];
+  const depth = (q: Point): number => toCamera(v, q.x, q.y, 0).f;
+  parts.sort((a, b) => depth(b.at) - depth(a.at));
+  for (const part of parts) face(ctx, v, part.pts, part.color, part.color === p.house ? 0.08 : 0);
+}
+
+const propSize = (o: Prop): number => ('w' in o ? Math.max(o.w, o.d) : o.kind === 'windmill' ? SIZE.windmill * 2 : 40);
+
+/** Плоские предметы: пруд с песчаной кромкой, площадка паддока, клумба */
+function drawFlatProp(ctx: Ctx, v: View, o: Prop, p: Palette): void {
+  if (o.kind !== 'pond' && o.kind !== 'paddock' && o.kind !== 'bed') return;
+  if (visible(v, o.x, o.y, propSize(o) + 60) === null) return;
+  const ring = (rx: number, ry: number, angle: number): Point[] =>
+    Array.from({ length: 20 }, (_, i) => local({ x: o.x, y: o.y, angle }, Math.cos((i / 20) * Math.PI * 2) * rx, Math.sin((i / 20) * Math.PI * 2) * ry));
+  if (o.kind === 'pond') {
+    face(ctx, v, flat(ring(o.rx + 5, o.ry + 5, o.angle)), p.waterEdge);
+    face(ctx, v, flat(ring(o.rx, o.ry, o.angle), 0.1), p.water);
+  } else if (o.kind === 'bed') {
+    face(ctx, v, flat(ring(o.r, o.r, 0)), p.soil);
+  } else face(ctx, v, flat(rect(o, -o.w / 2, o.w / 2, -o.d / 2, o.d / 2)), p.pad);
+}
+
+/** Всё высокое хозяйство трассы — простыми брусками и картонками */
+function drawProp(ctx: Ctx, v: View, o: Prop, p: Palette, tick: number): void {
+  switch (o.kind) {
+    case 'stand': {
+      const w = o.w / 2, d = o.d / 2, row = o.d / 3, crowd = [p.crowd1, p.crowd2, p.crowd3, p.crowd4];
+      block(ctx, v, rect(o, -w, w, d, d + 3), 0, 30, p.roof2, p.roof2);
+      for (let k = 2; k >= 0; k--) {
+        const top = 6 + k * 7;
+        block(ctx, v, rect(o, -w, w, -d + k * row, -d + (k + 1) * row), 0, top, p.stand, p.stand);
+        heads(ctx, v, o.rows[k] ?? [], top + 2.4, crowd);
+      }
+      return;
+    }
+    case 'paddock': {
+      const crowd = [p.crowd1, p.crowd2, p.crowd3, p.crowd4];
+      for (const c of o.cars) {
+        const base = rect(c, -9, 9, -5, 5);
+        block(ctx, v, base, 0, 6, crowd[c.c] ?? p.house, crowd[c.c] ?? p.house);
+      }
+      return;
+    }
+    case 'tires': {
+      const b = billboard(v, o.x, o.y, 0), t = billboard(v, o.x, o.y, o.rings * 3.4);
+      if (!b || !t) return;
+      ctx.fillStyle = p.tire;
+      ctx.beginPath(); ctx.roundRect(b.x - o.r * b.k, t.y - o.r * 0.4 * b.k, o.r * 2 * b.k, b.y - t.y + o.r * 0.4 * b.k, o.r * 0.4 * b.k); ctx.fill();
+      ctx.strokeStyle = 'rgb(255 255 255 / 0.12)'; ctx.lineWidth = Math.max(1, 0.6 * b.k);
+      for (let k = 1; k < o.rings; k++) { const y = b.y - (b.y - t.y) * (k / o.rings); ctx.beginPath(); ctx.moveTo(b.x - o.r * b.k, y); ctx.lineTo(b.x + o.r * b.k, y); ctx.stroke(); }
+      return;
+    }
+    case 'chevron': board(ctx, v, o, SIZE.chevron.w, 6, 18, p.kerb2, () => {
+      ctx.fillStyle = p.kerb;
+      for (const u of [-10, 0, 10]) { ctx.beginPath(); ctx.moveTo(u - 4, 2); ctx.lineTo(u + 2, 6); ctx.lineTo(u - 4, 10); ctx.lineTo(u, 10); ctx.lineTo(u + 6, 6); ctx.lineTo(u, 2); ctx.closePath(); ctx.fill(); }
+    }); return;
+    case 'billboard': board(ctx, v, o, SIZE.board.w, 12, 28, p.bill, () => {
+      ctx.fillStyle = p.billInk; ctx.font = `700 9px ${UI_FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('AI Race', 0, 8);
+    }); return;
+    case 'lamp': {
+      const b = billboard(v, o.x, o.y, 0), t = billboard(v, o.x, o.y, 40);
+      if (!b || !t) return;
+      ctx.strokeStyle = p.roof2; ctx.lineWidth = Math.max(1, 1.6 * b.k);
+      ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(t.x, t.y); ctx.stroke();
+      ctx.beginPath(); ctx.arc(t.x, t.y, 3.2 * t.k, 0, Math.PI * 2); ctx.fillStyle = p.lamp; ctx.fill();
+      return;
+    }
+    case 'lights': {
+      const b = billboard(v, o.x, o.y, 0), t = billboard(v, o.x, o.y, 34);
+      if (!b || !t) return;
+      const k = t.k, half = (SIZE.lights / 2) * k, on = startLights();
+      ctx.fillStyle = p.roof2;
+      for (const u of [-half + 6 * k, half - 6 * k]) ctx.fillRect(b.x + u - 1.2 * k, t.y, 2.4 * k, b.y - t.y);
+      ctx.fillStyle = p.bill; ctx.beginPath(); ctx.roundRect(t.x - half, t.y - 6 * k, half * 2, 12 * k, 3 * k); ctx.fill();
+      for (let i = 0; i < 5; i++) {
+        ctx.beginPath(); ctx.arc(t.x - half + 5 * k + i * ((half * 2 - 10 * k) / 4), t.y, 3.4 * k, 0, Math.PI * 2);
+        ctx.fillStyle = 5 - i <= on ? p.kerb : p.lightOff; ctx.fill();
+      }
+      return;
+    }
+    case 'windmill': {
+      const b = billboard(v, o.x, o.y, 0), hub = billboard(v, o.x, o.y, 49);
+      if (!b || !hub) return;
+      const k = hub.k;
+      ctx.beginPath(); ctx.moveTo(b.x - 9 * k, b.y); ctx.lineTo(b.x + 9 * k, b.y); ctx.lineTo(hub.x + 4 * k, hub.y); ctx.lineTo(hub.x - 4 * k, hub.y); ctx.closePath();
+      ctx.fillStyle = p.house; ctx.fill(); ctx.fillStyle = 'rgb(0 0 0 / 0.1)'; ctx.fill();
+      const turn = o.phase + (sceneryMoves() ? tick * 0.035 : 0), L = (SIZE.windmill - 2) * k;
+      ctx.strokeStyle = p.roof2; ctx.lineWidth = Math.max(1, 3 * k); ctx.lineCap = 'round';
+      for (let i = 0; i < 4; i++) {
+        const a = turn + (i * Math.PI) / 2;
+        ctx.beginPath(); ctx.moveTo(hub.x, hub.y); ctx.lineTo(hub.x + Math.cos(a) * L, hub.y + Math.sin(a) * L); ctx.stroke();
+      }
+      ctx.lineCap = 'butt';
+      return;
+    }
+    default: return;
+  }
+}
+
+/** Головы зрителей на ступени — цветные точки (только вблизи: издалека они сливаются) */
+function heads(ctx: Ctx, v: View, row: readonly Dot[], z: number, colors: string[]): void {
+  for (const d of row) {
+    const b = billboard(v, d.x, d.y, z);
+    if (!b || b.f > 420) continue;
+    ctx.beginPath(); ctx.arc(b.x, b.y, 2.2 * b.k, 0, Math.PI * 2); ctx.fillStyle = colors[d.c] ?? colors[0]; ctx.fill();
+  }
+}
+
+/**
+ * Щит на двух ножках вдоль направления o.angle, от высоты z0 до z1. paint рисует надпись в осях щита
+ * (u — вдоль, от середины; y — вниз от верхнего края, px трассы): щит в перспективе — почти параллелограмм, хватает аффинной картинки
+ */
+function board(ctx: Ctx, v: View, o: Point & { angle: number }, w: number, z0: number, z1: number, color: string, paint: () => void): void {
+  for (const u of [-w / 2 + 4, w / 2 - 4]) {
+    const q = local(o, u, 0), a = project(v, q.x, q.y, 0), b = project(v, q.x, q.y, z0);
+    if (a && b) { ctx.strokeStyle = 'rgb(60 62 68)'; ctx.lineWidth = Math.max(1, (1.6 * v.focal) / a.f); ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); }
+  }
+  const l = local(o, -w / 2, 0), r = local(o, w / 2, 0);
+  const tl = project(v, l.x, l.y, z1), tr = project(v, r.x, r.y, z1), bl = project(v, l.x, l.y, z0);
+  if (!tl || !tr || !bl) return;
+  face(ctx, v, [{ ...l, z: z0 }, { ...r, z: z0 }, { ...r, z: z1 }, { ...l, z: z1 }], color);
+  // щит виден сзади — надпись не рисуем (она с той стороны)
+  const facing = (tr.x - tl.x) > 0;
+  if (!facing) return;
+  ctx.save();
+  const h = z1 - z0;
+  ctx.transform((tr.x - tl.x) / w, (tr.y - tl.y) / w, (bl.x - tl.x) / h, (bl.y - tl.y) / h, (tl.x + tr.x) / 2, (tl.y + tr.y) / 2);
+  paint();
+  ctx.restore();
+}
+
+/** Машина трафика — коробка с кабиной: корпус, стёкла, фары спереди или стоп-сигналы сзади */
+function box(ctx: Ctx, v: View, o: Point & { angle: number }, color: string, p: Palette, lamps: 'front' | 'back'): void {
+  const L = CAR.length / 2, W = CAR.width / 2;
+  block(ctx, v, rect(o, -L, L, -W + 1, W - 1), CAR_H.floor, CAR_H.body, color, color);
+  block(ctx, v, rect(o, -L * 0.6, L * 0.28, -W * 0.72, W * 0.72), CAR_H.body, CAR_H.roof - 1, 'rgb(34 44 58)', color);
+  const u = lamps === 'front' ? L + 0.3 : -L - 0.3;
+  for (const s of [-W * 0.6, W * 0.6]) {
+    const q = local(o, u, s);
+    const c = billboard(v, q.x, q.y, CAR_H.body - 3);
+    if (c) { ctx.fillStyle = lamps === 'front' ? p.you : p.kerb; ctx.fillRect(c.x - 2 * c.k, c.y - 1.3 * c.k, 4 * c.k, 2.6 * c.k); }
+  }
+}
+
+/** Своя машина или призрак: корпус её цвета, кабина со стёклами, колёса (передние — с поворотом руля) */
+function carShape(ctx: Ctx, v: View, { car, color, alpha = 1, label = null }: CockpitCar, p: Palette, dpr: number): void {
+  ctx.globalAlpha *= alpha;
+  const L = CAR.length / 2, W = CAR.width / 2;
+  const steer = wheelAngle(car.steer ?? 0, car.speed ?? 0);
+  for (const [u, s] of [[-WHEELBASE / 2, -W], [-WHEELBASE / 2, W], [WHEELBASE / 2, -W], [WHEELBASE / 2, W]]) {
+    const c = local(car, u, s);
+    const wheel = { x: c.x, y: c.y, angle: car.angle + (u > 0 ? steer : 0) };
+    block(ctx, v, rect(wheel, -4.6, 4.6, -1.8, 1.8), 0, 9, 'rgb(28 30 34)', 'rgb(48 52 60)');
+  }
+  const crashed = car.status === 'crashed';
+  block(ctx, v, rect(car, -L, L, -W + 1, W - 1), CAR_H.floor, CAR_H.body, crashed ? p.crashed : color, crashed ? p.crashed : color);
+  block(ctx, v, rect(car, -L * 0.62, L * 0.2, -W * 0.74, W * 0.74), CAR_H.body, CAR_H.roof, 'rgb(34 44 58)', crashed ? p.crashed : color);
+  // стоп-сигналы горят, когда тормозишь
+  const braking = (car.controls?.brake ?? 0) > 0;
+  for (const s of [-W * 0.62, W * 0.62]) {
+    const q = local(car, -L - 0.3, s), c = billboard(v, q.x, q.y, CAR_H.body - 2.5);
+    if (c) { ctx.fillStyle = braking ? p.kerb : p.lightOff; ctx.fillRect(c.x - 2.6 * c.k, c.y - 1.4 * c.k, 5.2 * c.k, 2.8 * c.k); }
+  }
+  ctx.globalAlpha = 1;
+  if (!label) return;
+  const top = billboard(v, car.x, car.y, CAR_H.roof + 10);
+  if (!top) return;
+  ctx.font = `600 ${Math.round(12 * dpr)}px ${UI_FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+  const w = ctx.measureText(label).width + 10 * dpr;
+  ctx.fillStyle = 'rgb(17 18 20 / 0.85)'; ctx.beginPath(); ctx.roundRect(top.x - w / 2, top.y - 18 * dpr, w, 17 * dpr, 5 * dpr); ctx.fill();
+  ctx.fillStyle = '#f3f4f6'; ctx.fillText(label, top.x, top.y - 3 * dpr);
+}
+
+const RAYS_Z = 4; // лучи идут от бампера, а не из-под асфальта
+
+/** Лучи-сенсоры по асфальту: до удара — жёлтые, после — тёмные, точка удара — кружком */
+function beams(ctx: Ctx, v: View, car: CarView, p: Palette, dpr: number): void {
+  if (!car.sensors) return;
+  const list = rays(car.sensors);
+  ctx.lineWidth = 2.2 * dpr; ctx.lineCap = 'round';
+  for (let i = 0; i < list.length; i++) {
+    const a = car.angle + list[i].angle, len = list[i].length;
+    const t = car.rayT && car.rayT.length === list.length ? car.rayT[i] : -1;
+    const hit = t < 0 ? { x: car.x + Math.cos(a) * len, y: car.y + Math.sin(a) * len } : { x: car.x + Math.cos(a) * len * t, y: car.y + Math.sin(a) * len * t };
+    segment(ctx, v, car, hit, p.ray);
+    if (t < 0) continue; // за точкой удара луч не рисуем: в перспективе хвост уходит в стол и только путает
+    const h = billboard(v, hit.x, hit.y, RAYS_Z);
+    if (h) { ctx.beginPath(); ctx.arc(h.x, h.y, Math.min(7 * dpr, Math.max(3 * dpr, 4 * h.k)), 0, Math.PI * 2); ctx.fillStyle = p.rayHit; ctx.fill(); }
+  }
+  ctx.lineCap = 'butt';
+}
+
+/** Отрезок на высоте лучей, обрезанный по ближней плоскости */
+function segment(ctx: Ctx, v: View, a: Point, b: Point, color: string): void {
+  const s = clipNear(v, [{ ...a, z: RAYS_Z }, { ...b, z: RAYS_Z }]);
+  if (s.length < 2) return;
+  ctx.strokeStyle = color;
+  ctx.beginPath(); ctx.moveTo(s[0].x, s[0].y); ctx.lineTo(s[1].x, s[1].y); ctx.stroke();
+}
+
