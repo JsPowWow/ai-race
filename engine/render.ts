@@ -25,7 +25,9 @@ export function cssColor(name: string): string {
 }
 
 /** Цвета холста — из CSS-переменных, для текущей темы */
-export type Palette = Record<'board' | 'road' | 'roadEdge' | 'seam' | 'marking' | 'kerb' | 'kerb2' | 'sign' | 'signOff' | 'slow' | 'checkLight' | 'checkDark' | 'you' | 'ray' | 'rayHit' | 'traffic' | 'trafficOncoming' | 'trafficEdge' | 'crashed' | 'tree' | 'tree2' | 'house' | 'roof' | 'roof2', string>;
+export type Palette = Record<'board' | 'road' | 'roadEdge' | 'seam' | 'marking' | 'kerb' | 'kerb2' | 'sign' | 'signOff' | 'slow' | 'checkLight' | 'checkDark' | 'you' | 'ray' | 'rayHit' | 'traffic' | 'trafficOncoming' | 'trafficEdge' | 'crashed' | 'tree' | 'tree2' | 'house' | 'roof' | 'roof2', string> & DecorPalette;
+/** Цвета остального декора: паддок, трибуны, зрители и цветы, шины, щиты, вода, кусты, фонари */
+type DecorPalette = Record<'pad' | 'stand' | 'crowd1' | 'crowd2' | 'crowd3' | 'crowd4' | 'tire' | 'bill' | 'billInk' | 'lightOff' | 'water' | 'waterEdge' | 'bush' | 'soil' | 'lamp', string>;
 
 let palette: Palette | null = null;
 /** Перечитать цвета трассы — после смены темы */
@@ -37,6 +39,8 @@ export function readPalette(): Palette {
     you: v('--you'), ray: v('--ray'), rayHit: v('--ray-hit'),
     traffic: v('--traffic'), trafficOncoming: v('--traffic-oncoming'), trafficEdge: v('--traffic-edge'), crashed: v('--crashed'),
     tree: v('--tree'), tree2: v('--tree-2'), house: v('--house'), roof: v('--roof'), roof2: v('--roof-2'),
+    pad: v('--pad'), stand: v('--stand'), crowd1: v('--crowd-1'), crowd2: v('--crowd-2'), crowd3: v('--crowd-3'), crowd4: v('--crowd-4'), tire: v('--tire'), bill: v('--bill'), billInk: v('--bill-ink'),
+    lightOff: v('--light-off'), water: v('--water'), waterEdge: v('--water-edge'), bush: v('--bush'), soil: v('--soil'), lamp: v('--lamp'),
   };
   return palette;
 }

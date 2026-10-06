@@ -1,6 +1,7 @@
 // Холст с трассой: камера, отрисовка сцены, подсказки поверх (HUD, баннер).
 import { Camera, fitCanvas, clear, drawTrack, drawTraffic, drawCar, drawSensors, drawPack, type CarView, type CarLook, type PackCar } from '../engine/render.ts';
 import { TILT } from '../engine/tilt.ts';
+import { setSceneryMotion } from '../engine/scenery-draw.ts';
 import { trafficAt, type TrafficSpot } from '../engine/traffic.ts';
 import { lapOf, type Track } from '../engine/track.ts';
 import type { Point } from '../engine/turtle.ts';
@@ -14,6 +15,11 @@ const ctx = context2d(canvas);
 const canvasSize = liveSize(canvas);
 const cam = new Camera();
 let dpr = 1;
+
+// Ветряк у трассы крутится, только если человек не просил в системе меньше движения
+const calm = matchMedia('(prefers-reduced-motion: reduce)');
+setSceneryMotion(!calm.matches);
+listen(calm, 'change', () => setSceneryMotion(!calm.matches));
 
 function context2d(el: HTMLCanvasElement): CanvasRenderingContext2D {
   const found = el.getContext('2d');
