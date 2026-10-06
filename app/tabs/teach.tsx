@@ -26,7 +26,8 @@ import { createMicroscope } from './network-editor.tsx';
 import { Tries } from '../components/tries.tsx';
 import { makeGhost, stepGhost, paintGhost, ghostGap, type Ghost } from './teach-ghost.ts';
 import { controlNames } from '../variants.ts';
-import { ViewSwitch, cockpitOn } from './teach-view.tsx';
+import { ViewSwitch, SoundSwitch, cockpitOn, soundOn } from './teach-view.tsx';
+import { hearFrame } from '../engine-sound.ts';
 
 /** После финиша или аварии машина постоит столько (мс) — видно, чем кончилось, — и поедет заново */
 const RESTART_DELAY = 1100;
@@ -45,7 +46,7 @@ const microscope = createMicroscope({
   onEdit: () => (mode.peek() === 'brain' ? resetCar() : setMode('brain')), // поправил вес — смотри, как мозг едет теперь
 });
 
-mount(element('#teachView'), () => <ViewSwitch />);
+mount(element('#teachView'), () => <><SoundSwitch /><ViewSwitch /></>);
 mount(element('#teachToolbar'), () => <DriveBar mode={() => mode.value} onMode={setMode} onRestart={resetCar} />);
 mount(element('#teachTries'), () => (
   <Tries source="teach" empty="Научи мозг на своих заездах: новый вариант проедет контрольный заезд против твоего мозга, и будет видно, стал ли он лучше."
@@ -109,7 +110,12 @@ function drive(): void {
       ghost: ghost && { car: ghost.car, color: ghost.color(), alpha: 0.4, label: ghost.label },
     });
     setStageLabel('Трасса, вид из машины');
+    hearFrame(soundOn() ? {
+      me: { x: car.x, y: car.y, angle: car.angle, speed: car.speed, gas: Math.min(1, car.controls.gas), done: car.done },
+      others: [...(traffic ?? []), ...(ghost ? [{ x: ghost.car.x, y: ghost.car.y, speed: ghost.car.speed, loud: 0.6 }] : [])],
+    } : null);
   } else {
+    hearFrame(null);
     drawScene(track, { camera: 'follow', follow: car, traffic, tick: car.ticks });
     paintGhost(ghost);
     paintCar(car, { color, sensors: true, number: 1 });

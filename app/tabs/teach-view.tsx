@@ -1,17 +1,27 @@
 // «Я учу»: кнопка на трассе «Вид из машины» (#25). Нажал (или клавиша V) — камера садится позади машины;
 // нажал ещё раз — снова вид сверху. Выбор помнит браузер. Рулить и учить можно в обоих видах — это только картинка.
+// Рядом — выключатель звука мотора (только в виде из машины): браузер разрешает звук лишь после нажатия, поэтому — кнопкой.
 import { signal } from '@reely/dommy';
 import { listen } from '@reely/dommy-kit';
 import { stored } from '../storage.ts';
 import { state } from '../state.ts';
 import { isTyping } from '../ui.ts';
 import { showBanner } from '../stage.ts';
+import { wakeSound } from '../engine-sound.ts';
 
 const isOn = (saved: unknown): saved is boolean => typeof saved === 'boolean';
 const cockpit = stored('cockpit', false, isOn);
+const sound = stored('sound', false, isOn);
 
 /** Включён ли вид из машины */
 export const cockpitOn = (): boolean => cockpit.peek();
+/** Звучит ли мотор: включён звук и смотришь из машины */
+export const soundOn = (): boolean => sound.peek() && cockpit.peek();
+
+function toggleSound(): void {
+  sound.update((on) => !on);
+  if (sound.peek()) wakeSound();
+}
 
 const calm = matchMedia('(prefers-reduced-motion: reduce)');
 const warned = signal(false); // подсказку про укачивание показываем один раз
@@ -30,6 +40,8 @@ listen(window, 'keydown', (e) => {
   e.preventDefault();
   toggleCockpit();
 });
+// Звук включили в прошлый раз — после перезагрузки браузер снова ждёт касания: первое нажатие его и будит
+for (const type of ['pointerdown', 'keydown'] as const) listen(window, type, () => { if (soundOn()) wakeSound(); });
 
 /** Кнопка в углу трассы: тёмный пластик, как табло; нажата — значит, смотришь из машины */
 export function ViewSwitch(): Node {
@@ -40,6 +52,20 @@ export function ViewSwitch(): Node {
         <path d="M4 16v-4l2.5-5h11l2.5 5v4z" /><path d="M8 11h8" /><path d="M6 16v2.5M18 16v2.5" />
       </svg>
       <span>Вид из машины</span>
+    </button>
+  );
+}
+
+/** Выключатель звука мотора — виден только в виде из машины */
+export function SoundSwitch(): Node {
+  return (
+    <button className="view-btn" id="dSound" title="Звук мотора" hidden={() => !cockpit.value}
+      aria={{ ariaLabel: 'Звук мотора', ariaPressed: () => String(sound.value) }} onClick={toggleSound}>
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" />
+        <path d={() => (sound.value ? 'M15.5 9a4.2 4.2 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11' : 'M16 9.5l5 5M21 9.5l-5 5')} />
+      </svg>
+      <span>Звук</span>
     </button>
   );
 }

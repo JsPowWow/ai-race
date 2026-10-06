@@ -75,6 +75,9 @@ for (const screen of SCREENS) {
     await page.click('#dView');
     assert.equal(await page.getAttribute('#dView', 'aria-pressed'), 'true');
     await page.waitForFunction(() => document.querySelector('#stage').getAttribute('aria-label') === 'Трасса, вид из машины');
+    assert.ok(await page.isVisible('#dSound'), 'в виде из машины рядом — выключатель звука');
+    await page.click('#dSound'); // звук мотора: Web Audio без ошибок
+    assert.equal(await page.getAttribute('#dSound', 'aria-pressed'), 'true');
     await page.keyboard.down('ArrowUp'); // поехали: камера едет за машиной
     await page.waitForTimeout(800);
     await page.keyboard.up('ArrowUp');
@@ -83,6 +86,7 @@ for (const screen of SCREENS) {
     await page.keyboard.press('KeyV'); // V — снова вид сверху
     await page.waitForFunction(() => document.querySelector('#stage').getAttribute('aria-label') === 'Трасса');
     assert.equal(await page.getAttribute('#dView', 'aria-pressed'), 'false');
+    assert.ok(await page.isHidden('#dSound'), 'сверху звука нет — и выключателя тоже');
     await close();
     assert.deepEqual(problems, []);
   });
