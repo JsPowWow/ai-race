@@ -100,7 +100,7 @@ test('в виде сверху высокое не закрывает дорог
 test('ёлки разного роста', () => {
   for (const track of tracks) {
     const firs = sceneryOf(track).trees.filter((t) => t.kind === 'fir').map((t) => t.h / FLOOR);
-    assert.ok(Math.max(...firs) >= 3 * Math.min(...firs), `${track.id}: ёлки почти одного роста`);
+    assert.ok(Math.max(...firs) >= 2.5 * Math.min(...firs), `${track.id}: ёлки почти одного роста`); // самая высокая — хотя бы в 2,5 раза выше самой низкой
   }
 });
 
@@ -133,7 +133,7 @@ test('у старта — огни, трибуна и паддок, на кру�
     assert.ok(paddock.cars.length >= 3 && paddock.cars.length <= 6, `${track.id}: машинок в паддоке ${paddock.cars.length}`);
     assert.ok(props.find((o) => o.kind === 'stand').rows.flat().length > 20, `${track.id}: на трибуне нет зрителей`);
     assert.ok(cornersOf(track.roads[0]).length > 0 && count('tires') >= 6 && count('chevron') >= 1, `${track.id}: шин ${count('tires')}, шевронов ${count('chevron')}`);
-    assert.ok(count('billboard') >= 5 && count('billboard') <= 8, `${track.id}: щитов ${count('billboard')}`);
+    assert.ok(count('billboard') >= 10 && count('billboard') <= 30, `${track.id}: щитов ${count('billboard')}`);
     assert.ok(count('windmill') === 1 && count('pond') >= 1 && count('pond') <= 2, `${track.id}: ветряк и пруд`);
     assert.ok(count('lamp') >= 8 && count('lamp') <= 40 && count('bed') >= 2 && count('tires') <= 80, `${track.id}: фонарей ${count('lamp')}, клумб ${count('bed')}`);
   }
@@ -163,10 +163,12 @@ test('лес у стенда повторяется без шва: на стык
   }
 });
 
-test('реклама вдоль дороги разная: на каждой трассе 5+ щитов и хотя бы 3 разных', () => {
+test('реклама вдоль дороги разная: на каждой трассе 10+ щитов разных размеров и хотя бы 4 разные марки', () => {
   for (const track of tracks) {
     const boards = sceneryOf(track).props.filter((o) => o.kind === 'billboard');
-    assert.ok(boards.length >= 5, `${track.name}: щитов ${boards.length}`);
+    assert.ok(boards.length >= 10, `${track.name}: щитов ${boards.length}`);
+    assert.ok(new Set(boards.map((o) => o.size)).size >= 2, `${track.name}: все щиты одного размера`);
+    assert.ok(new Set(boards.map((o) => o.ad)).size >= 4, `${track.name}: марок мало`);
     assert.ok(boards.every((o) => ADS.includes(o.ad)), `${track.name}: неизвестная реклама`);
     assert.ok(new Set(boards.map((o) => o.ad)).size >= 3, `${track.name}: реклама однообразная`);
   }

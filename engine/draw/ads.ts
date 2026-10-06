@@ -2,7 +2,7 @@
 // Один рисунок на оба вида: вызывающий уже повернул холст так, что (0, 0) — левый верхний угол картинки,
 // x — вправо вдоль щита или стены, y — вниз, а размер — w × h в пикселях трассы.
 // Печать плоская, как наклейка из набора: заливки без градиентов и теней.
-import type { Ad } from '../world/scenery.ts';
+import type { Ad, BoardSize } from '../world/scenery.ts';
 import { UI_FONT, type Palette } from './render.ts';
 
 type Ctx = CanvasRenderingContext2D;
@@ -28,8 +28,38 @@ function inks(ad: Ad, p: Palette): { field: string; ink: string } {
   }
 }
 
+/** Реклама на щите любого размера: низкий баннер — свой рисунок, щиты побольше — общий */
+export function paintAd(ctx: Ctx, ad: Ad, size: BoardSize, w: number, h: number, p: Palette): void {
+  if (size === 'banner') paintBannerAd(ctx, ad, w, h, p);
+  else paintBoardAd(ctx, ad, w, h, p);
+}
+
+/**
+ * Баннер вдоль бордюра: низкая полоса, на ней марка повторяется — как на ограждении настоящей трассы:
+ * с какого места ни глянь, имя видно целиком. Длинное имя (npm) — одно на всю полосу
+ */
+function paintBannerAd(ctx: Ctx, ad: Ad, w: number, h: number, p: Palette): void {
+  const { field, ink } = ad === 'npm' ? { field: BRAND.screen, ink: BRAND.screenInk } : inks(ad, p);
+  ctx.fillStyle = field; ctx.fillRect(0, 0, w, h);
+  const [title] = words(ad);
+  const cells = title.length > 10 ? 1 : Math.max(1, Math.floor(w / (h * 4.2)));
+  const cw = w / cells, s = h * 0.62, gap = h * 0.3;
+  const family = ad === 'npm' ? MONO_FONT : UI_FONT;
+  for (let c = 0; c < cells; c++) {
+    ctx.font = `700 ${h * 0.52}px ${family}`;
+    const text = Math.min(ctx.measureText(title).width, cw - s - gap - h * 0.6);
+    const x0 = c * cw + (cw - s - gap - text) / 2;
+    mark(ctx, ad, x0, (h - s) / 2, s, p);
+    ctx.fillStyle = ink; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    fitText(ctx, title, x0 + s + gap, h / 2 + h * 0.03, text, h * 0.52, 700, family);
+    if (c > 0) { // тонкий разделитель между повторами
+      ctx.globalAlpha *= 0.25; ctx.fillRect(c * cw - 0.3, h * 0.2, 0.6, h * 0.6); ctx.globalAlpha /= 0.25;
+    }
+  }
+}
+
 /** Щит: значок слева, надпись справа */
-export function paintBoardAd(ctx: Ctx, ad: Ad, w: number, h: number, p: Palette): void {
+function paintBoardAd(ctx: Ctx, ad: Ad, w: number, h: number, p: Palette): void {
   if (ad === 'npm') { terminal(ctx, w, h); return; }
   const { field, ink } = inks(ad, p);
   ctx.fillStyle = field; ctx.fillRect(0, 0, w, h);

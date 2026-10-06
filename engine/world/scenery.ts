@@ -19,6 +19,8 @@ export type House = { x: number; y: number; w: number; d: number; angle: number;
  */
 export const ADS = ['ai-race', 'rs-school', 'reely', 'dommy', 'signals', 'npm'] as const;
 export type Ad = (typeof ADS)[number];
+/** Щиты трёх размеров: низкий баннер вдоль бордюра, обычный щит на ножках, большой щит подальше от дороги */
+export type BoardSize = 'banner' | 'board' | 'big';
 const MURALS: Ad[] = ['ai-race', 'rs-school', 'reely', 'dommy', 'signals'];
 
 /** Торцы без окон: у длинной многоэтажки они глухие, как в жизни, — на них и рисуют роспись */
@@ -49,7 +51,7 @@ export type Prop =
   | { kind: 'paddock'; x: number; y: number; angle: number; w: number; d: number; cars: Parked[] }
   | { kind: 'tires'; x: number; y: number; r: number; rings: number } // стопка шин на вираже
   | { kind: 'chevron'; x: number; y: number; angle: number }   // щиток «>>>»: angle — куда едут, туда и стрелки
-  | { kind: 'billboard'; x: number; y: number; angle: number; ad: Ad } // рекламный щит
+  | { kind: 'billboard'; x: number; y: number; angle: number; ad: Ad; size: BoardSize } // рекламный щит
   | { kind: 'lamp'; x: number; y: number; angle: number }      // фонарь: angle — куда смотрит плафон (на дорогу)
   | { kind: 'windmill'; x: number; y: number; phase: number }
   | { kind: 'pond'; x: number; y: number; rx: number; ry: number; angle: number }
@@ -156,7 +158,13 @@ export const houseRadius = (h: House): number => Math.hypot(h.w, h.d) / 2;
 /** Размеры предметов, px: их знают и расстановка, и рисунок */
 export const SIZE = {
   lights: 44,                   // ширина табло огней
-  board: { w: 64, d: 6, h: 24 }, // рекламный щит: 6,4 × 2,4 м
+  // щиты: w — длина, d — толщина, h — высота доски, z — на какой высоте её низ, off — как далеко от обочины.
+  // Большой щит стоит дальше: в виде сверху он «растёт» к дороге и не должен её закрыть
+  boards: {
+    banner: { w: 92, d: 3, h: 11, z: 2, off: 10 },  // баннер у бордюра: 9 × 1 м
+    board: { w: 64, d: 6, h: 24, z: 12, off: 12 },  // щит: 6,4 × 2,4 м
+    big: { w: 104, d: 8, h: 38, z: 20, off: 30 },   // большой щит: 10 × 4 м
+  },
   chevron: { w: 34, d: 4 },
   tire: 6.5,                    // радиус шины
   lamp: 4,
@@ -215,7 +223,7 @@ export function spotsOf(o: Prop): Spot[] {
   switch (o.kind) {
     case 'lights': return [{ x: o.x, y: o.y, r: SIZE.lights / 2 }]; // табло повёрнуто к зрителю — как дорога ни иди
     case 'stand': case 'paddock': return rectSpots(o.x, o.y, o.angle, o.w, o.d);
-    case 'billboard': return rectSpots(o.x, o.y, o.angle, SIZE.board.w, SIZE.board.d);
+    case 'billboard': return rectSpots(o.x, o.y, o.angle, SIZE.boards[o.size].w, SIZE.boards[o.size].d);
     case 'chevron': return rectSpots(o.x, o.y, o.angle, SIZE.chevron.w, SIZE.chevron.d);
     case 'pond': return rectSpots(o.x, o.y, o.angle, 2 * o.rx + 10, 2 * o.ry + 10); // с кромкой
     case 'tires': case 'bed': return [{ x: o.x, y: o.y, r: o.r }];
@@ -336,11 +344,20 @@ function place(track: Track): Scenery {
   }
 
   // 4. Рекламные щиты — на кусках, что идут поперёк экрана: щит стоит вдоль дороги, и надпись так видно целиком
-  const boards = 6 + Math.floor(rand2() * 3);
-  for (let n = 0, tries = 0; n < boards && tries < 200; tries++) {
-    const at = beside(rand2() * ring.total, edge + 12, rand2() < 0.5 ? -1 : 1);
-    if (Math.abs(Math.cos(at.angle)) < 0.85) continue;
-    if (put({ kind: 'billboard', x: at.x, y: at.y, angle: Math.cos(at.angle) < 0 ? at.angle + Math.PI : at.angle, ad: ad(ADS) })) n++; // надпись читается слева направо
+  // Щиты трёх размеров, баннеры у бордюра — по два-три подряд, как на настоящих трассах.
+  // Свой seed (ads): лес и домики после щитов остались на своих местах
+  const boards = Math.round(ring.total / 200);
+  for (let n = 0, tries = 0; n < boards && tries < 800; tries++) {
+    const pick = ads(), size: BoardSize = pick < 0.45 ? 'banner' : pick < 0.8 ? 'board' : 'big';
+    const { w, off } = SIZE.boards[size];
+    const s0 = ads() * ring.total, side = ads() < 0.5 ? -1 : 1;
+    const row = size === 'banner' ? 2 + Math.floor(ads() * 2) : 1;
+    for (let k = 0; k < row; k++) {
+      const at = beside(s0 + k * (w + 6), edge + off, side);
+      if (Math.abs(Math.cos(at.angle)) < 0.7) break;
+      if (!put({ kind: 'billboard', x: at.x, y: at.y, angle: Math.cos(at.angle) < 0 ? at.angle + Math.PI : at.angle, ad: ad(ADS), size })) break; // надпись читается слева направо
+      n++;
+    }
   }
 
   // 5. Фонари: вдоль прямой у старта с обеих сторон и ещё пара рядков где-нибудь на круге

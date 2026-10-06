@@ -1,10 +1,10 @@
 // Декор под наклоном: пластиковые ёлки ярусами на стволе, пышные круглые деревья, домики со скатной крышей
 // и всё хозяйство трассы: огни старта, трибуна, паддок, шины, шевроны, щиты, фонари, ветряк, пруд и клумбы.
 // Деревья, кусты и шины рисуем слоями — все тени, потом все стволы, потом ярус за ярусом: несколько заливок за кадр вместо сотен.
-import { sceneryOf, houseRadius, wallsOf, roofOf, windowColumns, windowRows, blankEnds, FLOOR, SIZE, type Tree, type House, type Prop, type Ad, type Dot, type Parked } from '../world/scenery.ts';
+import { sceneryOf, houseRadius, wallsOf, roofOf, windowColumns, windowRows, blankEnds, FLOOR, SIZE, type Tree, type House, type Prop, type Ad, type BoardSize, type Dot, type Parked } from '../world/scenery.ts';
 import { TILT, RISE, lift, local, prism, cap } from '../core/tilt.ts';
 import { tint } from '../core/paint.ts';
-import { paintBoardAd, paintMuralAd } from './ads.ts';
+import { paintAd, paintMuralAd } from './ads.ts';
 import type { Palette } from './render.ts';
 import type { View } from './track-cache.ts';
 import type { Track, Point } from '../world/track.ts';
@@ -108,7 +108,7 @@ function reachOf(o: Solid): number {
   if (!('kind' in o)) return houseRadius(o);
   switch (o.kind) {
     case 'stand': case 'paddock': return Math.hypot(o.w, o.d) / 2;
-    case 'billboard': return SIZE.board.w / 2;
+    case 'billboard': return SIZE.boards[o.size].w / 2;
     case 'windmill': return SIZE.windmill + 4;
     case 'lamp': return 10;
     default: return 22;
@@ -450,14 +450,14 @@ function drawChevron(ctx: Ctx, o: Placed, p: Palette): void {
 }
 
 /** Рекламный щит на ножках: что на нём напечатано — engine/draw/ads.ts */
-function drawBillboard(ctx: Ctx, o: Placed & { ad: Ad }, p: Palette): void {
-  const half = SIZE.board.w / 2, tall = SIZE.board.h, top = tall + 12;
+function drawBillboard(ctx: Ctx, o: Placed & { ad: Ad; size: BoardSize }, p: Palette): void {
+  const { w, h: tall, z } = SIZE.boards[o.size], half = w / 2, top = tall + z;
   const a = local(o, -half, 0), b = local(o, half, 0);
   ctx.beginPath(); ctx.moveTo(a.x + SHADOW.x * 3, a.y + SHADOW.y * 3); ctx.lineTo(b.x + SHADOW.x * 3, b.y + SHADOW.y * 3);
   ctx.strokeStyle = 'rgb(0 0 0 / 0.14)'; ctx.lineWidth = 4; ctx.stroke(); // тень щита на земле
-  for (const u of [-half + 9, half - 9]) post(ctx, local(o, u, 0), top - tall, p.roof2, 2);
+  for (const u of [-half + 9, half - 9]) post(ctx, local(o, u, 0), z, p.roof2, o.size === 'big' ? 2.6 : 2);
   upright(ctx, o, top, () => {
-    ctx.translate(-half, 0); paintBoardAd(ctx, o.ad, 2 * half, tall, p); ctx.translate(half, 0);
+    ctx.translate(-half, 0); paintAd(ctx, o.ad, o.size, w, tall, p); ctx.translate(half, 0);
     ctx.strokeStyle = 'rgb(255 255 255 / 0.16)'; ctx.lineWidth = 0.8; ctx.strokeRect(-half + 0.4, 0.4, 2 * half - 0.8, tall - 0.8);
   });
 }

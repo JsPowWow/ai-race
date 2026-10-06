@@ -7,7 +7,7 @@ import { getPalette, signFace, worksFace, UI_FONT, type Palette } from '../rende
 import type { CarView } from '../car-draw.ts';
 import { pointAt, freeSide, signShows, worksSigns, type Track, type Branch, type Point, type RoadPoint, type Island } from '../../world/track.ts';
 import { sceneryOf, wallsOf, roofOf, windowColumns, windowRows, blankEnds, FLOOR, SIZE, type Tree, type House, type Prop, type Dot, type Ad } from '../../world/scenery.ts';
-import { paintBoardAd, paintMuralAd } from '../ads.ts';
+import { paintAd, paintMuralAd } from '../ads.ts';
 import { startLights, sceneryMoves } from '../scenery-draw.ts';
 import { skidLevels, LEVELS } from '../skids-draw.ts';
 import { local } from '../../core/tilt.ts';
@@ -33,13 +33,13 @@ export type CockpitCar = { car: CarView; color: string; alpha?: number; label?: 
 export type CockpitScene = { me: CockpitCar; ghost?: CockpitCar | null; traffic?: TrafficSpot[] | null; tick?: number; dpr?: number };
 
 const KERB = { h: 6, w: 7, dash: 16 }; // бордюр: высота, ширина, длина блока — как в виде сверху
-const SECTION = 150, DASH = 20, GAP = 28, LINE = 2.6, EDGE_INSET = 12; // секции, пунктир и сплошная — как в render.ts
+const DASH = 20, GAP = 28, LINE = 2.6, EDGE_INSET = 12; // пунктир и сплошная — как в render.ts
 const CAR_H = { floor: 2, body: 10, roof: 17 };
 const LIGHT = { x: -0.55, y: -0.83 }; // свет сверху слева, как у теней трассы
 
 // ── плоское: считается один раз на трассу ──
 
-type Ground = { road: Flat[]; seams: Flat[]; marks: Flat[]; checker: Flat[]; kerbs: KerbRun[] };
+type Ground = { road: Flat[]; marks: Flat[]; checker: Flat[]; kerbs: KerbRun[] };
 /** Блоков бордюра в одном куске: длиннее — меньше заливок, но кусок дольше спорит по глубине с деревом рядом */
 const RUN = 6;
 const grounds = new WeakMap<Track, Ground>();
@@ -68,16 +68,12 @@ function along(pts: Point[], cum: Float64Array, s: number, from: number): { p: P
 function groundOf(track: Track): Ground {
   let g = grounds.get(track);
   if (g) return g;
-  g = { road: [], seams: [], marks: [], checker: [], kerbs: [] };
+  g = { road: [], marks: [], checker: [], kerbs: [] };
   for (const road of track.roads) {
     const { left, right } = road;
     for (let i = 0; i < left.length - 1; i++) {
       const pts = [left[i], left[i + 1], right[i + 1], right[i]];
       g.road.push({ pts, x: (left[i].x + right[i + 1].x) / 2, y: (left[i].y + right[i + 1].y) / 2 });
-    }
-    for (let s = SECTION; s < road.total; s += SECTION) {
-      const pt = pointAt(road, s);
-      g.seams.push(strip(pt.x, pt.y, pt.angle, 1.6, track.width - 2));
     }
     for (const divider of road.dividers) {
       let i = 0;
@@ -246,13 +242,12 @@ export function drawCockpit(ctx: Ctx, track: Track, v: View, scene: CockpitScene
   // плоское: пруды, площадки, клумбы — под дорогой их не бывает, порядок между ними не важен
   for (const o of props) drawFlatProp(ctx, v, o, p);
   fillFlats(ctx, v, g.road, p.road, 0, 40);
-  skidLevels(track).forEach((pieces, k) => { // следы шин — как сверху: под швами и разметкой
+  skidLevels(track).forEach((pieces, k) => { // следы шин — как сверху: под разметкой
     ctx.globalAlpha = (k + 1) / LEVELS;
     fillFlats(ctx, v, pieces, p.skid, 0, 10);
   });
   ctx.globalAlpha = 1;
   track.islands.forEach((island, i) => zone(ctx, v, track, island, freeSide(track, i, tick), p));
-  fillFlats(ctx, v, g.seams, p.seam);
   fillFlats(ctx, v, g.marks, p.marking, 0.2);
   fillFlats(ctx, v, g.checker.filter((c) => !c.dark), p.checkLight, 0.3);
   fillFlats(ctx, v, g.checker.filter((c) => c.dark), p.checkDark, 0.3);
@@ -600,9 +595,11 @@ function drawProp(ctx: Ctx, v: View, o: Prop, p: Palette, tick: number): void {
       ctx.fillStyle = p.kerb;
       for (const u of [-10, 0, 10]) { ctx.beginPath(); ctx.moveTo(u - 4, 2); ctx.lineTo(u + 2, 6); ctx.lineTo(u - 4, 10); ctx.lineTo(u, 10); ctx.lineTo(u + 6, 6); ctx.lineTo(u, 2); ctx.closePath(); ctx.fill(); }
     }); return;
-    case 'billboard': board(ctx, v, o, SIZE.board.w, 12, 12 + SIZE.board.h, p.bill, () => {
-      ctx.translate(-SIZE.board.w / 2, 0); paintBoardAd(ctx, o.ad, SIZE.board.w, SIZE.board.h, p);
-    }, true); return;
+    case 'billboard': {
+      const { w, h, z } = SIZE.boards[o.size];
+      board(ctx, v, o, w, z, z + h, p.bill, () => { ctx.translate(-w / 2, 0); paintAd(ctx, o.ad, o.size, w, h, p); }, true);
+      return;
+    }
     case 'lamp': {
       const b = billboard(v, o.x, o.y, 0), t = billboard(v, o.x, o.y, 40);
       if (!b || !t) return;

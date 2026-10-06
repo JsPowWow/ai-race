@@ -21,7 +21,7 @@ export function cssColor(name: string): string {
 }
 
 /** Цвета холста — из CSS-переменных, для текущей темы */
-export type Palette = Record<'board' | 'road' | 'roadEdge' | 'seam' | 'skid' | 'marking' | 'kerb' | 'kerb2' | 'sign' | 'signOff' | 'slow' | 'checkLight' | 'checkDark' | 'you' | 'ray' | 'rayHit' | 'traffic' | 'trafficOncoming' | 'trafficEdge' | 'crashed' | 'tree' | 'tree2' | 'house' | 'roof' | 'roof2' | 'panel' | 'window' | 'sky' | 'sky2', string> & DecorPalette;
+export type Palette = Record<'board' | 'road' | 'roadEdge' | 'skid' | 'marking' | 'kerb' | 'kerb2' | 'sign' | 'signOff' | 'slow' | 'checkLight' | 'checkDark' | 'you' | 'ray' | 'rayHit' | 'traffic' | 'trafficOncoming' | 'trafficEdge' | 'crashed' | 'tree' | 'tree2' | 'house' | 'roof' | 'roof2' | 'panel' | 'window' | 'sky' | 'sky2', string> & DecorPalette;
 /** Цвета остального декора: паддок, трибуны, зрители и цветы, шины, щиты, вода, кусты, фонари */
 type DecorPalette = Record<'pad' | 'stand' | 'crowd1' | 'crowd2' | 'crowd3' | 'crowd4' | 'tire' | 'bill' | 'billInk' | 'lightOff' | 'water' | 'waterEdge' | 'bush' | 'soil' | 'lamp', string>;
 
@@ -30,7 +30,7 @@ let palette: Palette | null = null;
 export function readPalette(): Palette {
   const v = cssColor;
   palette = {
-    board: v('--board'), road: v('--road'), roadEdge: v('--road-edge'), seam: v('--seam'), skid: v('--skid'), marking: v('--marking'),
+    board: v('--board'), road: v('--road'), roadEdge: v('--road-edge'), skid: v('--skid'), marking: v('--marking'),
     kerb: v('--kerb'), kerb2: v('--kerb-2'), sign: v('--sign'), signOff: v('--sign-off'), slow: v('--slow'), checkLight: v('--check-light'), checkDark: v('--check-dark'),
     you: v('--you'), ray: v('--ray'), rayHit: v('--ray-hit'),
     traffic: v('--traffic'), trafficOncoming: v('--traffic-oncoming'), trafficEdge: v('--traffic-edge'), crashed: v('--crashed'),
@@ -121,12 +121,11 @@ function roadPath(ctx: Ctx, { left, right }: Road): void {
 }
 
 const KERB = 5;     // высота бордюра, px
-const SECTION = 150; // длина одной секции игрушечной трассы, px — между швами
 const KERB_DASH = 16; // длина красного и белого блока бордюра, px
 const DASH = [20, 28]; // пунктир между полосами: штрих и просвет, px. Вместе 48 — делит круг стенда (2400), стыка не видно
 
 /**
- * Игрушечная трасса: серые секции со швами, разметка на три полосы, пластиковые бордюры.
+ * Игрушечная трасса: асфальт одним полотном, разметка на три полосы, пластиковые бордюры.
  * tick — тик заезда: от него зависит, где на островах медленная зона и что горит на знаке.
  */
 export function drawTrack(ctx: Ctx, track: Track, cam: Camera, tick = 0): void {
@@ -164,10 +163,8 @@ function drawGround(ctx: Ctx, track: Track, cam: View, p: Palette, tick: number 
     for (const road of roads) { roadPath(ctx, road); ctx.fill(); }
     ctx.globalAlpha = 1;
   }
-  drawSkids(ctx, track, p); // следы шин — под швами и разметкой: разметка должна читаться
+  drawSkids(ctx, track, p); // следы шин — под разметкой: разметка должна читаться
   for (const road of roads) {
-    // швы между секциями
-    for (let s = SECTION; s < road.total; s += SECTION) line(ctx, pointAt(road, s), track.width, p.seam, Math.max(2, 1.5 * px));
     // разметка: пунктир между полосами, сплошные у края. Боты едут посередине полос
     ctx.strokeStyle = p.marking;
     ctx.lineWidth = Math.max(2.5, 1.2 * px);
@@ -211,7 +208,6 @@ export function drawStraight(ctx: Ctx, run: number, half: number, width: number,
     ctx.fillStyle = grain; ctx.fillRect(-half, -width / 2, half * 2, width);
     ctx.globalAlpha = 1;
   }
-  for (let x = -half + mod(half - run, SECTION); x < half; x += SECTION) line(ctx, { x, y: 0, angle: 0 }, width, p.seam, Math.max(2, 1.5 * px));
   // разметка как в drawTrack: пунктир едет вместе с дорогой, сплошные у края
   ctx.strokeStyle = p.marking;
   ctx.lineWidth = Math.max(2.5, 1.2 * px);
