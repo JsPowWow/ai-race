@@ -4,10 +4,11 @@ import { pointAt, freeSide, signShows, LANE_WIDTH, type Track, type Road, type B
 import type { TrafficSpot } from './traffic.ts';
 import { drawScenery } from './scenery-draw.ts';
 import { TILT, RISE, lift, local, prism, cap } from './tilt.ts';
+import { mulberry32 } from './utils.ts';
 
 type Ctx = CanvasRenderingContext2D;
 /** Что нужно, чтобы нарисовать машину: где она и (если есть) что делает. Подходит и Car, и запись заезда */
-export type CarView = Pick<Car, 'x' | 'y' | 'angle'> & Partial<Pick<Car, 'status' | 'done' | 'controls' | 'steer' | 'speed' | 'rayT' | 'sensors'>>;
+export type CarView = Pick<Car, 'x' | 'y' | 'angle'> & Partial<Pick<Car, 'status' | 'done' | 'controls' | 'steer' | 'speed' | 'rayT' | 'sensors' | 'roll'>>;
 /** Машина в стае финала: только место, цвет и прозрачность */
 export type PackCar = { x: number; y: number; angle: number; color: string; alpha?: number };
 
@@ -140,6 +141,13 @@ export function drawTrack(ctx: Ctx, track: Track, cam: Camera, tick = 0): void {
   ctx.restore();
   ctx.fillStyle = p.road;
   for (const road of roads) { roadPath(ctx, road); ctx.fill(); }
+  const grain = asphalt(ctx, cam.scale);
+  if (grain) {
+    grain.setTransform(new DOMMatrix()); // зерно лежит на трассе и едет вместе с ней
+    ctx.fillStyle = grain;
+    for (const road of roads) { roadPath(ctx, road); ctx.fill(); }
+    ctx.globalAlpha = 1;
+  }
   for (const road of roads) {
     // швы между секциями
     for (let s = SECTION; s < road.total; s += SECTION) line(ctx, pointAt(road, s), track.width, p.seam, Math.max(2, 1.5 * px));
@@ -166,7 +174,7 @@ export function drawTrack(ctx: Ctx, track: Track, cam: Camera, tick = 0): void {
     ctx.setLineDash([]);
     ctx.restore();
   }
-  drawScenery(ctx, track, cam, p); // после бордюров: кроны у самой обочины чуть «заваливаются» на них, как настоящие
+  drawScenery(ctx, track, cam, p, tick); // после бордюров: кроны у самой обочины чуть «заваливаются» на них, как настоящие
   track.islands.forEach((island, i) => {
     drawSlowZone(ctx, track, island, freeSide(track, i, tick), p);
     drawSign(ctx, track, island.sign, signShows(track, i, tick), Math.max(1, 0.9 * px), p);
@@ -184,6 +192,12 @@ export function drawStraight(ctx: Ctx, run: number, half: number, width: number,
   const px = 1 / cam.scale;
   ctx.fillStyle = 'rgb(0 0 0 / 0.18)'; ctx.fillRect(-half, -width / 2 + 5, half * 2, width); // тень: трасса лежит на столе
   ctx.fillStyle = p.road; ctx.fillRect(-half, -width / 2, half * 2, width);
+  const grain = asphalt(ctx, cam.scale);
+  if (grain) {
+    grain.setTransform(new DOMMatrix().translateSelf(-mod(run, GRAIN), 0)); // зерно бежит вместе с дорогой: так видно, что едем
+    ctx.fillStyle = grain; ctx.fillRect(-half, -width / 2, half * 2, width);
+    ctx.globalAlpha = 1;
+  }
   for (let x = -half + mod(half - run, SECTION); x < half; x += SECTION) line(ctx, { x, y: 0, angle: 0 }, width, p.seam, Math.max(2, 1.5 * px));
   const lanes = Math.round(width / LANE_WIDTH);
   for (let k = 0; k < lanes; k++) {
@@ -207,6 +221,49 @@ export function drawStraight(ctx: Ctx, run: number, half: number, width: number,
     }
   }
   ctx.lineDashOffset = 0;
+}
+
+/** Сторона плитки зерна асфальта, px. 2400 (повтор стенда) делится на неё нацело */
+const GRAIN = 96;
+let grainTile: CanvasImageSource | null = null;
+let grainPattern: { ctx: Ctx; pattern: CanvasPattern } | null = null;
+
+/**
+ * Зерно асфальта: светлые и тёмные крапинки и редкие камешки поверх серого — на нём видно, что машина едет, а не парит.
+ * Плитка рисуется один раз (из seed — на всех компьютерах одинаково), дальше холст повторяет её сам.
+ * Возвращает узор и ставит прозрачность; издалека (вся трасса в кадре) зерно сливается в рябь — тогда null.
+ */
+function asphalt(ctx: Ctx, scale: number): CanvasPattern | null {
+  const strength = Math.min(1, (scale - 0.5) / 0.5);
+  if (strength <= 0 || !ctx.canvas.width || !ctx.canvas.height) return null; // спрятанный холст нулевой: узор на нём не создать
+  grainTile ??= grainCanvas();
+  if (grainPattern?.ctx !== ctx) {
+    const pattern = ctx.createPattern(grainTile, 'repeat');
+    if (!pattern) return null;
+    grainPattern = { ctx, pattern };
+  }
+  ctx.globalAlpha = strength;
+  return grainPattern.pattern;
+}
+
+function grainCanvas(): CanvasImageSource {
+  const canvas = typeof OffscreenCanvas === 'function' ? new OffscreenCanvas(GRAIN, GRAIN) : Object.assign(document.createElement('canvas'), { width: GRAIN, height: GRAIN });
+  const g = canvas.getContext('2d') as Ctx | null;
+  if (!g) return canvas;
+  const rand = mulberry32(20261006);
+  // крапинка у края плитки дорисовывается и с другой стороны: на стыке плиток шва нет
+  const dot = (x: number, y: number, r: number): void => {
+    for (const dx of [-GRAIN, 0, GRAIN]) for (const dy of [-GRAIN, 0, GRAIN]) {
+      g.moveTo(x + dx + r, y + dy);
+      g.arc(x + dx, y + dy, r, 0, Math.PI * 2);
+    }
+  };
+  for (const [count, size, color] of [[520, 0.55, 'rgb(255 255 255 / 0.10)'], [520, 0.6, 'rgb(0 0 0 / 0.16)'], [40, 1.2, 'rgb(255 255 255 / 0.09)'], [30, 1.4, 'rgb(0 0 0 / 0.12)']] as const) {
+    g.beginPath();
+    for (let i = 0; i < count; i++) dot(rand() * GRAIN, rand() * GRAIN, size * (0.6 + rand() * 0.8));
+    g.fillStyle = color; g.fill();
+  }
+  return canvas;
 }
 
 /** Остаток от деления, всегда ≥ 0 — для повторяющихся узоров */
@@ -315,6 +372,8 @@ const CABIN_TOP: Shape = [[L * 0.02, -W * 0.3], [L * 0.02, W * 0.3], [-L * 0.22,
 const BOX: Shape = [[L / 2, -W / 2], [L / 2, W / 2], [-L / 2, W / 2], [-L / 2, -W / 2]];
 /** Колесо: радиус и сколько шины выглядывает из-под корпуса, px. Верх колеса — вровень с корпусом */
 const TYRE = { r: 4.6, w: 3.6, y: W / 2 + 1 };
+/** Быстрее этого (радиан за тик) спицы уже не видны по отдельности: у трёх спиц предел — шестая часть оборота */
+const SPOKE_BLUR = 1.0;
 const RUBBER = '#18191d', SIDEWALL = '#2c2e34', RIM = '#cdd2d9', HUB = '#6f7680';
 
 const outline = (car: CarView, shape: Shape, k = 1): Point[] => shape.map(([x, y]) => local(car, x * k, y * k));
@@ -416,8 +475,32 @@ function wheel(ctx: Ctx, car: CarView, x: number, side: number, turn: number, ne
   ctx.beginPath(); disc(ctx, back, fx, fy, r); ctx.fill();
   ctx.beginPath(); disc(ctx, front, fx, fy, r); ctx.fillStyle = SIDEWALL; ctx.fill();
   if (!near) return;
-  ctx.beginPath(); disc(ctx, { x: front.x, y: front.y }, fx, fy, r * 0.58); ctx.fillStyle = RIM; ctx.fill();
+  ctx.beginPath(); disc(ctx, { x: front.x, y: front.y }, fx, fy, r * 0.66); ctx.fillStyle = RIM; ctx.fill();
+  spokes(ctx, front, fx, fy, r * 0.66, car);
   ctx.beginPath(); disc(ctx, { x: front.x, y: front.y }, fx, fy, r * 0.24); ctx.fillStyle = HUB; ctx.fill();
+}
+
+/**
+ * Три спицы диска. Колесо катится без проскальзывания: повернулось на пробег / радиус шины.
+ * На большой скорости спицы за кадр поворачиваются почти на треть оборота — глаз видит, будто колесо
+ * крутится назад (как в кино). Поэтому быстрые спицы «смазываются» в ровный диск — как у настоящего колеса.
+ */
+function spokes(ctx: Ctx, at: Point, fx: number, fy: number, r: number, car: CarView): void {
+  const step = Math.abs(car.speed ?? 0) / TYRE.r; // на сколько радиан колесо поворачивается за тик
+  const sharp = car.done ? 1 : Math.min(1, Math.max(0, (SPOKE_BLUR - step) / 0.45));
+  if (sharp <= 0) return;
+  const turn = -(car.roll ?? 0) / TYRE.r; // вперёд — верх колеса уходит вперёд
+  // точка диска: u — вдоль хода колеса, v — вверх; так же, как в disc()
+  const point = (u: number, v: number): Point => ({ x: at.x + fx * r * u, y: at.y + fy * r * u - RISE * r * v });
+  ctx.beginPath();
+  for (let k = 0; k < 3; k++) {
+    const a = turn + (k * 2 * Math.PI) / 3;
+    const p = point(Math.cos(a), Math.sin(a));
+    ctx.moveTo(at.x, at.y); ctx.lineTo(p.x, p.y);
+  }
+  ctx.lineWidth = 1.6; ctx.lineCap = 'round';
+  ctx.strokeStyle = `rgb(48 52 60 / ${sharp.toFixed(2)})`; ctx.stroke();
+  ctx.lineCap = 'butt';
 }
 
 /** Колёса одного бока машины: дальние рисуем до корпуса, ближние — после его боков */

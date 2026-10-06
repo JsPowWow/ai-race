@@ -10,7 +10,9 @@ type Ctx = CanvasRenderingContext2D;
 const SHADOW = { x: 3, y: 5 }; // тень падает туда же, куда у трассы: свет сверху слева
 const WALL = 13, ROOF = 9;     // высота стен и конька над ними, px
 
-export function drawScenery(ctx: Ctx, track: Track, cam: Camera, p: Palette): void {
+/** tick — тик заезда: от него крутится то, что движется (ветряк); на заезд декор не влияет */
+export function drawScenery(ctx: Ctx, track: Track, cam: Camera, p: Palette, tick = 0): void {
+  void tick;
   const { trees, houses } = sceneryOf(track);
   // что попало в кадр — с запасом на крону, высоту и тень
   const halfW = ctx.canvas.width / 2 / cam.scale + 60, halfH = ctx.canvas.height / 2 / (cam.scale * TILT) + 80;

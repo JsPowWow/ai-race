@@ -97,6 +97,8 @@ export class Car {
   zone: { island: number; side: Side } | null; slow: boolean; slowdowns: number;
   segIdx: number; s: number; bestS: number; lastImprove: number;
   distance: number; wiggle: number; prevSteer: number;
+  /** Пробег со знаком (назад — минус): по нему крутятся колёса на рисунке, на заезд не влияет */
+  roll: number;
   crashSpeed: number; crashedInto: 'car' | 'wall' | null; topSpeed: number; finishTick: number | null;
 
   /** Без brain машиной управляют руками (controls) */
@@ -132,6 +134,7 @@ export class Car {
     this.bestS = track.startS;
     this.lastImprove = 0;
     this.distance = 0;
+    this.roll = 0;
     this.wiggle = 0;
     this.prevSteer = 0;
     this.crashSpeed = 0;
@@ -233,6 +236,7 @@ export class Car {
     this.x += Math.cos(this.angle) * this.speed + arm * (Math.cos(this.angle) - Math.cos(before));
     this.y += Math.sin(this.angle) * this.speed + arm * (Math.sin(this.angle) - Math.sin(before));
     this.distance += Math.abs(this.speed);
+    this.roll += this.speed;
     this.topSpeed = Math.max(this.topSpeed, this.speed);
   }
 

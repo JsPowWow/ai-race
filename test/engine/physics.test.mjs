@@ -77,3 +77,14 @@ test('поворачивает, как настоящая машина: задн
     assert.ok(Math.abs(sideways) < 0.05, `задняя ось сдвинулась вбок на ${sideways.toFixed(3)} px`);
   }
 });
+
+test('пробег для колёс: вперёд растёт ровно на пройденный путь, задним ходом убывает', () => {
+  const car = new Car(track);
+  ticksUntil(car, { gas: 1 }, (c) => c.speed >= 3);
+  assert.ok(Math.abs(car.roll - car.distance) < 1e-9, 'вперёд колёса катятся ровно на пройденный путь — без проскальзывания');
+  const forward = car.roll;
+  car.speed = -1;
+  Object.assign(car.controls, { gas: 0, brake: 0 });
+  car.move();
+  assert.ok(car.roll < forward, 'назад — колёса крутятся в другую сторону');
+});

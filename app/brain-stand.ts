@@ -95,7 +95,7 @@ export function createStand(canvas: HTMLCanvasElement, file: { color: string }):
     shiftDecor(trees, strip.trees);
     shiftDecor(houses, strip.houses);
     drawDecor(ctx, trees.filter((t) => Math.abs(t.x) < half), houses.filter((h) => Math.abs(h.x) < half), getPalette());
-    drawCar(ctx, { ...view, status: car.status, done: car.done, controls: car.controls, steer: car.steer, speed: car.speed, rayT: car.rayT, sensors: car.sensors }, { color: file.color, sensors: true, number: 1 });
+    drawCar(ctx, { ...view, status: car.status, done: car.done, controls: car.controls, steer: car.steer, speed: car.speed, roll: car.roll, rayT: car.rayT, sensors: car.sensors }, { color: file.color, sensors: true, number: 1 });
     // зажатые сенсоры: у конца — красная «стена», в которую он упёрся
     ctx.strokeStyle = cssColor('--kerb');
     ctx.lineWidth = 5;
