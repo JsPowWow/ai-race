@@ -2,7 +2,8 @@
 // не уезжает — поэтому можно спокойно зажать сенсор и посмотреть, что сделает мозг.
 // Сенсоры видят настоящую «Разминку», а рисуем бесконечную прямую с лесом: она повторяется через PERIOD px,
 // и на этом шаге совпадают швы, полоски бордюра и деревья — стыка не видно, а пробег не растёт без конца.
-import { Camera, fitCanvas, clear, drawStraight, drawCar, cssColor, getPalette } from '../engine/render.ts';
+import { Camera, fitCanvas, clear, drawStraight, cssColor, getPalette } from '../engine/render.ts';
+import { drawCar } from '../engine/car-draw.ts';
 import { drawDecor } from '../engine/scenery-draw.ts';
 import { stripScenery, type Tree, type House } from '../engine/scenery.ts';
 import { Car } from '../engine/car.ts';

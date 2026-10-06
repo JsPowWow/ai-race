@@ -9,7 +9,7 @@ import type { Brain } from '../../engine/brain.ts';
 import { withTraffic } from '../../engine/traffic.ts';
 import { state, sizesOf, thinkFn } from '../state.ts';
 import { live } from '../student-code.ts';
-import { drawScene, paintCar, trafficOn, setHud } from '../stage.ts';
+import { drawRide, trafficOn, setHud } from '../stage.ts';
 import { createBrainBoard, type BrainBoard } from '../brain-board/board.ts';
 import { SMOOTH, ANY_ACT } from '../brain-board/formula.ts';
 import { element } from '../dom.ts';
@@ -50,8 +50,7 @@ export const profileTab = {
   frame() {
     if (car.done) car = newCar();
     car.step(track, Infinity, trafficOn(track, car.ticks));
-    drawScene(track, { camera: 'follow', follow: car, traffic: trafficOn(track, car.ticks), tick: car.ticks });
-    paintCar(car, { color: state.profile.color, sensors: true, number: 1 });
+    drawRide(track, { me: { car, color: state.profile.color }, traffic: trafficOn(track, car.ticks), tick: car.ticks });
     showBrain();
     const readings = car.readings.map((v) => v.toFixed(2));
     const front = car.sensors.count;

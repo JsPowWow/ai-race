@@ -3,7 +3,8 @@
 // Деревья, кусты и шины рисуем слоями — все тени, потом все стволы, потом ярус за ярусом: несколько заливок за кадр вместо сотен.
 import { sceneryOf, houseRadius, SIZE, type Tree, type House, type Prop, type Dot, type Parked } from './scenery.ts';
 import { TILT, RISE, lift, local, prism } from './tilt.ts';
-import { UI_FONT, type Camera, type Palette } from './render.ts';
+import { UI_FONT, type Palette } from './render.ts';
+import type { View } from './track-cache.ts';
 import type { Track, Point } from './track.ts';
 
 type Ctx = CanvasRenderingContext2D;
@@ -37,22 +38,40 @@ export function setSceneryMotion(on: boolean): void {
 /** Можно ли декору двигаться — для вида из машины */
 export const sceneryMoves = (): boolean => motion;
 
-/** tick — тик заезда: от него крутится то, что движется (ветряк); на заезд декор не влияет */
-export function drawScenery(ctx: Ctx, track: Track, cam: Camera, p: Palette, tick = 0): void {
+/**
+ * tick — тик заезда: от него крутится то, что движется (ветряк); на заезд декор не влияет.
+ * tick = null — декор без лопастей ветряков: это неподвижный слой, лопасти докрутит drawBlades() поверх
+ */
+export function drawScenery(ctx: Ctx, track: Track, cam: View, p: Palette, tick: number | null = 0): void {
   const { trees, houses, bushes, props } = sceneryOf(track);
-  // что попало в кадр — с запасом на крону, высоту и тень; большим предметам (трибуна, паддок) — запас побольше
-  const halfW = ctx.canvas.width / 2 / cam.scale + 60, halfH = ctx.canvas.height / 2 / (cam.scale * TILT) + 80;
-  const seen = (o: Point): boolean => Math.abs(o.x - cam.x) < halfW && Math.abs(o.y - cam.y) < halfH;
-  const seenWide = (o: Point): boolean => Math.abs(o.x - cam.x) < halfW + 80 && Math.abs(o.y - cam.y) < halfH + 60;
+  const { seen, seenWide } = inFrame(ctx, cam);
   // вся трасса целиком — предметы мелкие: мелочь (кабины машинок, стыки шин) не видна, её и не рисуем
-  drawDecor(ctx, trees.filter(seen), houses.filter(seen), p, { bushes: bushes.filter(seen), props: props.filter(seenWide), tick, fine: cam.scale >= 1 });
+  drawDecor(ctx, trees.filter(seen), houses.filter(seen), p, { bushes: bushes.filter(seen), props: props.filter(seenWide), tick: tick ?? 0, blades: tick !== null, fine: cam.scale >= 1 });
 }
+
+/** Лопасти ветряков на тике tick — поверх неподвижного слоя, нарисованного drawScenery(…, null) */
+export function drawBlades(ctx: Ctx, track: Track, cam: View, p: Palette, tick: number): void {
+  const { seenWide } = inFrame(ctx, cam);
+  for (const o of sceneryOf(track).props) if (o.kind === 'windmill' && seenWide(o)) blades(ctx, o, p, turnAt(tick));
+}
+
+/** Что попало в кадр — с запасом на крону, высоту и тень; большим предметам (трибуна, паддок) — запас побольше */
+function inFrame(ctx: Ctx, cam: View): { seen: (o: Point) => boolean; seenWide: (o: Point) => boolean } {
+  const halfW = ctx.canvas.width / 2 / cam.scale + 60, halfH = ctx.canvas.height / 2 / (cam.scale * TILT) + 80;
+  return {
+    seen: (o) => Math.abs(o.x - cam.x) < halfW && Math.abs(o.y - cam.y) < halfH,
+    seenWide: (o) => Math.abs(o.x - cam.x) < halfW + 80 && Math.abs(o.y - cam.y) < halfH + 60,
+  };
+}
+
+/** На сколько повернулись лопасти к тику tick (рад) */
+const turnAt = (tick: number): number => (motion ? tick * 0.035 : 0);
 
 /**
  * Нарисовать готовый список декора (уже отобранный по кадру). Списки сортирует на месте: дальние — первыми, ближние их загораживают.
  * Сначала плоское (пруд, клумбы, площадка паддока), потом высокое вперемешку с лесом — по глубине.
  */
-export function drawDecor(ctx: Ctx, trees: Tree[], houses: House[], p: Palette, more: { bushes?: Tree[]; props?: Prop[]; tick?: number; fine?: boolean } = {}): void {
+export function drawDecor(ctx: Ctx, trees: Tree[], houses: House[], p: Palette, more: { bushes?: Tree[]; props?: Prop[]; tick?: number; blades?: boolean; fine?: boolean } = {}): void {
   const props = more.props ?? [], fine = more.fine ?? true;
   drawGround(ctx, props, p);
   const soft: Soft[] = [...trees, ...(more.bushes ?? [])];
@@ -70,7 +89,7 @@ export function drawDecor(ctx: Ctx, trees: Tree[], houses: House[], p: Palette, 
     while (i < soft.length && soft[i].y < o.y) pending.push(soft[i++]);
     const reach = reachOf(o);
     if (pending.some((t) => Math.abs(t.x - o.x) < reach + t.r)) { drawTrees(ctx, pending, p, fine); pending = []; }
-    drawSolid(ctx, o, p, more.tick ?? 0, fine);
+    drawSolid(ctx, o, p, more.tick ?? 0, fine, more.blades ?? true);
   }
   while (i < soft.length) pending.push(soft[i++]);
   drawTrees(ctx, pending, p, fine);
@@ -88,7 +107,7 @@ function reachOf(o: Solid): number {
   }
 }
 
-function drawSolid(ctx: Ctx, o: Solid, p: Palette, tick: number, fine: boolean): void {
+function drawSolid(ctx: Ctx, o: Solid, p: Palette, tick: number, fine: boolean, withBlades: boolean): void {
   if (!('kind' in o)) { drawHouse(ctx, o, p); return; }
   switch (o.kind) {
     case 'lights': drawLights(ctx, o, p); break;
@@ -97,7 +116,7 @@ function drawSolid(ctx: Ctx, o: Solid, p: Palette, tick: number, fine: boolean):
     case 'chevron': drawChevron(ctx, o, p); break;
     case 'billboard': drawBillboard(ctx, o, p); break;
     case 'lamp': drawLamp(ctx, o, p); break;
-    case 'windmill': drawWindmill(ctx, o, p, motion ? tick * 0.035 : 0); break;
+    case 'windmill': drawWindmill(ctx, o, p); if (withBlades) blades(ctx, o, p, turnAt(tick)); break;
     default: break;
   }
 }
@@ -388,13 +407,19 @@ function drawLamp(ctx: Ctx, o: Placed, p: Palette): void {
 }
 
 /** Ветряк: белая башня, на ней гондола и четыре лопасти. turn — угол поворота лопастей */
-function drawWindmill(ctx: Ctx, o: Extract<Prop, { kind: 'windmill' }>, p: Palette, turn: number): void {
+type Windmill = Extract<Prop, { kind: 'windmill' }>;
+
+function drawWindmill(ctx: Ctx, o: Windmill, p: Palette): void {
   const base = { x: o.x, y: o.y, angle: 0 };
   ctx.beginPath(); ctx.ellipse(o.x + SHADOW.x * 2, o.y + SHADOW.y * 1.5, 10, 6, 0, 0, Math.PI * 2);
   ctx.fillStyle = 'rgb(0 0 0 / 0.16)'; ctx.fill();
   box(ctx, base, -7, 7, -7, 7, 0, 24, null, p.house);
   box(ctx, base, -5, 5, -5, 5, 24, 46, p.roof, p.house);
   box(ctx, base, -3.5, 3.5, -4, 8, 46, 52, p.roof2, p.roof2);
+}
+
+/** Лопасти ветряка, повёрнутые на turn */
+function blades(ctx: Ctx, o: Windmill, p: Palette, turn: number): void {
   // лопасти крутятся в плоскости лицом к нам: вбок — x, вверх — высота
   const hubZ = 49, y = o.y + 8, L = SIZE.windmill - 2;
   const at = (u: number, z: number): Point => lift(o.x + u, y, hubZ + z);

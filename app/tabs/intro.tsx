@@ -2,7 +2,8 @@
 // Почти вся страница — статичный текст в app/markup.html: его удобно читать и править как документ.
 // Здесь — то, что живёт: демо-заезд, стенд с табло мозга и фрагмент настоящего файла бота (он строится из данных бота).
 import { mount } from '@reely/dommy';
-import { Camera, fitCanvas, clear, drawTrack, drawTraffic, drawCar } from '../../engine/render.ts';
+import { Camera, fitCanvas, clear, drawTrack } from '../../engine/render.ts';
+import { drawTraffic, drawCar } from '../../engine/car-draw.ts';
 import { withTraffic, trafficAt } from '../../engine/traffic.ts';
 import { Car, maxTicksFor } from '../../engine/car.ts';
 import { parseCarFile } from '../../engine/car-file.ts';

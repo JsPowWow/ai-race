@@ -8,7 +8,7 @@
   pointer-events: none;
 }
 body:not([data-tab="teach"]) .pad { display: none; }
-.pad > div { display: flex; gap: 12px; pointer-events: auto; }
+.pad-steer, .pad-pedals { display: flex; gap: 12px; pointer-events: auto; }
 .pad-pedals { flex-direction: column; align-items: center; }
 .pad button {
   inline-size: 64px; block-size: 64px; border-radius: 50%;
@@ -26,7 +26,7 @@ body:not([data-tab="teach"]) .pad { display: none; }
 
 /* Джойстик (app/joystick.ts): гнездо из тёмного пластика, в нём ручка. Палец ставишь куда угодно в полосе —
    гнездо встаёт под него. Засечки по краю горят, как кнопки пульта: газ — красным, тормоз и руль — жёлтым */
-.stick { display: none; position: relative; flex: 1; align-self: stretch; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.stick { display: none; pointer-events: auto; position: relative; flex: 1; align-self: stretch; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 .stick-base {
   position: absolute; left: 50%; top: 50%; translate: -50% -50%; inline-size: 92px; block-size: 92px; border-radius: 50%;
   background: var(--hud-bg); border: 1px solid var(--line); box-shadow: inset 0 3px 8px rgb(0 0 0 / 0.45), var(--shadow-lift);

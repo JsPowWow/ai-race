@@ -14,7 +14,7 @@ import { state, thinkFn, on, emit } from '../state.ts';
 import { live } from '../student-code.ts';
 import { runs, addRun, sampleCount, MAX_SAMPLES, type RunStatus } from '../runs.ts';
 import { steerWith } from '../manual-drive.ts';
-import { drawScene, drawCockpitScene, setStageLabel, paintCar, trafficOn, setHud, lapText, showBanner } from '../stage.ts';
+import { drawRide, trafficOn, setHud, lapText, showBanner } from '../stage.ts';
 import { secs, pct } from '../ui.ts';
 import { element } from '../dom.ts';
 import { BrainLibrary } from '../components/brain-library.tsx';
@@ -24,7 +24,7 @@ import { Runs } from './teach-runs.tsx';
 import { trainStep, redrawLoss, lessonTrack, duel } from './teach-learn.tsx';
 import { createMicroscope } from './network-editor.tsx';
 import { Tries } from '../components/tries.tsx';
-import { makeGhost, stepGhost, paintGhost, ghostGap, type Ghost } from './teach-ghost.ts';
+import { makeGhost, stepGhost, ghostGap, type Ghost } from './teach-ghost.ts';
 import { controlNames } from '../variants.ts';
 import { ViewSwitch, SoundSwitch, cockpitOn, soundOn } from './teach-view.tsx';
 import { hearFrame } from '../engine-sound.ts';
@@ -106,24 +106,16 @@ function drive(): void {
   }
   const me = mode.peek() === 'me';
   const color = me ? state.profile.color : cssColor('--brain'); // едет мозг — машина синяя, цвета мозга
-  if (cockpitOn()) {
-    drawCockpitScene(track, {
-      me: { car, color }, traffic, tick: car.ticks,
-      ghost: ghost && { car: ghost.car, color: ghost.color(), alpha: 0.4, label: ghost.label },
-    });
-    setStageLabel('Трасса, вид из машины');
-    aimStick(null); // из машины «вперёд» — всегда вверх по экрану
-    hearFrame(soundOn() ? {
-      me: { x: car.x, y: car.y, angle: car.angle, speed: car.speed, gas: Math.min(1, car.controls.gas), done: car.done },
-      others: [...(traffic ?? []), ...(ghost ? [{ x: ghost.car.x, y: ghost.car.y, speed: ghost.car.speed, loud: 0.6 }] : [])],
-    } : null);
-  } else {
-    hearFrame(null);
-    aimStick(Math.atan2(Math.sin(car.angle) * TILT, Math.cos(car.angle))); // сверху: куда машина смотрит на экране (пол сжат по высоте)
-    drawScene(track, { camera: 'follow', follow: car, traffic, tick: car.ticks });
-    paintGhost(ghost);
-    paintCar(car, { color, sensors: true, number: 1 });
-  }
+  drawRide(track, {
+    me: { car, color }, traffic, tick: car.ticks,
+    ghost: ghost && { car: ghost.car, color: ghost.color(), alpha: 0.4, label: ghost.label },
+  }, cockpitOn() ? 'cockpit' : 'top');
+  // стик: из машины «вперёд» — всегда вверх по экрану; сверху — куда машина смотрит на экране (пол сжат по высоте)
+  aimStick(cockpitOn() ? null : Math.atan2(Math.sin(car.angle) * TILT, Math.cos(car.angle)));
+  hearFrame(soundOn() ? {
+    me: { x: car.x, y: car.y, angle: car.angle, speed: car.speed, gas: Math.min(1, car.controls.gas), done: car.done },
+    others: [...(traffic ?? []), ...(ghost ? [{ x: ghost.car.x, y: ghost.car.y, speed: ghost.car.speed, loud: 0.6 }] : [])],
+  } : null); // звук — только из машины: soundOn() это уже учитывает
   setHud([
     me ? (recording ? `<b class="rec">запись</b> ${recording.length}` : 'рулишь <b class="word">ты</b>') : 'рулит <b class="word">мозг</b>',
     `скорость <b>${car.speed.toFixed(1)}</b>`,

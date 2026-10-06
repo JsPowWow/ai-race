@@ -1,5 +1,6 @@
 // Холст с трассой: камера, отрисовка сцены, подсказки поверх (HUD, баннер).
-import { Camera, fitCanvas, clear, drawTrack, drawTraffic, drawCar, drawSensors, drawPack, type CarView, type CarLook, type PackCar } from '../engine/render.ts';
+import { Camera, fitCanvas, clear, drawTrack } from '../engine/render.ts';
+import { drawTraffic, drawCar, drawSensors, drawPack, type CarView, type CarLook, type PackCar } from '../engine/car-draw.ts';
 import { TILT } from '../engine/tilt.ts';
 import { Chase, viewOf, CHASE } from '../engine/cockpit.ts';
 import { drawCockpit, type CockpitScene } from '../engine/cockpit-draw.ts';
@@ -84,14 +85,26 @@ export function drawScene(track: Track, { camera = 'fit', follow = null, traffic
 }
 
 const chase = new Chase();
+/** Откуда смотреть на заезд: сверху, камерой за машиной, — или из машины (#25) */
+export type RideView = 'top' | 'cockpit';
+
 /**
- * Вид из машины (#25): камера позади машины scene.me, всё — по глубине. Машины вкладка не рисует сама:
- * в перспективе дерево может стоять перед машиной, поэтому всё высокое рисуется одним списком
+ * Кадр заезда за одной машиной: scene.me с сенсорами и номером, полупрозрачный призрак, трафик.
+ * Одна сцена — оба вида. Из машины всё высокое (машины, деревья) рисуется одним списком по глубине:
+ * в перспективе дерево может стоять перед машиной, поэтому машины вкладка поверх не дорисовывает
  */
-export function drawCockpitScene(track: Track, scene: CockpitScene): void {
-  fitViewport(track, 'follow');
-  chase.follow(scene.me.car, calm.matches ? CHASE.calm : CHASE.smooth); // меньше движения — камера поворачивает мягче
-  drawCockpit(ctx, track, viewOf(chase, canvas), { ...scene, dpr });
+export function drawRide(track: Track, scene: CockpitScene, view: RideView = 'top'): void {
+  const { me, ghost, traffic = null, tick = 0 } = scene;
+  if (view === 'cockpit') {
+    fitViewport(track, 'follow');
+    setStageLabel('Трасса, вид из машины');
+    chase.follow(me.car, calm.matches ? CHASE.calm : CHASE.smooth); // меньше движения — камера поворачивает мягче
+    drawCockpit(ctx, track, viewOf(chase, canvas), { ...scene, dpr });
+    return;
+  }
+  drawScene(track, { camera: 'follow', follow: me.car, traffic, tick });
+  if (ghost) paintCar(ghost.car, { color: ghost.color, alpha: ghost.alpha, label: ghost.label });
+  paintCar(me.car, { color: me.color, sensors: true, number: 1 });
 }
 
 /** Подпись холста для читалки экрана: какой вид сейчас */

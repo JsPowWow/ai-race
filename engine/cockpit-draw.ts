@@ -3,7 +3,8 @@
 // потом всё, у чего есть высота (бордюры, лес, дома, машины), — от дальнего к ближнему, как художник. Последними — лучи и своя машина.
 // Камера и проекция — engine/cockpit.ts. Что не видно (позади, дальше тумана, сбоку от обзора), не рисуем вовсе.
 import { clipNear, project, toCamera, type View, type ScreenPoint } from './cockpit.ts';
-import { getPalette, UI_FONT, type CarView, type Palette } from './render.ts';
+import { getPalette, UI_FONT, type Palette } from './render.ts';
+import type { CarView } from './car-draw.ts';
 import { pointAt, freeSide, signShows, type Track, type Branch, type Point, type RoadPoint, type Island } from './track.ts';
 import { sceneryOf, SIZE, type Tree, type House, type Prop, type Dot } from './scenery.ts';
 import { startLights, sceneryMoves } from './scenery-draw.ts';

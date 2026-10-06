@@ -72,6 +72,7 @@ for (const screen of SCREENS) {
     const { page, problems, close } = await openPage(screen);
     await page.goto(`${base}#teach`);
     await page.waitForFunction(() => document.body.dataset.tab === 'teach');
+    if (!screen.hasTouch) assert.ok(await page.isHidden('#stick') && await page.isVisible('.pad .gas'), 'с мышью — кнопки пульта, джойстика нет');
     await page.click('#dView');
     assert.equal(await page.getAttribute('#dView', 'aria-pressed'), 'true');
     await page.waitForFunction(() => document.querySelector('#stage').getAttribute('aria-label') === 'Трасса, вид из машины');

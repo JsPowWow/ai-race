@@ -3,7 +3,7 @@
 import { REC_EVERY, REC_FIELDS } from '../../engine/rally.ts';
 import type { StageResult } from '../../engine/rally.ts';
 import { UI_FONT } from '../../engine/render.ts';
-import type { PackCar } from '../../engine/render.ts';
+import type { PackCar } from '../../engine/car-draw.ts';
 import { maxCurve } from '../../engine/car.ts';
 import type { Track } from '../../engine/track.ts';
 import { paintCar, paintPack, paintScreen, toScreen } from '../stage.ts';
