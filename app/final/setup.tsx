@@ -1,13 +1,12 @@
-// Панель финала, шаги 1 и 2: работы участников (файлы, ключ, замечания, аватары) и секретная фраза с расчётом.
+// Панель финала, шаги 1 и 2: работы участников (файлы, ключ, замечания) и секретная фраза с расчётом.
 // Эти секции прячутся в режиме трансляции (класс setup, см. app/styles/final.css).
 import { For, Show } from '@reely/dommy';
 import type { ReelyNode } from '@reely/dommy';
-import { avatarUrl } from '../../engine/car-file.ts';
 import { readFileList } from './entries.ts';
 import type { FinalEntry } from './entries.ts';
 import {
-  pool, allowed, racers, avatarsOn, hiddenAvatars, keyNote, newKeysNote,
-  loadFiles, chooseKey, makeNewKeys, toggleAllowed, toggleAvatar,
+  pool, allowed, racers, keyNote, newKeysNote,
+  loadFiles, chooseKey, makeNewKeys, toggleAllowed,
 } from './works.ts';
 import { calc, computing, progress, computeNote, secret, compute, troubles } from './calc.ts';
 
@@ -92,32 +91,6 @@ function Findings(): Node {
   );
 }
 
-/** Аватары перед стримом: щелчок прячет картинку на трансляции */
-function Gallery(): Node {
-  const withAvatar = () => pool.value.entries.filter((e) => e.avatar);
-  return (
-    <details id="fGalleryBox" hidden={() => !withAvatar().length}>
-      <summary>Аватары — проверить перед стримом</summary>
-      <p className="hint">Щёлкни картинку, чтобы скрыть её на трансляции.</p>
-      <div className="gallery" id="fGallery">
-        <For each={withAvatar} by={(e) => e.id}>
-          {(entry) => {
-            const id = entry().id; // id — ключ строки, у неё он не меняется
-            const hidden = () => hiddenAvatars.value.has(id);
-            return (
-              <button data-av={id} className={() => (hidden() ? 'off' : '')} title={() => entry().author} onClick={() => toggleAvatar(id)}>
-                {/* картинка через <img>: скрипты из SVG так не выполняются */}
-                <img className="avatar" src={() => avatarUrl(entry().avatar) ?? ''} alt="" loading="lazy" />
-                <span>{() => entry().author}</span>
-              </button>
-            );
-          }}
-        </For>
-      </div>
-    </details>
-  );
-}
-
 function Works(): Node {
   return (
     <section className="block setup">
@@ -141,9 +114,6 @@ function Works(): Node {
         <div><dt>Одинаковых</dt><dd id="fTwins">{() => pool.value.twins.reduce((n, g) => n + g.length, 0)}</dd></div>
       </dl>
       <Findings />
-      <label className="check">
-        <input type="checkbox" id="fAvatars" checked={avatarsOn} onChange={(e) => (avatarsOn.value = e.currentTarget.checked)} /> Показывать аватары
-      </label>
       <details className="notes">
         <summary>Ключи курса</summary>
         <p className="hint">Студенты запечатывают файл для сдачи открытым ключом курса из <code>course-key.json</code> в репозитории. Открыть его можно только секретным ключом — он хранится у кураторов, в репозиторий его не кладут. Секретный ключ используется только здесь, в браузере, и никуда не отправляется.</p>
@@ -151,7 +121,6 @@ function Works(): Node {
         <button className="btn small" id="fNewKeys" onClick={makeNewKeys}>Создать новые ключи курса</button>
         <p className="note" id="fNewKeysNote" aria={{ role: 'status' }}>{newKeysNote}</p>
       </details>
-      <Gallery />
     </section>
   );
 }

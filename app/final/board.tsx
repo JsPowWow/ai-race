@@ -3,7 +3,6 @@
 // меняются только её текст и место в списке, а не вся таблица.
 import { For, Show, computed, signal, untracked } from '@reely/dommy';
 import { STAGES, isSuperfinal, stageLabel } from '../../engine/rally.ts';
-import { avatarUrl } from '../../engine/car-file.ts';
 import { saveFile } from '../download.ts';
 import { resultText, toCsv, toJson, toMarkdown } from './export.ts';
 import { countStatuses } from './show.ts';
@@ -11,7 +10,7 @@ import type { StageReplay } from './show.ts';
 import type { StageResult } from '../../engine/rally.ts';
 import { calc } from './calc.ts';
 import type { Calc } from './calc.ts';
-import { pool, racers, avatarShown } from './works.ts';
+import { pool, racers } from './works.ts';
 import { stage, replay, watched, boardOrder, query, found, live, boardRows } from './stream.ts';
 import type { FinalEntry } from './entries.ts';
 import { messageOf } from '@reely/basics';
@@ -114,16 +113,6 @@ export const view = computed((): BoardView => {
   return live() ? liveView() : standingsView(done, now);
 });
 
-/** Аватар участника (картинка через <img> — скрипты из SVG так не выполняются) или кружок его цвета */
-function Avatar({ entry }: { entry: () => FinalEntry }): Node {
-  const url = () => (avatarShown(entry().id) ? avatarUrl(entry().avatar) : null);
-  return (
-    <Show when={url} fallback={() => <span className="car-dot" styles={{ background: () => entry().color }} />}>
-      {(src) => <img className="avatar" src={src} alt="" loading="lazy" />}
-    </Show>
-  );
-}
-
 function RacerRow({ line }: { line: () => RacerLine }): Node {
   const entry = () => line().entry;
   const place = () => line().place;
@@ -135,7 +124,7 @@ function RacerRow({ line }: { line: () => RacerLine }): Node {
   return (
     <li className={rowClass}>
       <Show when={() => place() !== null}>{() => <span className="pos">{place}</span>}</Show>
-      <Avatar entry={entry} />
+      <span className="car-dot" styles={{ background: () => entry().color }} />
       <span className="who"><b>{() => entry().name}</b><span className="kind">{() => `@${entry().author}`}</span></span>
       <Show when={move}>
         {() => <span className={() => (move() > 0 ? 'up' : 'down')}>{() => (move() > 0 ? `▲${move()}` : `▼${-move()}`)}</span>}

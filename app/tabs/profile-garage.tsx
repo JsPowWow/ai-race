@@ -7,7 +7,7 @@ import { signal, untracked, For, Show } from '@reely/dommy';
 import { state, sizesOf, emit, on } from '../state.ts';
 import type { Profile } from '../state.ts';
 import { garage, MAX_CARS, switchCar, newCar, copyCar, deleteCar, exportCar, importCar, chooseFolder, allowFolder, stopFolder } from '../garage.ts';
-import { Avatar } from '../components/avatar.tsx';
+import { CarDot } from '../components/car-dot.tsx';
 import { saveFile, safeFileName } from '../download.ts';
 import { fromEvents } from '../signals.ts';
 import { draft, resets, applyDraft, dropDraft } from './profile-build.tsx';
@@ -146,7 +146,7 @@ function Tile({ car, biggest }: { car: () => Summary; biggest: () => number }): 
         <button className="g-tile" data-car={id} disabled={busy}
           aria={{ ariaPressed: () => String(id === shelf().id) }}
           onClick={() => id !== garage.id && leave(id, () => switchCar(id))}>
-          <span className="g-name"><Avatar look={() => car().profile} /><b>{() => nameOf(car().profile)}</b></span>
+          <span className="g-name"><CarDot look={() => car().profile} /><b>{() => nameOf(car().profile)}</b></span>
           <span className="g-meta"><span className="g-shape">{() => car().shape}</span> {() => progress(car())}</span>
           <span className="g-bar" aria={{ ariaHidden: 'true' }} styles={{ '--w': () => `${Math.max(4, (total(car()) / biggest()) * 100)}%` }}>
             {/* «[]» — пустой файл: такие части не рисуем */}

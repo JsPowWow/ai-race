@@ -182,7 +182,6 @@ function publishFlaps(freshGaps = true): void {
   flaps.value = order.map((racer, i) => ({
     id: racer.entrant.id,
     color: racer.entrant.color,
-    avatar: racer.entrant.avatar,
     rank: i + 1,
     you: racer.entrant.source === 'mine',
     cells: {

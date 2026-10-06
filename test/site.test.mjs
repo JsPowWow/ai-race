@@ -535,7 +535,7 @@ test('«Гонка»: чужой код едет только после «Ра�
   await page.click('#rStart');
   assert.equal((await page.textContent('#rStart')).trim(), 'Заново');
   await page.waitForSelector('#rAwards .award', { timeout: 60000 });
-  const flapNames = await page.$$eval('#raceFlaps [role="row"]:not(.flap-head):not([aria-hidden]) [role="cell"]:nth-of-type(4) .sr-only', (cells) => cells.map((c) => c.textContent));
+  const flapNames = await page.$$eval('#raceFlaps [role="row"]:not(.flap-head):not([aria-hidden]) [data-col="name"] .sr-only', (cells) => cells.map((c) => c.textContent));
   assert.equal(flapNames.length, 5, 'на табло-флапах — все пятеро');
   assert.ok(flapNames.includes('Чужой'));
   await close();

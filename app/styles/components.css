@@ -119,9 +119,6 @@ input[type="range"] { inline-size: 100%; min-block-size: 24px; accent-color: var
 .moments li { padding: 3px 8px; background: var(--surface-2); border-radius: var(--r-s); font: 13px var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
 .moments li[data-now="true"] { background: var(--you); color: var(--on-you); }
 
-.avatar-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.avatar { inline-size: 22px; block-size: 22px; object-fit: contain; flex: none; border-radius: 50%; background: var(--bg-2); }
-.avatar.big { inline-size: 48px; block-size: 48px; border: 1px solid var(--line); }
 details summary { cursor: pointer; color: var(--muted); font-size: 13px; }
 details summary:hover { color: var(--ink); }
 details textarea { inline-size: 100%; margin-block-start: 8px; font: 12px/1.4 var(--mono); }
@@ -159,8 +156,6 @@ details .btn { margin-block-start: 6px; }
 .flap-cell { flex: none; inline-size: calc(var(--w) * var(--tile-w) + (var(--w) - 1) * 1px); display: flex; }
 .flap-cell.end { justify-content: flex-end; }
 .flap-dot { flex: none; inline-size: 6px; block-size: 16px; border-radius: 2px; background: var(--dot, transparent); }
-.flap-logo { flex: none; inline-size: 18px; block-size: 18px; }
-.flap-logo img { display: block; inline-size: 100%; block-size: 100%; object-fit: contain; border-radius: 50%; background: var(--hud-tile); }
 .flap-tiles { display: inline-flex; gap: 1px; }
 .flap-tile {
   inline-size: var(--tile-w); block-size: 20px;

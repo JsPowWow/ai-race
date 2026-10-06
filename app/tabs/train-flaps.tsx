@@ -26,7 +26,7 @@ const rows = signal<readonly FlapRow<Key>[]>([]);
 const title = signal('Рой');
 
 /** Машина на табло: кто это и что писать */
-type Shown = { id: string; car: Car; name: string; color: string; avatar?: string | null; you?: boolean };
+type Shown = { id: string; car: Car; name: string; color: string; you?: boolean };
 
 const short = (ticks: number) => (ticks / 60).toFixed(1).replace('.', ',');
 
@@ -48,8 +48,8 @@ const ahead = (a: Car, b: Car) => {
 function show(heading: string, track: Track, shown: Shown[]): void {
   shown.sort((a, b) => ahead(a.car, b.car));
   title.value = heading;
-  rows.value = shown.map(({ id, car, name, color, avatar, you }, i) => ({
-    id, color, avatar, you, rank: i + 1,
+  rows.value = shown.map(({ id, car, name, color, you }, i) => ({
+    id, color, you, rank: i + 1,
     cells: {
       place: String(i + 1),
       name,
@@ -74,11 +74,11 @@ export function updateTrainFlaps(evo: Evolution | null, lead: Car | null, genera
   evo.rivalCars.forEach((car, i) => {
     const rival = evo.rivals[i];
     if (rival && isYours(rival)) {
-      shown.push({ id: 'you', car, name: me.name.trim() || 'Ты', color: me.color, avatar: me.avatar, you: true });
+      shown.push({ id: 'you', car, name: me.name.trim() || 'Ты', color: me.color, you: true });
       return;
     }
     const info = rival && rivalInfo(rival);
-    shown.push({ id: `rival-${info?.id ?? i}`, car, name: info?.name ?? 'Соперник', color: info?.color ?? me.color, avatar: info?.avatar });
+    shown.push({ id: `rival-${info?.id ?? i}`, car, name: info?.name ?? 'Соперник', color: info?.color ?? me.color });
   });
   show(`Поколение ${generation + 1}`, evo.track, shown);
 }

@@ -12,7 +12,7 @@ import { live, type ThinkVariant } from './student-code.ts';
 export { CAR_COLORS };
 
 /** Облик машины (login — только в старых данных: теперь он один на все машины) */
-export type Profile = { name: string; color: string; avatar?: string; login?: string };
+export type Profile = { name: string; color: string; login?: string };
 /** Форма машины: сенсоры, скрытые слои и вариант «мозга» (id из student/think.js) */
 export type Shape = { sensors: Sensors; hidden: number[]; think: string };
 /** Поколение роя на графике: на какой трассе и сколько было машин (у старых записей может не быть) */

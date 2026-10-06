@@ -6,11 +6,11 @@ import type { Rival } from '../../engine/evolution.ts';
 import { fromCarFile } from '../car-file.ts';
 import { CAR_COLORS } from '../state.ts';
 import { BOTS } from '../generated/bots.js';
-import { Avatar } from '../components/avatar.tsx';
+import { CarDot } from '../components/car-dot.tsx';
 import { messageOf } from '@reely/basics';
 
 /** Соперник на странице: кто он и как выглядит; сам заезд — в rival */
-export type RivalEntry = { id: string; name: string; color: string; avatar: string | null; rival: Rival };
+export type RivalEntry = { id: string; name: string; color: string; rival: Rival };
 
 /** Соперники по порядку. Меняем только целиком (новым списком) */
 export const rivals = signal<readonly RivalEntry[]>([]);
@@ -27,7 +27,7 @@ let lastFileId = 0;
 function toRival(file: unknown, id: string): RivalEntry {
   const car = fromCarFile(file, CAR_COLORS[(rivals.peek().length + 1) % CAR_COLORS.length]);
   if (!car.think) throw new Error(`${car.name}: у машины свой код think — такую пускаем только на «Гонке», после проверки`);
-  const entry: RivalEntry = { id, name: car.name, color: car.color, avatar: car.avatar, rival: { brain: car.brain, think: car.think, sensors: car.sensors } };
+  const entry: RivalEntry = { id, name: car.name, color: car.color, rival: { brain: car.brain, think: car.think, sensors: car.sensors } };
   known.set(entry.rival, entry);
   return entry;
 }
@@ -82,7 +82,7 @@ export function Rivals(): Node {
         <For each={files} by={(r) => r.id}>
           {(rival) => (
             <li>
-              <Avatar look={rival} />
+              <CarDot look={rival} />
               <span>{() => rival().name}</span>
               <span />
               <button className="remove" aria={{ ariaLabel: () => `Убрать ${rival().name}` }} onClick={() => remove(rival().id)}>×</button>

@@ -1,6 +1,6 @@
 // «Гонка», таблица и номинации. Строки не перерисовываются: при обгоне строка плавно переезжает на новое место (flip).
 import { For, Show } from '@reely/dommy';
-import { Avatar } from '../components/avatar.tsx';
+import { CarDot } from '../components/car-dot.tsx';
 import { board, awards, boardRows } from './race-run.ts';
 
 export function Board(): Node {
@@ -12,7 +12,7 @@ export function Board(): Node {
         <For each={board} by={(row) => row.entrant.id}>
           {(row) => (
             <li className={() => row().podium}>
-              <Avatar look={() => row().entrant} />
+              <CarDot look={() => row().entrant} />
               <span>{() => row().entrant.name}</span>
               <span className="res">{() => row().result}</span>
             </li>

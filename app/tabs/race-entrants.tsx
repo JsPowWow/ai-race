@@ -6,7 +6,7 @@ import { state, thinkVariant, emit, CAR_COLORS } from '../state.ts';
 import { toCarFile, fromCarFile, approveCode, type Entrant as CarEntrant } from '../car-file.ts';
 import { BOTS } from '../generated/bots.js';
 import { showBanner, onTrackDrop } from '../stage.ts';
-import { Avatar } from '../components/avatar.tsx';
+import { CarDot } from '../components/car-dot.tsx';
 import { Review } from './race-review.tsx';
 import { canCross, childFile, crossNote } from './race-cross.ts';
 import { messageOf } from '@reely/basics';
@@ -148,7 +148,7 @@ function EntrantRow({ entrant }: { entrant: () => Entrant }): Node {
   const name = () => entrant().name;
   return (
     <li>
-      <Avatar look={entrant} />
+      <CarDot look={entrant} />
       <span>
         {name} <span className="kind">{() => describe(entrant())}</span>
         <Show when={() => !entrant().think}>

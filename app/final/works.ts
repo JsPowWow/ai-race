@@ -29,9 +29,6 @@ export const allowed = signal<ReadonlySet<string>>(new Set());
 /** Кто едет: все, кроме «чужих» файлов, которые куратор не допустил */
 export const racers = computed(() => pool.value.entries.filter((e) => !e.foreign || allowed.value.has(e.id)));
 
-/** Показывать ли аватары на трансляции и чьи спрятать (куратор проверил их перед стримом) */
-export const avatarsOn = signal(true);
-export const hiddenAvatars = signal<ReadonlySet<string>>(new Set());
 
 export const keyNote = signal<Note>({ text: '' });
 export const newKeysNote = signal('');
@@ -43,7 +40,6 @@ async function rebuild(): Promise<void> {
   if (mine !== loading) return;
   const works = buildEntries(opened.files);
   pool.value = { ...works, problems: [...opened.problems, ...works.problems], sealed: opened.sealed, opened: opened.opened, locked: opened.locked };
-  hiddenAvatars.value = new Set();
 }
 
 /** Новые файлы работ (папка, несколько .json или перетащили на трассу) */
@@ -90,6 +86,3 @@ const toggled = (set: ReadonlySet<string>, id: string): ReadonlySet<string> => {
 };
 
 export const toggleAllowed = (id: string) => allowed.update((set) => toggled(set, id));
-export const toggleAvatar = (id: string) => hiddenAvatars.update((set) => toggled(set, id));
-/** Показать ли аватар участника: аватары включены и этот не спрятан */
-export const avatarShown = (id: string) => avatarsOn.value && !hiddenAvatars.value.has(id);

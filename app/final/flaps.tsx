@@ -2,7 +2,6 @@
 // общий зачёт со стрелками ▲▼ (на сколько мест поднялся или опустился). Данные — те же, что у таблицы (board.tsx).
 import type { FlapColumn, FlapRow } from '../components/flap-board.tsx';
 import { StageFlaps } from '../components/stage-flaps.tsx';
-import { avatarShown } from './works.ts';
 import { found, live } from './stream.ts';
 import { view, type Line, type RacerLine } from './board.tsx';
 
@@ -21,7 +20,6 @@ function toRow(line: RacerLine, foundId: string | undefined): FlapRow<Key> {
   return {
     id: entry.id,
     color: entry.color,
-    avatar: avatarShown(entry.id) ? entry.avatar : null,
     rank: place ?? undefined,
     you: entry.id === foundId,
     cells: { place: place === null ? '' : String(place), name: entry.name, move: move > 0 ? `▲${move}` : move < 0 ? `▼${-move}` : '', value: line.short },

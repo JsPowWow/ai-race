@@ -1,9 +1,8 @@
 // Табло «как в аэропорту»: у каждой буквы своя плитка. Поменялся текст — плитки перелистываются
 // через пару случайных на вид букв и встают на новую. Строки стоят на местах (1-е, 2-е…),
 // а меняются надписи на них: обогнал — имя переехало строкой выше, как на настоящем табло.
-import { effect, For, Show } from '@reely/dommy';
+import { effect, For } from '@reely/dommy';
 import { later } from '@reely/dommy-kit';
-import { avatarUrl } from '../../engine/car-file.ts';
 
 /** Колонка табло: заголовок, сколько плиток, по какому краю прижать текст. Колонка с ключом place красится по месту (1–3) */
 export type FlapColumn<Key extends string> = { key: Key; title: string; width: number; align?: 'start' | 'end' };
@@ -12,13 +11,12 @@ export type FlapColumn<Key extends string> = { key: Key; title: string; width: n
 export type FlapTone = 'up' | 'down';
 
 /**
- * Строка табло. cells — текст по колонкам; color — цветная метка машины; avatar — SVG-аватар (как эмблема
- * авиакомпании на табло аэропорта); rank — место (первые три подсвечены: золото, серебро, бронза);
+ * Строка табло. cells — текст по колонкам; color — цветная метка машины; rank — место (первые три подсвечены: золото, серебро, бронза);
  * you — это ты (или тот, кого нашли поиском); tones — цвет отдельных ячеек.
  */
 export type FlapRow<Key extends string> = {
   id: string | number; color: string; cells: Record<Key, string>;
-  avatar?: string | null; rank?: number; you?: boolean; tones?: Partial<Record<Key, FlapTone>>;
+  rank?: number; you?: boolean; tones?: Partial<Record<Key, FlapTone>>;
 };
 
 /** Высота строки в пикселях — одна на CSS и на расчёт, сколько строк влезет */
@@ -88,19 +86,17 @@ export function FlapText({ text, width, align = 'start' }: { text: () => string;
  * Табло: заголовки колонок и строки по местам. rows — уже по порядку и уже столько,
  * сколько влезает (какие выбрать, если все не влезают, — pickRows).
  */
-export function FlapBoard<Key extends string>({ title, columns, rows, label, fill = () => 0, avatars = true }: {
+export function FlapBoard<Key extends string>({ title, columns, rows, label, fill = () => 0 }: {
   title: () => string;
   columns: readonly FlapColumn<Key>[];
   rows: () => readonly FlapRow<Key>[];
   label: string;
   /** Сколько строк держать всегда: недостающие — пустые плитки, как на настоящем табло */
   fill?: () => number;
-  /** Место под аватар: где аватаров не бывает, не держим пустую колонку */
-  avatars?: boolean;
 }): Node {
   const blank = (slot: number): FlapRow<Key> => ({ id: `blank-${slot}`, color: 'transparent', cells: blankCells(columns) });
   // заголовок — на всю ширину строк: плиток столько же, сколько в колонках, плюс промежутки между ними
-  const titleWidth = columns.reduce((sum, c) => sum + c.width, 0) + columns.length + (avatars ? 2 : 0);
+  const titleWidth = columns.reduce((sum, c) => sum + c.width, 0) + columns.length;
   // строка табло = место на табло, а не участник: при обгоне листаются надписи, строки не прыгают
   const slots = () => {
     const list = rows();
@@ -114,7 +110,6 @@ export function FlapBoard<Key extends string>({ title, columns, rows, label, fil
       </div>
       <div className="flap-row flap-head" aria={{ role: 'row' }}>
         <span className="flap-dot" aria={{ ariaHidden: 'true' }} />
-        {avatars && <span className="flap-logo" aria={{ ariaHidden: 'true' }} />}
         {columns.map((c) => <span className={`flap-cell ${c.align ?? 'start'}`} styles={{ '--w': String(c.width) }} aria={{ role: 'columnheader' }}>{c.title}</span>)}
       </div>
       <For each={slots} by={(s) => s.slot}>
@@ -125,12 +120,6 @@ export function FlapBoard<Key extends string>({ title, columns, rows, label, fil
             <div className={() => (row().you ? 'flap-row you' : 'flap-row')} data-rank={() => String(row().rank ?? '')}
               aria={{ role: 'row', ariaHidden: () => (slot().empty ? 'true' : null) }}>
               <span className="flap-dot" styles={{ '--dot': () => row().color }} aria={{ ariaHidden: 'true' }} />
-              {/* SVG — только через <img>: так браузер не выполнит из картинки скрипт и ничего не загрузит */}
-              {avatars && (
-                <span className="flap-logo" aria={{ ariaHidden: 'true' }}>
-                  <Show when={() => avatarUrl(row().avatar)}>{(src) => <img src={src} alt="" />}</Show>
-                </span>
-              )}
               {columns.map((c) => (
                 <span className="flap-cell" data-col={c.key} styles={{ '--w': String(c.width) }} data-tone={() => row().tones?.[c.key] ?? null} aria={{ role: 'cell' }}>
                   <FlapText text={() => row().cells[c.key]} width={c.width} align={c.align} />

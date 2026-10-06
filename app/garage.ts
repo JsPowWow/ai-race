@@ -11,7 +11,7 @@ import type { Profile, CarData, Version } from './state.ts';
 import type { CarStore } from './car-store.ts';
 import type { DiskFolder } from './car-disk.ts';
 import type { Run } from './runs.ts';
-import { parseCarFile, checkAvatar, NAME_MAX } from '../engine/car-file.ts';
+import { parseCarFile, NAME_MAX } from '../engine/car-file.ts';
 import { state, blankCar, blankProgress, isMoment, CAR_KEYS, CAR_COLORS, sizesOf, emit, on } from './state.ts';
 import { openCarStore, bytes } from './car-store.ts';
 import { runs, setRuns, legacyRuns } from './runs.ts';
@@ -108,11 +108,7 @@ function toCar(car: CarJson | null, versions: unknown, runList: unknown): FullCa
   };
   next.profile = { ...blankCar().profile, ...car.profile, name: String(car.profile?.name ?? '').slice(0, NAME_MAX) };
   delete next.profile.login; // логин — общий для всех машин
-  try {
-    next.profile.avatar = checkAvatar(next.profile.avatar) ?? undefined;
-  } catch {
-    delete next.profile.avatar;
-  }
+  delete (next.profile as { avatar?: unknown }).avatar; // SVG-аватара больше нет (машины объёмные): место в хранилище не держим
   // Мозг другой формы (например, сохранённый до памяти, #4): на нём машина не поедет — начинаем с чистого листа
   if (next.champion && checkBrain(next.champion, sizesOf(next.config))) Object.assign(next, blankProgress());
   next.timeline = Array.isArray(next.timeline) ? next.timeline.filter(isMoment) : [];
@@ -480,7 +476,7 @@ export async function importCar(text: string): Promise<void> {
   } else {
     const race = parseCarFile(file); // бросит понятную ошибку, если это не машина
     car = toCar({
-      profile: { name: race.name, color: race.color ?? freeColor(), avatar: race.avatar ?? undefined },
+      profile: { name: race.name, color: race.color ?? freeColor() },
       config: { sensors: race.sensors, hidden: race.sizes.slice(1, -1), think: race.thinkId },
       champion: race.brain, generation: file?.trainedGenerations ?? 0, brainNote: 'из файла машины',
     }, [], []);

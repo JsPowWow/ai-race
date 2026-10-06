@@ -9,7 +9,7 @@ import { live, getSource, evalAvailable } from './student-code.ts';
 
 /** Файл машины для гонки (формат ai-race/car@3) */
 export type CarFile = {
-  format: string; name: string; color: string; avatar?: string;
+  format: string; name: string; color: string;
   think: string; thinkSource?: string; sensors: Sensors; layers: number[];
   brain: Brain; trainedGenerations: number;
 };
@@ -33,7 +33,6 @@ export function toCarFile(): CarFile | null {
     brain: state.champion,
     trainedGenerations: state.generation,
   };
-  if (state.profile.avatar) file.avatar = state.profile.avatar;
   if (file.think === 'mine') file.thinkSource = getSource('think');
   return file;
 }

@@ -1,7 +1,7 @@
-// Файл машины для гонки: сенсоры, слои, вариант мозга, веса — и немного украшений (цвет, аватар).
+// Файл машины для гонки: сенсоры, слои, вариант мозга, веса — и облик (имя, цвет).
 // Здесь только проверка: модуль не знает ни про страницу, ни про код студента,
 // поэтому его используют и вкладки, и расчёт финала в Web Worker, и скрипты в tools/.
-import { hasSome, isPlainObject, isString, messageOf } from '@reely/basics';
+import { isPlainObject, isString } from '@reely/basics';
 import { layerSizes, checkBrain, LIMITS, type Brain } from './brain.ts';
 import { rayCount, BACK_SPREAD, type Sensors } from './car.ts';
 import { BUDGET, cost } from './build.ts';
@@ -16,38 +16,17 @@ export const CAR_COLORS = ['#ffd60a', '#ff9f1c', '#ff3b30', '#ff3d7f', '#9b5cff'
 
 export const NAME_MAX = 24;
 export const CODE_MAX = 20000;
-export const AVATAR_MAX = 8000; // символов SVG — хватит на простую картинку
-
-/**
- * Аватар — SVG-картинка. Показываем её только через <img> (и на canvas через Image):
- * в таком виде браузер не выполняет скрипты и не грузит ничего из сети.
- * Проверка ниже — вторая линия защиты: отбрасываем то, чему в картинке делать нечего.
- * Возвращает строку SVG или null (аватара нет). Бросает Error, если аватар плохой.
- */
-export function checkAvatar(svg: unknown): string | null {
-  if (!hasSome(svg) || svg === '') return null;
-  if (!isString(svg)) throw new Error('аватар должен быть строкой с SVG');
-  const text = svg.trim();
-  if (text.length > AVATAR_MAX) throw new Error(`аватар больше ${AVATAR_MAX} символов — упрости картинку`);
-  if (!/^(<\?xml[^>]*>\s*)?<svg[\s>]/i.test(text) || !/<\/svg>\s*$/i.test(text)) throw new Error('аватар должен быть SVG: <svg …>…</svg>');
-  if (/<script|<foreignObject|<iframe|<object|<embed|\son\w+\s*=|javascript:|(href|src)\s*=\s*["']?\s*(https?:|\/\/)/i.test(text)) {
-    throw new Error('в аватаре есть скрипт или внешняя ссылка — так нельзя');
-  }
-  return text;
-}
-
-export const avatarUrl = (svg: string | null | undefined): string | null => (svg ? `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}` : null);
 
 /** Файл машины, каким он пришёл: JSON от кого угодно, ни одному полю верить нельзя */
 type RawCarFile = {
-  format?: unknown; name?: unknown; color?: unknown; avatar?: unknown;
+  format?: unknown; name?: unknown; color?: unknown;
   sensors?: { count?: unknown; spread?: unknown; length?: unknown; back?: unknown; backLength?: unknown; backSpread?: unknown };
   layers?: unknown; brain?: unknown; think?: unknown; thinkSource?: unknown;
 };
 
 /** Проверенный файл машины. code — текст своего модуля think.js (только для варианта «Мой»), think ещё не выбран */
 export type ParsedCar = {
-  name: string; color: string | null; avatar: string | null;
+  name: string; color: string | null;
   sensors: Sensors; sizes: number[]; brain: Brain; thinkId: string; code: string | null;
 };
 
@@ -64,12 +43,7 @@ export function parseCarFile(input: unknown): ParsedCar {
   const fail = (msg: string): never => { throw new Error(`${name}: ${msg}`); };
 
   const color = isString(file.color) && /^#[0-9a-f]{6}$/i.test(file.color) ? file.color.toLowerCase() : null;
-  let avatar = null;
-  try {
-    avatar = checkAvatar(file.avatar);
-  } catch (e) {
-    fail(messageOf(e));
-  }
+  // старые файлы могли нести SVG-аватар: машины теперь объёмные, облик — цвет; это поле просто не читаем
 
   const s = file.sensors ?? {};
   const sensors: Sensors = { count: Number(s.count) | 0, spread: Number(s.spread), length: Number(s.length) };
@@ -101,5 +75,5 @@ export function parseCarFile(input: unknown): ParsedCar {
     if (!isString(file.thinkSource) || !file.thinkSource.trim()) return fail('вариант «Мой», но нет thinkSource');
     code = file.thinkSource.slice(0, CODE_MAX);
   }
-  return { name, color, avatar, sensors, sizes, brain: file.brain as Brain, thinkId, code }; // мозг проверен checkBrain выше
+  return { name, color, sensors, sizes, brain: file.brain as Brain, thinkId, code }; // мозг проверен checkBrain выше
 }

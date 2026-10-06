@@ -11,7 +11,7 @@ import { StageReplay, countStatuses, drawStage, drawProgressStrip } from './show
 import type { Placed, ReplayRow } from './show.ts';
 import { calc } from './calc.ts';
 import type { Calc } from './calc.ts';
-import { pool, racers, avatarsOn, hiddenAvatars } from './works.ts';
+import { pool, racers } from './works.ts';
 import type { FinalEntry } from './entries.ts';
 import { flipRows } from '../components/flip-rows.ts';
 
@@ -156,7 +156,7 @@ function drawReplay(now: StageReplay): void {
   const { track } = now;
   const follow = target && { x: target.car.x, y: target.car.y, angle: target.car.angle }; // камере нужно только где машина
   drawScene(track, { camera: camera.peek(), follow, traffic: trafficSnapshot(track, tick), tick });
-  drawStage(order, { foundId, showAvatars: avatarsOn.peek(), hiddenAvatars: hiddenAvatars.peek() });
+  drawStage(order, { foundId });
   drawProgressStrip(order, { foundId });
   const count = countStatuses(order);
   setHud([

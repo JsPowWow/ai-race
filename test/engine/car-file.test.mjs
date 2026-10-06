@@ -1,7 +1,7 @@
 // Файл машины приходит от студента — проверяем всё, что в нём может быть не так.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseCarFile, checkAvatar } from '../../engine/car-file.ts';
+import { parseCarFile } from '../../engine/car-file.ts';
 import { bot } from '../helpers.mjs';
 
 const good = () => structuredClone(bot('Торетто'));
@@ -32,9 +32,10 @@ test('вариант «Мой» без своего кода — ошибка', 
   assert.throws(() => parseCarFile(file), /нет thinkSource/);
 });
 
-test('аватар: скрипты и внешние ссылки не проходят', () => {
-  assert.throws(() => checkAvatar('<svg><script>alert(1)</script></svg>'));
-  assert.throws(() => checkAvatar('<svg onload="alert(1)"></svg>'));
+test('старый файл с SVG-аватаром читается: картинку просто не берём', () => {
+  const car = parseCarFile({ ...good(), avatar: '<svg><script>alert(1)</script></svg>' });
+  assert.equal(car.name, 'Торетто');
+  assert.ok(!('avatar' in car), 'аватара в машине нет: облик — цвет');
 });
 
 test('угол обзора сзади читается из файла; нет его — узкий веер по умолчанию', async () => {

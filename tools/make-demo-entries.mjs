@@ -57,8 +57,6 @@ const carFile = (bot, extra = {}) => ({
   ...extra,
 });
 
-const avatar = (hue) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="15" fill="hsl(${hue} 80% 55%)"/><circle cx="11" cy="13" r="3" fill="#111"/><circle cx="21" cy="13" r="3" fill="#111"/><path d="M9 21q7 6 14 0" stroke="#111" stroke-width="2.5" fill="none"/></svg>`;
-
 rmSync(dir, { recursive: true, force: true });
 const keys = sealed ? await generateCourseKeys() : null;
 if (keys) writeFileSync(`${dir}.private-key.json`, JSON.stringify(keys.privateFile, null, 2));
@@ -73,7 +71,6 @@ for (let i = 0; i < count; i++) {
   let file = carFile(bots[i % bots.length]);
   if (i === 0) firstBrain = file.brain;
   if (i % 25 === 3) file = { ...shared, name: `${pick(NAMES)} (копия)` };
-  if (i % 7 === 0) file.avatar = avatar(Math.floor(rnd() * 360));
   if (i === 14) file = { ...carFile(bots[0]), brain: mutated(firstBrain, 0.3) }; // скопировал и чуть «пошевелил» веса
   if (i === 5) file = { ...file, think: 'mine', thinkSource: thinkSource.replace('(sum > bias ? 1 : 0)', '(sum > bias * 0.9 ? 1 : 0)') };
   if (i === 6) file = { ...file, think: 'mine', thinkSource: 'export const thinkVariants = { mine: { think() { while (true) {} } } };' };

@@ -22,15 +22,6 @@
 .notes li .btn { margin-left: 6px; padding: 2px 8px; }
 .notes ul { margin: 8px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; max-height: 220px; overflow-y: auto; }
 .notes code { font-size: 11.5px; overflow-wrap: anywhere; }
-.gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px; margin-top: 8px; max-height: 280px; overflow-y: auto; }
-.gallery button {
-  display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px; cursor: pointer;
-  background: var(--bg-2); border: 1px solid var(--line); color: var(--muted); font-size: 11px; min-width: 0;
-}
-.gallery button span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.gallery .avatar { width: 40px; height: 40px; }
-.gallery button.off { opacity: 0.35; text-decoration: line-through; }
-.gallery button.off .avatar { filter: grayscale(1) blur(2px); }
 #fProgress { width: 100%; height: 8px; accent-color: var(--you); }
 
 /* режим трансляции: только трасса и таблица на весь экран */
