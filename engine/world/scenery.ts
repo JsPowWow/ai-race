@@ -24,6 +24,20 @@ export type BoardSize = 'banner' | 'board' | 'big';
 const MURALS: Ad[] = ['ai-race', 'rs-school', 'reely', 'dommy', 'signals'];
 
 /** Торцы без окон: у длинной многоэтажки они глухие, как в жизни, — на них и рисуют роспись */
+/** Живой щит: марка держится AD_HOLD тиков, потом за AD_SLIDE тиков уезжает вниз, сверху заходит следующая */
+export const AD_HOLD = 240, AD_SLIDE = 24, AD_CYCLE = AD_HOLD + AD_SLIDE;
+
+/**
+ * Что на щите в тик tick: now — уходящая (или единственная) марка, next — приходящая, slide — доля пути от 0 до 1.
+ * Функция тика, как знак и острова: в записи заезда и на перепроверке щит показывает то же самое
+ */
+export function adAt(o: { ad: Ad; live?: { ads: Ad[]; phase: number } }, tick: number): { now: Ad; next: Ad; slide: number } {
+  if (!o.live) return { now: o.ad, next: o.ad, slide: 0 };
+  const { ads, phase } = o.live, t = tick + phase, k = Math.floor(t / AD_CYCLE), inCycle = t - k * AD_CYCLE;
+  const slide = Math.max(0, (inCycle - AD_HOLD) / AD_SLIDE);
+  return { now: ads[k % ads.length], next: ads[(k + 1) % ads.length], slide };
+}
+
 export const blankEnds = (h: House): boolean => h.style === 'panel' && h.w > h.d;
 
 /**
@@ -51,7 +65,8 @@ export type Prop =
   | { kind: 'paddock'; x: number; y: number; angle: number; w: number; d: number; cars: Parked[] }
   | { kind: 'tires'; x: number; y: number; r: number; rings: number } // стопка шин на вираже
   | { kind: 'chevron'; x: number; y: number; angle: number }   // щиток «>>>»: angle — куда едут, туда и стрелки
-  | { kind: 'billboard'; x: number; y: number; angle: number; ad: Ad; size: BoardSize } // рекламный щит
+  // рекламный щит; у живого щита ещё и live — марки по очереди (первая — ad) и phase — сдвиг смены в тиках
+  | { kind: 'billboard'; x: number; y: number; angle: number; ad: Ad; size: BoardSize; live?: { ads: Ad[]; phase: number } }
   | { kind: 'lamp'; x: number; y: number; angle: number }      // фонарь: angle — куда смотрит плафон (на дорогу)
   | { kind: 'windmill'; x: number; y: number; phase: number }
   | { kind: 'pond'; x: number; y: number; rx: number; ry: number; angle: number }
@@ -355,7 +370,9 @@ function place(track: Track): Scenery {
     for (let k = 0; k < row; k++) {
       const at = beside(s0 + k * (w + 6), edge + off, side);
       if (Math.abs(Math.cos(at.angle)) < 0.7) break;
-      if (!put({ kind: 'billboard', x: at.x, y: at.y, angle: Math.cos(at.angle) < 0 ? at.angle + Math.PI : at.angle, ad: ad(ADS), size })) break; // надпись читается слева направо
+      const first = ad(ADS);
+      const live = ads() < 0.35 ? { ads: [first, ad(ADS), ad(ADS)], phase: Math.floor(ads() * AD_CYCLE) } : undefined;
+      if (!put({ kind: 'billboard', x: at.x, y: at.y, angle: Math.cos(at.angle) < 0 ? at.angle + Math.PI : at.angle, ad: first, size, ...(live && { live }) })) break; // надпись читается слева направо
       n++;
     }
   }

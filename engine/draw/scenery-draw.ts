@@ -1,15 +1,16 @@
 // Декор под наклоном: пластиковые ёлки ярусами на стволе, пышные круглые деревья, домики со скатной крышей
 // и всё хозяйство трассы: огни старта, трибуна, паддок, шины, шевроны, щиты, фонари, ветряк, пруд и клумбы.
 // Деревья, кусты и шины рисуем слоями — все тени, потом все стволы, потом ярус за ярусом: несколько заливок за кадр вместо сотен.
-import { sceneryOf, houseRadius, wallsOf, roofOf, windowColumns, windowRows, blankEnds, FLOOR, SIZE, type Tree, type House, type Prop, type Ad, type BoardSize, type Dot, type Parked } from '../world/scenery.ts';
+import { sceneryOf, houseRadius, wallsOf, roofOf, windowColumns, windowRows, blankEnds, FLOOR, SIZE, type Tree, type House, type Prop, type Dot, type Parked } from '../world/scenery.ts';
 import { TILT, RISE, lift, local, prism, cap } from '../core/tilt.ts';
 import { tint } from '../core/paint.ts';
-import { paintAd, paintMuralAd } from './ads.ts';
+import { paintBoard, paintMuralAd } from './ads.ts';
 import type { Palette } from './render.ts';
 import type { View } from './track-cache.ts';
 import type { Track, Point } from '../world/track.ts';
 
 type Ctx = CanvasRenderingContext2D;
+type Board = Extract<Prop, { kind: 'billboard' }>;
 /** Низкое и многочисленное — рисуется пачкой, слоями */
 type Soft = Tree | Extract<Prop, { kind: 'tires' }>;
 /** Высокое и штучное — рисуется по одному, от дальних к ближним */
@@ -53,7 +54,11 @@ export function drawScenery(ctx: Ctx, track: Track, cam: View, p: Palette, tick:
 /** Лопасти ветряков на тике tick — поверх неподвижного слоя, нарисованного drawScenery(…, null) */
 export function drawBlades(ctx: Ctx, track: Track, cam: View, p: Palette, tick: number): void {
   const { seenWide } = inFrame(ctx, cam);
-  for (const o of sceneryOf(track).props) if (o.kind === 'windmill' && seenWide(o)) blades(ctx, o, p, turnAt(tick));
+  for (const o of sceneryOf(track).props) {
+    if (!seenWide(o)) continue;
+    if (o.kind === 'windmill') blades(ctx, o, p, turnAt(tick));
+    if (o.kind === 'billboard' && o.live) boardFace(ctx, o, p, tick); // живой щит меняет марку — поверх кэша
+  }
 }
 
 /**
@@ -122,7 +127,7 @@ function drawSolid(ctx: Ctx, o: Solid, p: Palette, tick: number, fine: boolean, 
     case 'stand': drawStand(ctx, o, p); break;
     case 'paddock': drawParked(ctx, o.cars, p, fine); break;
     case 'chevron': drawChevron(ctx, o, p); break;
-    case 'billboard': drawBillboard(ctx, o, p); break;
+    case 'billboard': drawBillboard(ctx, o, p, tick); break;
     case 'lamp': drawLamp(ctx, o, p); break;
     case 'windmill': drawWindmill(ctx, o, p); if (withBlades) blades(ctx, o, p, turnAt(tick)); break;
     default: break;
@@ -450,15 +455,21 @@ function drawChevron(ctx: Ctx, o: Placed, p: Palette): void {
 }
 
 /** Рекламный щит на ножках: что на нём напечатано — engine/draw/ads.ts */
-function drawBillboard(ctx: Ctx, o: Placed & { ad: Ad; size: BoardSize }, p: Palette): void {
-  const { w, h: tall, z } = SIZE.boards[o.size], half = w / 2, top = tall + z;
+function drawBillboard(ctx: Ctx, o: Board, p: Palette, tick: number): void {
+  const { w, z } = SIZE.boards[o.size], half = w / 2;
   const a = local(o, -half, 0), b = local(o, half, 0);
   ctx.beginPath(); ctx.moveTo(a.x + SHADOW.x * 3, a.y + SHADOW.y * 3); ctx.lineTo(b.x + SHADOW.x * 3, b.y + SHADOW.y * 3);
   ctx.strokeStyle = 'rgb(0 0 0 / 0.14)'; ctx.lineWidth = 4; ctx.stroke(); // тень щита на земле
   for (const u of [-half + 9, half - 9]) post(ctx, local(o, u, 0), z, p.roof2, o.size === 'big' ? 2.6 : 2);
-  upright(ctx, o, top, () => {
-    ctx.translate(-half, 0); paintAd(ctx, o.ad, o.size, w, tall, p); ctx.translate(half, 0);
-    ctx.strokeStyle = 'rgb(255 255 255 / 0.16)'; ctx.lineWidth = 0.8; ctx.strokeRect(-half + 0.4, 0.4, 2 * half - 0.8, tall - 0.8);
+  boardFace(ctx, o, p, tick);
+}
+
+/** Лицо щита с рекламой — без ножек и тени: его же перерисовывает drawBlades, когда щит живой */
+function boardFace(ctx: Ctx, o: Board, p: Palette, tick: number): void {
+  const { w, h, z } = SIZE.boards[o.size];
+  upright(ctx, o, h + z, () => {
+    ctx.translate(-w / 2, 0); paintBoard(ctx, o, w, h, p, tick, motion);
+    ctx.strokeStyle = 'rgb(255 255 255 / 0.16)'; ctx.lineWidth = 0.8; ctx.strokeRect(0.4, 0.4, w - 0.8, h - 0.8);
   });
 }
 

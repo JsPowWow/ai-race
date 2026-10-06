@@ -7,7 +7,7 @@ import { getPalette, signFace, worksFace, UI_FONT, type Palette } from '../rende
 import type { CarView } from '../car-draw.ts';
 import { pointAt, freeSide, signShows, worksSigns, type Track, type Branch, type Point, type RoadPoint, type Island } from '../../world/track.ts';
 import { sceneryOf, wallsOf, roofOf, windowColumns, windowRows, blankEnds, FLOOR, SIZE, type Tree, type House, type Prop, type Dot, type Ad } from '../../world/scenery.ts';
-import { paintAd, paintMuralAd } from '../ads.ts';
+import { paintBoard, paintMuralAd } from '../ads.ts';
 import { startLights, sceneryMoves } from '../scenery-draw.ts';
 import { skidLevels, LEVELS } from '../skids-draw.ts';
 import { local } from '../../core/tilt.ts';
@@ -597,7 +597,7 @@ function drawProp(ctx: Ctx, v: View, o: Prop, p: Palette, tick: number): void {
     }); return;
     case 'billboard': {
       const { w, h, z } = SIZE.boards[o.size];
-      board(ctx, v, o, w, z, z + h, p.bill, () => { ctx.translate(-w / 2, 0); paintAd(ctx, o.ad, o.size, w, h, p); }, true);
+      board(ctx, v, o, w, z, z + h, p.bill, () => { ctx.translate(-w / 2, 0); paintBoard(ctx, o, w, h, p, tick, sceneryMoves()); }, true);
       return;
     }
     case 'lamp': {

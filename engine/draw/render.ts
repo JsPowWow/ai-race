@@ -130,7 +130,7 @@ const DASH = [20, 28]; // пунктир между полосами: штрих
  */
 export function drawTrack(ctx: Ctx, track: Track, cam: Camera, tick = 0): void {
   const p = getPalette();
-  // неподвижное — из кэша (лопасти ветряков тогда отдельно, поверх); нет кэша — всё сразу
+  // неподвижное — из кэша (лопасти ветряков и живые щиты тогда отдельно, поверх); нет кэша — всё сразу
   const look = { track, palette: p, lights: startLights() };
   if (pasteGround(ctx, cam, look, (g, view) => drawGround(g, track, view, p, null))) drawBlades(ctx, track, cam, p, tick);
   else drawGround(ctx, track, cam, p, tick);

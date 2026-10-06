@@ -2,7 +2,7 @@
 // Один рисунок на оба вида: вызывающий уже повернул холст так, что (0, 0) — левый верхний угол картинки,
 // x — вправо вдоль щита или стены, y — вниз, а размер — w × h в пикселях трассы.
 // Печать плоская, как наклейка из набора: заливки без градиентов и теней.
-import type { Ad, BoardSize } from '../world/scenery.ts';
+import { adAt, type Ad, type BoardSize, type Prop } from '../world/scenery.ts';
 import { UI_FONT, type Palette } from './render.ts';
 
 type Ctx = CanvasRenderingContext2D;
@@ -26,6 +26,24 @@ function inks(ad: Ad, p: Palette): { field: string; ink: string } {
     case 'npm': return { field: BRAND.screen, ink: BRAND.screenInk };
     default: return { field: BRAND.paper, ink: BRAND.reely };
   }
+}
+
+type Board = Extract<Prop, { kind: 'billboard' }>;
+
+/**
+ * Реклама на щите в тик tick. Живой щит меняет марку, как табло на гонках: старая уезжает вниз, новая заходит сверху.
+ * moving = false (человек просит поменьше движения) — марка сменяется сразу, без езды
+ */
+export function paintBoard(ctx: Ctx, o: Board, w: number, h: number, p: Palette, tick: number, moving: boolean): void {
+  const { now, next, slide } = adAt(o, tick);
+  if (slide === 0 || !moving) { paintAd(ctx, slide < 0.5 ? now : next, o.size, w, h, p); return; }
+  const y = h * slide * slide * (3 - 2 * slide); // плавно трогается и плавно встаёт
+  ctx.save();
+  ctx.beginPath(); ctx.rect(0, 0, w, h); ctx.clip();
+  ctx.translate(0, y); paintAd(ctx, now, o.size, w, h, p);
+  ctx.translate(0, -h); paintAd(ctx, next, o.size, w, h, p);
+  ctx.fillStyle = 'rgb(0 0 0 / 0.35)'; ctx.fillRect(0, h - 0.8, w, 0.8); // щель между листами
+  ctx.restore();
 }
 
 /** Реклама на щите любого размера: низкий баннер — свой рисунок, щиты побольше — общий */

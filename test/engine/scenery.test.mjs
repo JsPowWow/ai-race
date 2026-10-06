@@ -1,7 +1,7 @@
 // Декор вокруг трассы: из seed, всегда за бордюрами, у знака пусто (ADR 0005).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { sceneryOf, stripScenery, segmentDistance, signSpots, houseRadius, houseSpots, wallsOf, roofOf, FLOOR, WORKS_CLEAR, spotsOf, cornersOf, SCENERY_GAP, SIGN_CLEAR, ADS, blankEnds } from '../../engine/world/scenery.ts';
+import { sceneryOf, stripScenery, segmentDistance, signSpots, houseRadius, houseSpots, wallsOf, roofOf, FLOOR, WORKS_CLEAR, spotsOf, cornersOf, SCENERY_GAP, SIGN_CLEAR, ADS, blankEnds, adAt, AD_HOLD, AD_SLIDE, AD_CYCLE } from '../../engine/world/scenery.ts';
 import { getTrainingTrack, generateTrack, buildTrack, worksSigns, TRAINING_TRACKS } from '../../engine/world/track.ts';
 import { drawRing } from '../../engine/world/turtle.ts';
 
@@ -183,4 +183,19 @@ test('роспись — только на глухом торце длинно�
     assert.ok(ADS.includes(h.mural));
   }
   assert.ok(houses.every((h) => !blankEnds(h) || h.style === 'panel'), 'у домиков и башен торцы с окнами');
+});
+
+test('живые щиты меняют марку от тика: держат, потом съезжают вниз, и так по кругу', () => {
+  for (const track of tracks) {
+    const live = sceneryOf(track).props.filter((o) => o.kind === 'billboard' && o.live);
+    assert.ok(live.length >= 1, `${track.name}: ни одного живого щита`);
+    for (const o of live) assert.ok(new Set(o.live.ads).size >= 2 && o.live.ads[0] === o.ad, `${track.name}: живой щит показывает одно и то же`);
+  }
+  const o = { ad: 'npm', live: { ads: ['ai-race', 'reely', 'dommy'], phase: 0 } };
+  assert.deepEqual(adAt(o, 0), { now: 'ai-race', next: 'reely', slide: 0 });
+  assert.equal(adAt(o, AD_HOLD - 1).slide, 0, 'пока держит — не едет');
+  assert.equal(adAt(o, AD_HOLD + AD_SLIDE / 2).slide, 0.5, 'посередине смены — на полпути');
+  assert.deepEqual(adAt(o, AD_CYCLE), { now: 'reely', next: 'dommy', slide: 0 });
+  assert.equal(adAt(o, 3 * AD_CYCLE).now, 'ai-race', 'после третьей — снова первая');
+  assert.deepEqual(adAt({ ad: 'reely' }, 12345), { now: 'reely', next: 'reely', slide: 0 }, 'обычный щит не меняется');
 });
