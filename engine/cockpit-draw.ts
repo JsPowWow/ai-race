@@ -3,7 +3,7 @@
 // потом всё, у чего есть высота (бордюры, лес, дома, машины), — от дальнего к ближнему, как художник. Последними — лучи и своя машина.
 // Камера и проекция — engine/cockpit.ts. Что не видно (позади, дальше тумана, сбоку от обзора), не рисуем вовсе.
 import { clipNear, project, toCamera, type View, type ScreenPoint } from './cockpit.ts';
-import { getPalette, UI_FONT, type Palette } from './render.ts';
+import { getPalette, signFace, UI_FONT, type Palette } from './render.ts';
 import type { CarView } from './car-draw.ts';
 import { pointAt, freeSide, signShows, type Track, type Branch, type Point, type RoadPoint, type Island } from './track.ts';
 import { sceneryOf, wallsOf, roofOf, windowColumns, windowRows, SIZE, type Tree, type House, type Prop, type Dot } from './scenery.ts';
@@ -380,16 +380,11 @@ function signSpot(track: Track, { x, y, angle }: RoadPoint): Point {
 function sign(ctx: Ctx, v: View, x: number, y: number, dir: number, p: Palette): void {
   const foot = billboard(v, x, y, 0), c = billboard(v, x, y, 36); // как в виде сверху: столб 2,6 м, круг ≈ 2 м
   if (!foot || !c) return;
-  const k = c.k * (10 / 15), r = 15 * k; // стрелка нарисована под круг радиусом 15
+  const k = c.k * (10 / 15); // круг ≈ 2 м, signFace рисует его радиусом 15
   ctx.fillStyle = p.roof2; ctx.fillRect(foot.x - 1.5 * k, c.y, 3 * k, foot.y - c.y);
-  ctx.beginPath(); ctx.arc(c.x, c.y, r + 2.5 * k, 0, Math.PI * 2); ctx.fillStyle = p.kerb2; ctx.fill();
-  ctx.beginPath(); ctx.arc(c.x, c.y, r, 0, Math.PI * 2); ctx.fillStyle = dir ? p.sign : p.signOff; ctx.fill();
-  if (!dir) return;
   ctx.save();
   ctx.translate(c.x, c.y); ctx.scale(k, k);
-  ctx.strokeStyle = p.kerb2; ctx.fillStyle = p.kerb2; ctx.lineWidth = 3.6; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-  ctx.beginPath(); ctx.moveTo(0, 8); ctx.lineTo(0, -2); ctx.lineTo(dir * 6, -2); ctx.stroke(); // прямо, потом поворот
-  ctx.beginPath(); ctx.moveTo(dir * 5, -8); ctx.lineTo(dir * 5, 4); ctx.lineTo(dir * 12, -2); ctx.closePath(); ctx.fill();
+  signFace(ctx, dir === 1 || dir === -1 ? dir : 0, p);
   ctx.restore();
 }
 

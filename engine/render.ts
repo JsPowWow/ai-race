@@ -340,16 +340,22 @@ function drawSign(ctx: Ctx, track: Track, { x, y, angle }: RoadPoint, dir: Side 
   ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(top.x, top.y); ctx.stroke();
   ctx.save();
   ctx.translate(top.x, top.y);
-  ctx.scale(size, size / TILT); // камера сожмёт пол по высоте — круг знака заранее растянут, чтобы на экране был кругом
-  ctx.beginPath(); ctx.arc(0, 0, r + 1.8, 0, Math.PI * 2); ctx.fillStyle = p.kerb2; ctx.fill();
-  ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fillStyle = dir ? p.sign : p.signOff; ctx.fill();
-  if (!dir) { ctx.restore(); return; }
-  ctx.rotate(angle); // стрелка — относительно направления езды
-  ctx.scale(0.6, 0.6); // стрелка нарисована под круг радиусом 17
-  ctx.strokeStyle = p.kerb2; ctx.fillStyle = p.kerb2; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-  ctx.beginPath(); ctx.moveTo(-9, 0); ctx.lineTo(2, 0); ctx.lineTo(2, dir * 7); ctx.stroke(); // прямо, потом поворот
-  ctx.beginPath(); ctx.moveTo(-4, dir * 5); ctx.lineTo(8, dir * 5); ctx.lineTo(2, dir * 13); ctx.closePath(); ctx.fill();
+  ctx.scale((size * r) / 15, (size * r) / 15 / TILT); // камера сожмёт пол по высоте — круг заранее растянут, чтобы на экране был кругом
+  signFace(ctx, dir, p);
   ctx.restore();
+}
+
+/**
+ * Лицо знака: белая кайма, синий круг радиусом 15 с центром в (0, 0) и стрелка «прямо, потом поворот» — как читает
+ * водитель: dir 1 — направо, −1 — налево, 0 — знак погас. Общая для вида сверху и из машины
+ */
+export function signFace(ctx: Ctx, dir: Side | 0, p: Palette): void {
+  ctx.beginPath(); ctx.arc(0, 0, 17.5, 0, Math.PI * 2); ctx.fillStyle = p.kerb2; ctx.fill();
+  ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI * 2); ctx.fillStyle = dir ? p.sign : p.signOff; ctx.fill();
+  if (!dir) return;
+  ctx.strokeStyle = p.kerb2; ctx.fillStyle = p.kerb2; ctx.lineWidth = 3.6; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.beginPath(); ctx.moveTo(-dir * 3, 9); ctx.lineTo(-dir * 3, -2); ctx.lineTo(dir * 3, -2); ctx.stroke(); // прямо, потом поворот
+  ctx.beginPath(); ctx.moveTo(dir * 2, -8); ctx.lineTo(dir * 2, 4); ctx.lineTo(dir * 10, -2); ctx.closePath(); ctx.fill();
 }
 
 function line(ctx: Ctx, pt: Point & { angle: number }, width: number, color: string, thick: number): void {
