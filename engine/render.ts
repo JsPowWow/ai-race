@@ -25,14 +25,14 @@ export function cssColor(name: string): string {
 }
 
 /** Цвета холста — из CSS-переменных, для текущей темы */
-export type Palette = Record<'board' | 'road' | 'roadEdge' | 'seam' | 'slot' | 'rail' | 'kerb' | 'kerb2' | 'sign' | 'signOff' | 'slow' | 'checkLight' | 'checkDark' | 'you' | 'ray' | 'rayHit' | 'traffic' | 'trafficOncoming' | 'trafficEdge' | 'crashed' | 'tree' | 'tree2' | 'house' | 'roof' | 'roof2', string>;
+export type Palette = Record<'board' | 'road' | 'roadEdge' | 'seam' | 'marking' | 'kerb' | 'kerb2' | 'sign' | 'signOff' | 'slow' | 'checkLight' | 'checkDark' | 'you' | 'ray' | 'rayHit' | 'traffic' | 'trafficOncoming' | 'trafficEdge' | 'crashed' | 'tree' | 'tree2' | 'house' | 'roof' | 'roof2', string>;
 
 let palette: Palette | null = null;
 /** Перечитать цвета трассы — после смены темы */
 export function readPalette(): Palette {
   const v = cssColor;
   palette = {
-    board: v('--board'), road: v('--road'), roadEdge: v('--road-edge'), seam: v('--seam'), slot: v('--slot'), rail: v('--rail'),
+    board: v('--board'), road: v('--road'), roadEdge: v('--road-edge'), seam: v('--seam'), marking: v('--marking'),
     kerb: v('--kerb'), kerb2: v('--kerb-2'), sign: v('--sign'), signOff: v('--sign-off'), slow: v('--slow'), checkLight: v('--check-light'), checkDark: v('--check-dark'),
     you: v('--you'), ray: v('--ray'), rayHit: v('--ray-hit'),
     traffic: v('--traffic'), trafficOncoming: v('--traffic-oncoming'), trafficEdge: v('--traffic-edge'), crashed: v('--crashed'),
@@ -97,19 +97,18 @@ function polyPath(ctx: Ctx, pts: Point[]): void {
   for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
 }
 
-/** Центры полос: по ним идут прорези с рельсами (как у трассы для слот-каров) */
-const laneCenters = new WeakMap<Road, Point[][]>();
-function lanesOf(road: Road): Point[][] {
-  let lanes = laneCenters.get(road);
-  if (!lanes) {
-    const edges = [road.left, ...road.dividers, road.right];
-    lanes = [];
-    for (let k = 0; k < edges.length - 1; k++) {
-      lanes.push(edges[k].map((a, i) => ({ x: (a.x + edges[k + 1][i].x) / 2, y: (a.y + edges[k + 1][i].y) / 2 })));
-    }
-    laneCenters.set(road, lanes);
+/** Сплошные линии края: чуть внутри от обочины, как на настоящей дороге */
+const EDGE_INSET = 12;
+const edgeLines = new WeakMap<Road, Point[][]>();
+function edgesOf(road: Road, width: number): Point[][] {
+  let edges = edgeLines.get(road);
+  if (!edges) {
+    const t = EDGE_INSET / width;
+    const towards = (from: Point[], to: Point[]): Point[] => from.map((a, i) => ({ x: a.x + (to[i].x - a.x) * t, y: a.y + (to[i].y - a.y) * t }));
+    edges = [towards(road.left, road.right), towards(road.right, road.left)];
+    edgeLines.set(road, edges);
   }
-  return lanes;
+  return edges;
 }
 
 /** Контур дороги одним путём: левый край туда, правый обратно */
@@ -124,9 +123,10 @@ function roadPath(ctx: Ctx, { left, right }: Road): void {
 const KERB = 5;     // высота бордюра, px
 const SECTION = 150; // длина одной секции игрушечной трассы, px — между швами
 const KERB_DASH = 16; // длина красного и белого блока бордюра, px
+const DASH = [20, 28]; // пунктир между полосами: штрих и просвет, px. Вместе 48 — делит круг стенда (2400), стыка не видно
 
 /**
- * Игрушечная трасса: серые секции со швами, прорези с медными рельсами, пластиковые бордюры.
+ * Игрушечная трасса: серые секции со швами, разметка на три полосы, пластиковые бордюры.
  * tick — тик заезда: от него зависит, где на островах медленная зона и что горит на знаке.
  */
 export function drawTrack(ctx: Ctx, track: Track, cam: Camera, tick = 0): void {
@@ -151,12 +151,13 @@ export function drawTrack(ctx: Ctx, track: Track, cam: Camera, tick = 0): void {
   for (const road of roads) {
     // швы между секциями
     for (let s = SECTION; s < road.total; s += SECTION) line(ctx, pointAt(road, s), track.width, p.seam, Math.max(2, 1.5 * px));
-    // прорези: медные рельсы, между ними тёмная щель
-    for (const lane of lanesOf(road)) {
-      polyPath(ctx, lane);
-      ctx.lineWidth = Math.max(7, 3 * px); ctx.strokeStyle = p.rail; ctx.stroke();
-      ctx.lineWidth = Math.max(3, 1.5 * px); ctx.strokeStyle = p.slot; ctx.stroke();
-    }
+    // разметка: пунктир между полосами, сплошные у края. Боты едут посередине полос
+    ctx.strokeStyle = p.marking;
+    ctx.lineWidth = Math.max(2.5, 1.2 * px);
+    ctx.setLineDash(DASH);
+    for (const divider of road.dividers) { polyPath(ctx, divider); ctx.stroke(); }
+    ctx.setLineDash([]);
+    for (const edge of edgesOf(road, track.width)) { polyPath(ctx, edge); ctx.stroke(); }
   }
   // бордюры: красные и белые пластиковые блоки. На развилках и перекрёстках их нет — там проезд
   // Бордюр — низкая стенка: сначала её бок (темнее), потом верх, поднятый на KERB px
@@ -199,13 +200,18 @@ export function drawStraight(ctx: Ctx, run: number, half: number, width: number,
     ctx.globalAlpha = 1;
   }
   for (let x = -half + mod(half - run, SECTION); x < half; x += SECTION) line(ctx, { x, y: 0, angle: 0 }, width, p.seam, Math.max(2, 1.5 * px));
+  // разметка как в drawTrack: пунктир едет вместе с дорогой, сплошные у края
+  ctx.strokeStyle = p.marking;
+  ctx.lineWidth = Math.max(2.5, 1.2 * px);
+  ctx.setLineDash(DASH);
+  ctx.lineDashOffset = mod(run - half, DASH[0] + DASH[1]);
   const lanes = Math.round(width / LANE_WIDTH);
-  for (let k = 0; k < lanes; k++) {
-    const y = -width / 2 + LANE_WIDTH * (k + 0.5);
-    polyPath(ctx, [{ x: -half, y }, { x: half, y }]);
-    ctx.lineWidth = Math.max(7, 3 * px); ctx.strokeStyle = p.rail; ctx.stroke();
-    ctx.lineWidth = Math.max(3, 1.5 * px); ctx.strokeStyle = p.slot; ctx.stroke();
+  for (let k = 1; k < lanes; k++) {
+    const y = -width / 2 + LANE_WIDTH * k;
+    polyPath(ctx, [{ x: -half, y }, { x: half, y }]); ctx.stroke();
   }
+  ctx.setLineDash([]); ctx.lineDashOffset = 0;
+  for (const y of [-width / 2 + EDGE_INSET, width / 2 - EDGE_INSET]) { polyPath(ctx, [{ x: -half, y }, { x: half, y }]); ctx.stroke(); }
   const kw = Math.max(9, 3 * px);
   ctx.lineDashOffset = mod(run - half, KERB_DASH * 2); // полоски бордюра едут вместе с дорогой
   for (const y of [-width / 2, width / 2]) {
