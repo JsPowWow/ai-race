@@ -71,6 +71,7 @@ app/         интерфейс: TypeScript, страницы — JSX на @reel
   tests.ts        проверки кода студентов
   lessons.ts      тексты уроков (`код` — в обратных кавычках); lesson.tsx — урок над вкладкой
   manual-drive.ts ручное управление: клавиатура и кнопки на экране
+  joystick.ts     джойстик на сенсорном экране: наклон → стрелки для handleKey()
   tabs/           вкладки: profile, teach (+ network-editor), train, code, exam, race, intro, final — большие разбиты на <вкладка>-*.tsx
 tools/       сборка и эксперименты в Node
 ```

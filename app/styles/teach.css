@@ -24,6 +24,34 @@ body:not([data-tab="teach"]) .pad { display: none; }
 .pad button.on { transform: translateY(2px); box-shadow: inset 0 2px 4px rgb(0 0 0 / 0.4); }
 .pad .gas.on { background: var(--action-hover); }
 
+/* Джойстик (app/joystick.ts): гнездо из тёмного пластика, в нём ручка. Палец ставишь куда угодно в полосе —
+   гнездо встаёт под него. Засечки по краю горят, как кнопки пульта: газ — красным, тормоз и руль — жёлтым */
+.stick { display: none; position: relative; flex: 1; align-self: stretch; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.stick-base {
+  position: absolute; left: 50%; top: 50%; translate: -50% -50%; inline-size: 92px; block-size: 92px; border-radius: 50%;
+  background: var(--hud-bg); border: 1px solid var(--line); box-shadow: inset 0 3px 8px rgb(0 0 0 / 0.45), var(--shadow-lift);
+}
+.stick-base svg { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; fill: none; stroke: var(--hud-muted); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+.stick-base .mark-gas { stroke: var(--action); opacity: 0.6; }
+.stick-base.is-gas .mark-gas { opacity: 1; }
+.stick-base.is-brake .mark-brake, .stick-base.is-left .mark-left, .stick-base.is-right .mark-right { stroke: var(--hud-digit); }
+.stick-knob {
+  position: absolute; inset: 0; margin: auto; inline-size: 48px; block-size: 48px; border-radius: 50%;
+  background: var(--hud-tile); box-shadow: inset 0 -3px 0 rgb(0 0 0 / 0.4), inset 0 2px 0 rgb(255 255 255 / 0.12), var(--shadow-lift);
+  transition: transform 0.12s ease-out;
+}
+.stick-base.is-gas .stick-knob { background: var(--action); }
+.stick.on .stick-knob { transition: none; } /* под пальцем — без задержки */
+.stick-hint { position: absolute; top: 50%; translate: 0 -50%; font: 600 12px/1.2 var(--font); color: var(--muted); pointer-events: none; transition: opacity 0.2s; }
+.stick-hint:first-child { inset-inline-start: 4px; }
+.stick-hint:last-child { inset-inline-end: 4px; text-align: end; }
+.stick.on .stick-hint { opacity: 0; }
+@media (pointer: coarse) {
+  .pad > .pad-steer, .pad > .pad-pedals { display: none; }
+  .pad > .stick { display: block; min-block-size: 96px; }
+}
+@media (prefers-reduced-motion: reduce) { .stick-knob, .stick-hint { transition: none; } }
+
 /* «Вид из машины»: кнопка в правом верхнем углу трассы — тот же тёмный пластик, что табло; нажата — горит жёлтым */
 .view-switch { position: absolute; inset-inline-end: 12px; inset-block-start: 12px; z-index: 2; display: flex; gap: 8px; }
 body:not([data-tab="teach"]) .view-switch { display: none; }

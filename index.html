@@ -13,8 +13,8 @@
 <script>try{const t=JSON.parse(localStorage.getItem('ai-race:theme'));if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch{}</script>
 <link rel="icon" href="app/icon.svg" type="image/svg+xml">
 <link rel="preload" href="app/generated/assets/rubik-cyrillic-DveCct9I.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="app/generated/app.css?v=dd2f4b51c5">
-<script type="module" src="app/generated/app.js?v=527e0bc815"></script>
+<link rel="stylesheet" href="app/generated/app.css?v=bad4ad79ca">
+<script type="module" src="app/generated/app.js?v=dc53ecc534"></script>
 </head>
 <body>
 <a class="skip-link" href="#content">К содержимому</a>
@@ -170,6 +170,18 @@
         <div class="pad-pedals">
           <button data-key="ArrowUp" class="gas" aria-label="Газ">Газ</button>
           <button data-key="ArrowDown" class="brake" aria-label="Тормоз">Тормоз</button>
+        </div>
+        <!-- На сенсорном экране вместо кнопок — джойстик под большой палец: app/joystick.ts -->
+        <div class="stick" id="stick" role="img" aria-label="Джойстик: веди пальцем — вверх газ, вниз тормоз, вбок руль">
+          <span class="stick-hint">← руль →</span>
+          <div class="stick-base" id="stickBase">
+            <svg viewBox="0 0 100 100" aria-hidden="true">
+              <path class="mark-gas" d="M40 18 50 8l10 10"/><path class="mark-brake" d="M40 82l10 10 10-10"/>
+              <path class="mark-left" d="M18 40 8 50l10 10"/><path class="mark-right" d="M82 40l10 10-10 10"/>
+            </svg>
+            <div class="stick-knob" id="stickKnob"></div>
+          </div>
+          <span class="stick-hint">↑ газ · ↓ тормоз</span>
         </div>
       </div>
     </div>

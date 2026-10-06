@@ -1,4 +1,4 @@
-// Ручное управление: клавиатура и кнопки на экране → функция студента handleKey().
+// Ручное управление: клавиатура, кнопки и джойстик на экране (app/joystick.ts) → функция студента handleKey().
 // Вкладка, где сейчас можно рулить руками, отдаёт сюда controls своей машины.
 import { live } from './student-code.ts';
 import { showBanner } from './stage.ts';
@@ -16,7 +16,8 @@ export function steerWith(controls: Controls | null, { onTouch = null }: { onTou
   onPadTouch = onTouch;
 }
 
-function press(key: string, down: boolean): boolean {
+/** Нажать или отпустить клавишу — как будто на клавиатуре. true — handleKey() её взял */
+export function press(key: string, down: boolean): boolean {
   if (!target) return false;
   try {
     return !!live.controls.handleKey(key, down, target);
@@ -38,6 +39,11 @@ listen(window, 'blur', () => {
   if (target) Object.assign(target, { gas: 0, brake: 0, left: 0, right: 0 }); // отпустили окно — отпустили и кнопки
 });
 
+/** Тронули пульт или джойстик на экране: если руками пока не рулят — вкладка пересадит тебя за руль */
+export function touchPad(): void {
+  if (!target) onPadTouch?.();
+}
+
 for (const button of $$('.pad button')) {
   const key = button.dataset.key ?? '';
   const release = () => {
@@ -48,7 +54,7 @@ for (const button of $$('.pad button')) {
     e.preventDefault();
     button.setPointerCapture(e.pointerId);
     button.classList.add('on');
-    if (!target) onPadTouch?.();
+    touchPad();
     press(key, true);
   });
   for (const type of ['pointerup', 'pointercancel', 'lostpointercapture'] as const) listen(button, type, release);

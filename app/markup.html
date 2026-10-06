@@ -152,6 +152,18 @@
           <button data-key="ArrowUp" class="gas" aria-label="Газ">Газ</button>
           <button data-key="ArrowDown" class="brake" aria-label="Тормоз">Тормоз</button>
         </div>
+        <!-- На сенсорном экране вместо кнопок — джойстик под большой палец: app/joystick.ts -->
+        <div class="stick" id="stick" role="img" aria-label="Джойстик: веди пальцем — вверх газ, вниз тормоз, вбок руль">
+          <span class="stick-hint">← руль →</span>
+          <div class="stick-base" id="stickBase">
+            <svg viewBox="0 0 100 100" aria-hidden="true">
+              <path class="mark-gas" d="M40 18 50 8l10 10"/><path class="mark-brake" d="M40 82l10 10 10-10"/>
+              <path class="mark-left" d="M18 40 8 50l10 10"/><path class="mark-right" d="M82 40l10 10-10 10"/>
+            </svg>
+            <div class="stick-knob" id="stickKnob"></div>
+          </div>
+          <span class="stick-hint">↑ газ · ↓ тормоз</span>
+        </div>
       </div>
     </div>
 

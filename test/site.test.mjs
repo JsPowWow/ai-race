@@ -92,6 +92,24 @@ for (const screen of SCREENS) {
   });
 }
 
+test('телефон: вместо кнопок — джойстик; вверх — газ, машина едет, отпустил — всё отжато', async () => {
+  const { page, problems, close } = await openPage(SCREENS[1]);
+  await page.goto(`${base}#teach`);
+  await page.waitForFunction(() => document.body.dataset.tab === 'teach');
+  assert.ok(await page.isVisible('#stick') && await page.isHidden('.pad .gas'), 'под пальцем — джойстик, кнопок нет');
+  const box = await page.locator('#stick').boundingBox();
+  const x = box.x + box.width * 0.3, y = box.y + box.height / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x, y - 40, { steps: 4 }); // палец вверх — газ
+  assert.match(await page.getAttribute('#stickBase', 'class'), /is-gas/);
+  await page.waitForFunction(() => /скорость [1-9]/.test(document.querySelector('#hud').textContent), null, { timeout: 3000 });
+  await page.mouse.up();
+  assert.equal(await page.getAttribute('#stickBase', 'class'), 'stick-base');
+  await close();
+  assert.deepEqual(problems, []);
+});
+
 test('«Я учу»: машина ждёт на старте, пока не нажмёшь газ, — не глохнет', async () => {
   const { page, problems, close } = await openPage(SCREENS[0]);
   await page.goto(`${base}#teach`);
