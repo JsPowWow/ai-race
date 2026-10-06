@@ -2,6 +2,7 @@
 import { CAR, WHEELBASE, wheelAngle, rays, type Car } from './car.ts';
 import { pointAt, freeSide, signShows, type Track, type Road, type Branch, type Island, type Point, type RoadPoint, type Side } from './track.ts';
 import type { TrafficSpot } from './traffic.ts';
+import { drawScenery } from './scenery-draw.ts';
 
 type Ctx = CanvasRenderingContext2D;
 /** Что нужно, чтобы нарисовать машину: где она и (если есть) что делает. Подходит и Car, и запись заезда */
@@ -22,7 +23,7 @@ export function cssColor(name: string): string {
 }
 
 /** Цвета холста — из CSS-переменных, для текущей темы */
-export type Palette = Record<'board' | 'road' | 'roadEdge' | 'seam' | 'slot' | 'rail' | 'kerb' | 'kerb2' | 'sign' | 'signOff' | 'slow' | 'checkLight' | 'checkDark' | 'you' | 'ray' | 'rayHit' | 'traffic' | 'trafficOncoming' | 'trafficEdge' | 'crashed', string>;
+export type Palette = Record<'board' | 'road' | 'roadEdge' | 'seam' | 'slot' | 'rail' | 'kerb' | 'kerb2' | 'sign' | 'signOff' | 'slow' | 'checkLight' | 'checkDark' | 'you' | 'ray' | 'rayHit' | 'traffic' | 'trafficOncoming' | 'trafficEdge' | 'crashed' | 'tree' | 'tree2' | 'house' | 'roof' | 'roof2', string>;
 
 let palette: Palette | null = null;
 /** Перечитать цвета трассы — после смены темы */
@@ -33,6 +34,7 @@ export function readPalette(): Palette {
     kerb: v('--kerb'), kerb2: v('--kerb-2'), sign: v('--sign'), signOff: v('--sign-off'), slow: v('--slow'), checkLight: v('--check-light'), checkDark: v('--check-dark'),
     you: v('--you'), ray: v('--ray'), rayHit: v('--ray-hit'),
     traffic: v('--traffic'), trafficOncoming: v('--traffic-oncoming'), trafficEdge: v('--traffic-edge'), crashed: v('--crashed'),
+    tree: v('--tree'), tree2: v('--tree-2'), house: v('--house'), roof: v('--roof'), roof2: v('--roof-2'),
   };
   return palette;
 }
@@ -145,6 +147,7 @@ export function drawTrack(ctx: Ctx, track: Track, cam: Camera, tick = 0): void {
     ctx.setLineDash([16, 16]); ctx.strokeStyle = p.kerb2; ctx.stroke();
     ctx.setLineDash([]);
   }
+  drawScenery(ctx, track, cam, p); // после бордюров: кроны у самой обочины чуть «заваливаются» на них, как настоящие
   track.islands.forEach((island, i) => {
     drawSlowZone(ctx, track, island, freeSide(track, i, tick), p);
     drawSign(ctx, track, island.sign, signShows(track, i, tick), Math.max(1, 0.9 * px), p);
