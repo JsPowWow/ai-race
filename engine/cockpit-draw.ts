@@ -10,6 +10,7 @@ import { sceneryOf, SIZE, type Tree, type House, type Prop, type Dot } from './s
 import { startLights, sceneryMoves } from './scenery-draw.ts';
 import { local } from './tilt.ts';
 import { drawCockpitCar } from './cockpit-car.ts';
+import { tint, clearOf } from './paint.ts';
 import { rays, CAR } from './car.ts';
 import type { TrafficSpot } from './traffic.ts';
 
@@ -17,8 +18,10 @@ type Ctx = CanvasRenderingContext2D;
 type P3 = Point & { z: number };
 /** Плоский кусок трассы: многоугольник на столе и его середина — по ней решаем, виден ли он */
 type Flat = { pts: Point[]; x: number; y: number; dark?: boolean };
-/** Блок бордюра: отрезок a–b по краю дороги, красный или белый */
-type Kerb = { a: Point; b: Point; red: boolean; x: number; y: number };
+/** Блок бордюра: отрезок a–b по краю дороги, красный или белый; end — блок с краю бордюра, у него виден торец */
+type Kerb = { a: Point; b: Point; red: boolean; end: { a: boolean; b: boolean } };
+/** Несколько блоков бордюра подряд: рисуются одним куском — несколько заливок вместо сотни */
+type KerbRun = { blocks: Kerb[]; x: number; y: number; reach: number };
 /** Что рисовать по глубине: f — расстояние вперёд от камеры */
 type Item = { f: number; draw: () => void };
 
@@ -35,7 +38,9 @@ const LIGHT = { x: -0.55, y: -0.83 }; // свет сверху слева, ка�
 
 // ── плоское: считается один раз на трассу ──
 
-type Ground = { road: Flat[]; seams: Flat[]; marks: Flat[]; checker: Flat[]; kerbs: Kerb[] };
+type Ground = { road: Flat[]; seams: Flat[]; marks: Flat[]; checker: Flat[]; kerbs: KerbRun[] };
+/** Блоков бордюра в одном куске: длиннее — меньше заливок, но кусок дольше спорит по глубине с деревом рядом */
+const RUN = 6;
 const grounds = new WeakMap<Track, Ground>();
 
 /** Прямоугольник поперёк направления angle: середина (x, y), длина вдоль len, ширина поперёк wide */
@@ -99,24 +104,35 @@ function groundOf(track: Track): Ground {
   }
   // бордюры — блоками по 16 px: красный, белый, красный…
   for (const wall of track.walls) {
+    const blocks: Kerb[] = [];
     let red = true, left = KERB.dash, a = wall[0];
     for (let i = 1; i < wall.length; i++) {
       const b = wall[i];
       let len = Math.hypot(b.x - a.x, b.y - a.y);
       while (len >= left) {
         const t = left / len, cut = { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
-        g.kerbs.push(kerbOf(a, cut, red));
+        blocks.push(kerbOf(a, cut, red));
         a = cut; red = !red; left = KERB.dash;
         len = Math.hypot(b.x - a.x, b.y - a.y);
       }
       left -= len; // блок продолжается на следующем отрезке бордюра
     }
-    if (left < KERB.dash) g.kerbs.push(kerbOf(a, wall[wall.length - 1], red));
+    if (left < KERB.dash) blocks.push(kerbOf(a, wall[wall.length - 1], red));
+    if (!blocks.length) continue;
+    // торцы видны только у крайних блоков: между соседями торец спрятан внутри бордюра
+    blocks[0].end.a = true; blocks[blocks.length - 1].end.b = true;
+    for (let i = 0; i < blocks.length; i += RUN) g.kerbs.push(runOf(blocks.slice(i, i + RUN)));
   }
   grounds.set(track, g);
   return g;
 }
-const kerbOf = (a: Point, b: Point, red: boolean): Kerb => ({ a, b, red, x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
+const kerbOf = (a: Point, b: Point, red: boolean): Kerb => ({ a, b, red, end: { a: false, b: false } });
+
+function runOf(blocks: Kerb[]): KerbRun {
+  const first = blocks[0].a, last = blocks[blocks.length - 1].b;
+  const x = (first.x + last.x) / 2, y = (first.y + last.y) / 2;
+  return { blocks, x, y, reach: Math.hypot(last.x - first.x, last.y - first.y) / 2 + 10 };
+}
 
 // ── рисование ──
 
@@ -152,8 +168,9 @@ function face(ctx: Ctx, v: View, pts: P3[], color: string, shade = 0): void {
   const s = clipNear(v, pts);
   if (s.length < 3) return;
   ctx.beginPath(); addPoly(ctx, s);
-  ctx.fillStyle = color; ctx.fill();
-  if (shade > 0) { ctx.fillStyle = `rgb(0 0 0 / ${shade.toFixed(3)})`; ctx.fill(); }
+  const mixed = shade > 0 ? tint(color, shade) : color;
+  ctx.fillStyle = mixed ?? color; ctx.fill();
+  if (!mixed) { ctx.fillStyle = `rgb(0 0 0 / ${shade.toFixed(3)})`; ctx.fill(); } // цвет не разобрать — тень слоем
 }
 
 /** Насколько затенить стенку с наружной нормалью (nx, ny): к свету — светлее */
@@ -164,16 +181,7 @@ const shadeOf = (nx: number, ny: number): number => 0.16 + 0.14 * (nx * -LIGHT.x
  * side/top — цвета стенок и верха (top null — верх не рисовать)
  */
 function block(ctx: Ctx, v: View, base: Point[], z0: number, z1: number, side: string, top: string | null): void {
-  let area = 0;
-  for (let i = 0; i < base.length; i++) { const a = base[i], b = base[(i + 1) % base.length]; area += a.x * b.y - b.x * a.y; }
-  const turn = area > 0 ? 1 : -1;
-  for (let i = 0; i < base.length; i++) {
-    const a = base[i], b = base[(i + 1) % base.length];
-    const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
-    const nx = ((b.y - a.y) / len) * turn, ny = (-(b.x - a.x) / len) * turn;
-    if (nx * (v.x - (a.x + b.x) / 2) + ny * (v.y - (a.y + b.y) / 2) <= 0) continue; // стенка смотрит от камеры
-    face(ctx, v, [{ ...a, z: z0 }, { ...b, z: z0 }, { ...b, z: z1 }, { ...a, z: z1 }], side, shadeOf(nx, ny));
-  }
+  walls(v, base, z0, z1, () => true, (pts, shade) => face(ctx, v, pts, side, shade));
   if (top && v.z > z1) face(ctx, v, flat(base, z1), top);
 }
 
@@ -187,13 +195,38 @@ function billboard(v: View, x: number, y: number, z: number): (ScreenPoint & { k
   return p && { ...p, k: v.focal / p.f };
 }
 
+/** Небо и туман — столбики в пиксель шириной: холст растянет их на весь экран, а градиент заново не считается */
+type Air = { sky: OffscreenCanvas; fog: OffscreenCanvas; key: string };
+let air: Air | null = null;
+
 /**
- * Тот же цвет, но совсем прозрачный. Градиент к 'transparent' идёт через прозрачный чёрный —
- * на середине туман стал бы серой полосой; к своему же цвету с нулевой непрозрачностью — чисто.
+ * Небо (от верха до горизонта) и туман (от горизонта, где он густой до far, и до near, где тает).
+ * Камера всегда на одной высоте — горизонт стоит на месте: рисуем один раз, перерисовываем при смене темы или размера
  */
-function clear(color: string): string {
-  const rgb = /^rgba?\(\s*([\d.]+)[ ,]+([\d.]+)[ ,]+([\d.]+)/.exec(color);
-  return rgb ? `rgb(${rgb[1]} ${rgb[2]} ${rgb[3]} / 0)` : 'transparent';
+function airOf(p: Palette, horizon: number, far: number, near: number): Air | null {
+  if (typeof OffscreenCanvas !== 'function') return null;
+  const key = `${p.sky}|${p.sky2}|${p.board}|${horizon}|${far}|${near}`;
+  if (air?.key === key) return air;
+  const column = (h: number, paint: (g: Ctx, h: number) => void): OffscreenCanvas => {
+    const c = new OffscreenCanvas(1, Math.max(1, Math.ceil(h)));
+    const g = c.getContext('2d') as unknown as Ctx | null;
+    if (g) paint(g, c.height);
+    return c;
+  };
+  const sky = column(horizon + 1, (g, h) => {
+    const grad = g.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, p.sky); grad.addColorStop(1, p.sky2);
+    g.fillStyle = grad; g.fillRect(0, 0, 1, h);
+  });
+  const fog = column(near - horizon + 1, (g, h) => {
+    const grad = g.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, p.board);
+    grad.addColorStop(Math.min(0.99, (far - horizon) / (near - horizon)), p.board);
+    grad.addColorStop(1, clearOf(p.board));
+    g.fillStyle = grad; g.fillRect(0, 0, 1, h);
+  });
+  air = { sky, fog, key };
+  return air;
 }
 
 /** Нарисовать вид из машины. ctx — холст в пикселях экрана */
@@ -202,9 +235,9 @@ export function drawCockpit(ctx: Ctx, track: Track, v: View, scene: CockpitScene
   const W = ctx.canvas.width, H = ctx.canvas.height, tick = scene.tick ?? 0, dpr = scene.dpr ?? 1;
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   // фон фотостудии: стол уходит вдаль и сливается со стеной — игрушка на столе, а не небо над полем
-  const sky = ctx.createLinearGradient(0, 0, 0, v.horizon);
-  sky.addColorStop(0, p.sky); sky.addColorStop(1, p.sky2);
-  ctx.fillStyle = sky; ctx.fillRect(0, 0, W, v.horizon + 1);
+  const y = (d: number): number => v.horizon + (v.z / d) * v.focal; // где на экране земля на расстоянии d
+  const air = airOf(p, v.horizon, y(v.range * 0.85), y(v.range * 0.45));
+  if (air) ctx.drawImage(air.sky, 0, 0, 1, air.sky.height, 0, 0, W, v.horizon + 1);
   ctx.fillStyle = p.board; ctx.fillRect(0, v.horizon, W, H - v.horizon);
 
   const g = groundOf(track);
@@ -217,13 +250,8 @@ export function drawCockpit(ctx: Ctx, track: Track, v: View, scene: CockpitScene
   fillFlats(ctx, v, g.marks, p.marking, 0.2);
   fillFlats(ctx, v, g.checker.filter((c) => !c.dark), p.checkLight, 0.3);
   fillFlats(ctx, v, g.checker.filter((c) => c.dark), p.checkDark, 0.3);
-  // туман у горизонта: дальняя дорога растворяется в столе (y(d) — где на экране земля на расстоянии d)
-  const y = (d: number): number => v.horizon + (v.z / d) * v.focal;
-  const fog = ctx.createLinearGradient(0, v.horizon, 0, y(v.range * 0.45));
-  fog.addColorStop(0, p.board);
-  fog.addColorStop(Math.min(0.99, (y(v.range * 0.85) - v.horizon) / (y(v.range * 0.45) - v.horizon)), p.board);
-  fog.addColorStop(1, clear(p.board));
-  ctx.fillStyle = fog; ctx.fillRect(0, v.horizon - 1, W, y(v.range * 0.45) - v.horizon + 1);
+  // туман у горизонта: дальняя дорога растворяется в столе
+  if (air) ctx.drawImage(air.fog, 0, 0, 1, air.fog.height, 0, v.horizon - 1, W, air.fog.height);
 
   // всё, у чего есть высота, — по глубине
   const items: Item[] = [];
@@ -231,7 +259,7 @@ export function drawCockpit(ctx: Ctx, track: Track, v: View, scene: CockpitScene
     const f = visible(v, x, y, pad);
     if (f !== null) items.push({ f, draw });
   };
-  for (const k of g.kerbs) add(k.x, k.y, 10, () => kerb(ctx, v, k, p));
+  for (const run of g.kerbs) add(run.x, run.y, run.reach, () => kerbs(ctx, v, run, p));
   for (const t of trees) add(t.x, t.y, t.r * 2, () => tree(ctx, v, t, p));
   for (const t of bushes) add(t.x, t.y, t.r, () => tree(ctx, v, t, p));
   for (const h of houses) add(h.x, h.y, Math.max(h.w, h.d), () => house(ctx, v, h, p));
@@ -254,13 +282,43 @@ export function drawCockpit(ctx: Ctx, track: Track, v: View, scene: CockpitScene
   carShape(ctx, v, scene.me, p, dpr);
 }
 
-/** Блок бордюра: стенка, повёрнутая к камере, и верх */
-function kerb(ctx: Ctx, v: View, k: Kerb, p: Palette): void {
-  const len = Math.hypot(k.b.x - k.a.x, k.b.y - k.a.y) || 1;
-  const nx = -(k.b.y - k.a.y) / len * (KERB.w / 2), ny = (k.b.x - k.a.x) / len * (KERB.w / 2);
-  const base = [{ x: k.a.x + nx, y: k.a.y + ny }, { x: k.b.x + nx, y: k.b.y + ny }, { x: k.b.x - nx, y: k.b.y - ny }, { x: k.a.x - nx, y: k.a.y - ny }];
-  const color = k.red ? p.kerb : p.kerb2;
-  block(ctx, v, base, 0, KERB.h, color, color);
+/**
+ * Кусок бордюра: сначала все стенки, повёрнутые к камере, потом все верхи. Одинаковые цвета — одним путём:
+ * стенки соседних блоков не заходят друг на друга, поэтому порядок внутри цвета не важен
+ */
+function kerbs(ctx: Ctx, v: View, run: KerbRun, p: Palette): void {
+  const sides = new Map<string, Path2D>(), tops = new Map<string, Path2D>();
+  const put = (into: Map<string, Path2D>, color: string, pts: P3[]): void => {
+    const s = clipNear(v, pts);
+    if (s.length < 3) return;
+    let path = into.get(color);
+    if (!path) into.set(color, (path = new Path2D()));
+    addPoly(path, s);
+  };
+  for (const k of run.blocks) {
+    const len = Math.hypot(k.b.x - k.a.x, k.b.y - k.a.y) || 1;
+    const nx = (-(k.b.y - k.a.y) / len) * (KERB.w / 2), ny = ((k.b.x - k.a.x) / len) * (KERB.w / 2);
+    const base = [{ x: k.a.x + nx, y: k.a.y + ny }, { x: k.b.x + nx, y: k.b.y + ny }, { x: k.b.x - nx, y: k.b.y - ny }, { x: k.a.x - nx, y: k.a.y - ny }];
+    const color = k.red ? p.kerb : p.kerb2;
+    walls(v, base, 0, KERB.h, (i) => (i === 1 ? k.end.b : i === 3 ? k.end.a : true), (pts, shade) => put(sides, tint(color, shade) ?? color, pts));
+    if (v.z > KERB.h) put(tops, color, flat(base, KERB.h));
+  }
+  for (const paths of [sides, tops]) for (const [color, path] of paths) { ctx.fillStyle = color; ctx.fill(path); }
+}
+
+/** Стенки бруска с основанием base от высоты z0 до z1, повёрнутые к камере: каждую — в out с её тенью. use(i) — нужна ли стенка i */
+function walls(v: View, base: Point[], z0: number, z1: number, use: (i: number) => boolean, out: (pts: P3[], shade: number) => void): void {
+  let area = 0;
+  for (let i = 0; i < base.length; i++) { const a = base[i], b = base[(i + 1) % base.length]; area += a.x * b.y - b.x * a.y; }
+  const turn = area > 0 ? 1 : -1;
+  for (let i = 0; i < base.length; i++) {
+    if (!use(i)) continue;
+    const a = base[i], b = base[(i + 1) % base.length];
+    const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+    const nx = ((b.y - a.y) / len) * turn, ny = (-(b.x - a.x) / len) * turn;
+    if (nx * (v.x - (a.x + b.x) / 2) + ny * (v.y - (a.y + b.y) / 2) <= 0) continue; // стенка смотрит от камеры
+    out([{ ...a, z: z0 }, { ...b, z: z0 }, { ...b, z: z1 }, { ...a, z: z1 }], shadeOf(nx, ny));
+  }
 }
 
 /** Медленная зона: жёлтая подкраска занятого пути, на въезде и выезде — полосатая лента */
@@ -344,11 +402,13 @@ function tree(ctx: Ctx, v: View, t: Tree, p: Palette): void {
   ctx.fillStyle = p.roof2;
   if (t.kind === 'fir') {
     ctx.fillRect(b.x - r * 0.12, b.y - r * 0.6, r * 0.24, r * 0.6);
+    ctx.beginPath(); // два нижних яруса одного цвета — одной заливкой, верхний светлее
     for (let i = 0; i < 3; i++) {
       const y0 = b.y - r * (0.45 + i * 0.7), w = r * (1 - i * 0.22);
-      ctx.beginPath(); ctx.moveTo(b.x - w, y0); ctx.lineTo(b.x + w, y0); ctx.lineTo(b.x, y0 - r * 1.15); ctx.closePath();
-      ctx.fillStyle = i === 2 ? p.tree2 : p.tree; ctx.fill();
+      if (i === 2) { ctx.fillStyle = p.tree; ctx.fill(); ctx.beginPath(); }
+      ctx.moveTo(b.x - w, y0); ctx.lineTo(b.x + w, y0); ctx.lineTo(b.x, y0 - r * 1.15); ctx.closePath();
     }
+    ctx.fillStyle = p.tree2; ctx.fill();
     return;
   }
   ctx.fillRect(b.x - r * 0.14, b.y - r * 1.1, r * 0.28, r * 1.1);

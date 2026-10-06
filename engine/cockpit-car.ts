@@ -4,6 +4,7 @@
 import { clipNear, type View } from './cockpit.ts';
 import type { Palette } from './render.ts';
 import type { CarView } from './car-draw.ts';
+import { tint } from './paint.ts';
 import { wheelAngle, CAR, WHEELBASE } from './car.ts';
 import type { Point } from './track.ts';
 
@@ -165,7 +166,7 @@ function facing(v: View, pts: P3[], inside: P3): boolean {
   return n.x * (v.x - m.x) + n.y * (v.y - m.y) + n.z * (v.z - m.z) > 0;
 }
 
-/** Многоугольник → экран и заливка; dark и shine — полупрозрачный чёрный и белый поверх: работает с любым цветом */
+/** Многоугольник → экран и заливка; dark и shine — тень и блик (как полупрозрачный чёрный и белый поверх), смешаны с цветом заранее */
 function fill(ctx: Ctx, v: View, pts: P3[], color: string, dark: number, shine = 0): void {
   const s = clipNear(v, pts);
   if (s.length < 3) return;
@@ -173,9 +174,12 @@ function fill(ctx: Ctx, v: View, pts: P3[], color: string, dark: number, shine =
   ctx.moveTo(s[0].x, s[0].y);
   for (let i = 1; i < s.length; i++) ctx.lineTo(s[i].x, s[i].y);
   ctx.closePath();
-  ctx.fillStyle = color; ctx.fill();
-  if (dark > 0.01) { ctx.fillStyle = `rgb(0 0 0 / ${dark.toFixed(3)})`; ctx.fill(); }
-  if (shine > 0.01) { ctx.fillStyle = `rgb(255 255 255 / ${shine.toFixed(3)})`; ctx.fill(); }
+  const mixed = tint(color, dark > 0.01 ? dark : 0, shine > 0.01 ? shine : 0);
+  if (mixed) { ctx.fillStyle = mixed; ctx.fill(); } else { // цвет не разобрать — тень и блик слоями поверх
+    ctx.fillStyle = color; ctx.fill();
+    if (dark > 0.01) { ctx.fillStyle = `rgb(0 0 0 / ${dark.toFixed(3)})`; ctx.fill(); }
+    if (shine > 0.01) { ctx.fillStyle = `rgb(255 255 255 / ${shine.toFixed(3)})`; ctx.fill(); }
+  }
   // тонкий шов того же цвета закрывает щёлки между гранями, которые оставляет сглаживание
   ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 0.6; ctx.lineJoin = 'round'; ctx.stroke();
 }
