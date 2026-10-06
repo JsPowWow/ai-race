@@ -115,7 +115,7 @@ function drive(): void {
   hearFrame(soundOn() ? {
     me: { x: car.x, y: car.y, angle: car.angle, speed: car.speed, gas: Math.min(1, car.controls.gas), done: car.done },
     others: [...(traffic ?? []), ...(ghost ? [{ x: ghost.car.x, y: ghost.car.y, speed: ghost.car.speed, loud: 0.6 }] : [])],
-  } : null); // звук — только из машины: soundOn() это уже учитывает
+  } : null);
   setHud([
     me ? (recording ? `<b class="rec">запись</b> ${recording.length}` : 'рулишь <b class="word">ты</b>') : 'рулит <b class="word">мозг</b>',
     `скорость <b>${car.speed.toFixed(1)}</b>`,
@@ -159,19 +159,20 @@ function record(): void {
   if (sampleCount() + recording.length === MAX_SAMPLES) showBanner('Заездов много: при сохранении самые старые уйдут', 2400);
 }
 
-const RESULT_TEXT: Partial<Record<CarStatus, string>> = { crashed: 'Авария!', stalled: 'Заглох', timeout: 'Время вышло' };
+const RESULT_TEXT: Partial<Record<CarStatus, string>> = { crashed: 'Авария!', stalled: 'Заглох.', timeout: 'Время вышло.' };
 
 function finishRun({ interrupted = false } = {}): void {
   const status: RunStatus = interrupted || car.status === 'driving' ? 'stopped' : car.status;
-  const saved = recording && addRun(recording, {
+  const saved = recording ? addRun(recording, {
     trackName: track.name, traffic: state.drive.traffic, status,
     progressPct: carReport(car, track).progressPct, ticks: car.ticks,
-  });
+  }) : null;
   recording = null;
-  if (saved && runs.filter((r) => r.status === 'finished').length >= 2) emit('did', 'runs'); // 2 чистых заезда — шаг 1 урока
+  if (saved && typeof saved !== 'string' && runs.filter((r) => r.status === 'finished').length >= 2) emit('did', 'runs'); // 2 чистых заезда — шаг 1 урока
   if (interrupted) return;
   const head = car.status === 'finished' ? `Финиш! ${secs(car.finishTick ?? car.ticks)}.` : RESULT_TEXT[car.status] ?? '';
-  showBanner(saved ? `${head} Заезд записан: ${saved.packed.length} примеров` : head, RESTART_DELAY + 400);
+  const note = !saved ? '' : typeof saved === 'string' ? saved : `Заезд записан: ${saved.packed.length} примеров`;
+  showBanner(`${head} ${note}`.trim(), RESTART_DELAY + 400);
 }
 
 // ── реакция на перемены ──

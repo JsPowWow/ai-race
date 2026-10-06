@@ -1,6 +1,6 @@
 // «Я учу»: кнопка на трассе «Вид из машины» (#25). Нажал (или клавиша V) — камера садится позади машины;
 // нажал ещё раз — снова вид сверху. Выбор помнит браузер. Рулить и учить можно в обоих видах — это только картинка.
-// Рядом — выключатель звука мотора (только в виде из машины): браузер разрешает звук лишь после нажатия, поэтому — кнопкой.
+// Рядом — выключатель звука мотора (в обоих видах): браузер разрешает звук лишь после нажатия, поэтому — кнопкой.
 import { signal } from '@reely/dommy';
 import { listen } from '@reely/dommy-kit';
 import { stored } from '../storage.ts';
@@ -15,8 +15,8 @@ const sound = stored('sound', false, isOn);
 
 /** Включён ли вид из машины */
 export const cockpitOn = (): boolean => cockpit.peek();
-/** Звучит ли мотор: включён звук и смотришь из машины */
-export const soundOn = (): boolean => sound.peek() && cockpit.peek();
+/** Звучит ли мотор */
+export const soundOn = (): boolean => sound.peek();
 
 function toggleSound(): void {
   sound.update((on) => !on);
@@ -56,10 +56,10 @@ export function ViewSwitch(): Node {
   );
 }
 
-/** Выключатель звука мотора — виден только в виде из машины */
+/** Выключатель звука мотора — и сверху, и из машины */
 export function SoundSwitch(): Node {
   return (
-    <button className="view-btn" id="dSound" title="Звук мотора" hidden={() => !cockpit.value}
+    <button className="view-btn" id="dSound" title="Звук мотора"
       aria={{ ariaLabel: 'Звук мотора', ariaPressed: () => String(sound.value) }} onClick={toggleSound}>
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" />

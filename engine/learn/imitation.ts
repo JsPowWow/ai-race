@@ -9,7 +9,7 @@
 // Активации те же, что у варианта мозга «Плавный»: внутри tanh(2·z), на выходе sigmoid(3·z), z = сумма − порог.
 // Поэтому обученный мозг сразу ездит с think = 'smooth'.
 import { sensorsOf, type Brain } from '../net/brain.ts';
-import type { Car } from '../world/car.ts';
+import type { Car, CarStatus } from '../world/car.ts';
 
 /** Пример: что видела сеть на входе (x) и что нажал учитель (y = [газ, тормоз, влево, вправо], 0 или 1) */
 export type Sample = { x: number[]; y: number[] };
@@ -31,6 +31,25 @@ export function sampleOf(car: Car): Sample {
  * и ученик выучит главное: «стоишь — стой». Поэтому такие примеры выбрасываем.
  */
 export const worthLearning = ({ x, y }: Sample, sensorCount = sensorsOf(x.length)): boolean => y.some(Boolean) || Math.abs(x[sensorCount]) > 0.02;
+
+export const MIN_RUN = 30;          // заезды короче полсекунды не записываем
+export const DROP_BEFORE_CRASH = 60; // перед аварией последнюю секунду не учим: это и есть ошибка
+export const EARLY_CRASH = 30;       // авария раньше 30% круга — учить почти нечему
+
+/**
+ * Чему учиться из заезда человека. Сеть повторит всё, что ей покажут, — и ошибки тоже,
+ * поэтому неудачное не записываем: заглох или не успел — научит «стой», ранняя авария — «бейся».
+ * Долгую аварию оставляем: до удара человек ехал хорошо, отрезаем только последнюю секунду.
+ * end — чем кончился заезд ('stopped' — человек сам нажал «Заново»).
+ * Возвращает примеры, которые стоит записать, или строку — почему заезд не записан.
+ */
+export function keptFromRun(samples: Sample[], end: Exclude<CarStatus, 'driving'> | 'stopped', progressPct: number): Sample[] | string {
+  if (end === 'stalled') return 'Заезд не записан: машина стояла — такому не учим';
+  if (end === 'timeout') return 'Заезд не записан: не успел доехать';
+  if (end === 'crashed' && progressPct < EARLY_CRASH) return 'Заезд не записан: авария в самом начале';
+  const kept = end === 'crashed' ? samples.slice(0, -DROP_BEFORE_CRASH) : samples;
+  return kept.length < MIN_RUN ? 'Заезд не записан: слишком короткий' : kept;
+}
 
 const sigmoid = (z: number): number => 1 / (1 + Math.exp(-z));
 

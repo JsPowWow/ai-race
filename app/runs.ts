@@ -2,15 +2,13 @@
 // Заезд — это примеры «что видела сеть → что нажал человек», упакованные в строки (см. engine/learn/imitation.ts).
 // Заезды — у каждой машины гаража свои (записаны под её сенсоры): лежат в её папке, в runs.json.
 // Здесь — заезды выбранной машины; пересели в другую — гараж подменит их через setRuns().
-import { packSample, unpackSample, worthLearning, type Sample } from '../engine/learn/imitation.ts';
+import { packSample, unpackSample, worthLearning, keptFromRun, MIN_RUN, type Sample } from '../engine/learn/imitation.ts';
 import type { CarStatus } from '../engine/world/car.ts';
 import type { TrafficLevel } from '../engine/world/traffic.ts';
 import { emit } from './state.ts';
 import { load, remove } from './storage.ts';
 
 export const MAX_SAMPLES = 8000;  // всего во всех заездах — чтобы хватило места в браузере
-export const MIN_RUN = 30;        // заезды короче (полсекунды) не сохраняем
-export const DROP_BEFORE_CRASH = 45; // перед аварией последние 0,75 с не учим
 
 /** Чем кончился заезд: как у машины, плюс stopped — человек сам нажал «Заново» */
 export type RunStatus = Exclude<CarStatus, 'driving'> | 'stopped';
@@ -56,19 +54,18 @@ export const sampleCount = (list: Run[] = runs): number => list.reduce((n, r) =>
 
 /**
  * Добавить заезд. samples — [{ x, y }] в порядке тиков.
- * Возвращает сохранённый заезд или null, если он слишком короткий.
+ * Возвращает сохранённый заезд или строку — почему он не записан (что учить, решает keptFromRun).
  */
-export function addRun(samples: Sample[], { trackName, traffic, status, progressPct, ticks }: RunInfo): Run | null {
-  const kept = status === 'crashed' ? samples.slice(0, -DROP_BEFORE_CRASH) : samples;
-  const [first] = kept;
-  if (!first || kept.length < MIN_RUN) return null;
+export function addRun(samples: Sample[], { trackName, traffic, status, progressPct, ticks }: RunInfo): Run | string {
+  const kept = keptFromRun(samples, status, progressPct);
+  if (typeof kept === 'string') return kept;
   const run: Run = {
     id: `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`,
     at: new Date().toISOString(),
     trackName, traffic, status, progressPct, ticks,
-    inputs: first.x.length,
+    inputs: kept[0].x.length,
     packed: kept.map(packSample),
-    on: status !== 'crashed' || progressPct > 30, // короткую аварию по умолчанию не учим
+    on: true,
   };
   runs = [run, ...runs];
   while (sampleCount() > MAX_SAMPLES && runs.length > 1) runs = runs.slice(0, -1); // старые уходят

@@ -87,7 +87,8 @@ for (const screen of SCREENS) {
     await page.keyboard.press('KeyV'); // V — снова вид сверху
     await page.waitForFunction(() => document.querySelector('#stage').getAttribute('aria-label') === 'Трасса');
     assert.equal(await page.getAttribute('#dView', 'aria-pressed'), 'false');
-    assert.ok(await page.isHidden('#dSound'), 'сверху звука нет — и выключателя тоже');
+    assert.ok(await page.isVisible('#dSound'), 'сверху звук тоже есть — выключатель остаётся');
+    assert.equal(await page.getAttribute('#dSound', 'aria-pressed'), 'true', 'и звук не выключился сам');
     await close();
     assert.deepEqual(problems, []);
   });
