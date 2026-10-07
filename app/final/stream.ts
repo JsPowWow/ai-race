@@ -5,7 +5,7 @@ import { batch, computed, effect, signal, untracked } from '@reely/dommy';
 import { isSuperfinal, stageLabel, trafficSnapshot } from '../../engine/world/rally.ts';
 import { getTrainingTrack } from '../../engine/world/track.ts';
 import { startCountdown, stopCountdown, updateCountdown } from '../countdown.ts';
-import { drawScene, setHud, lapText, showBanner } from '../stage.ts';
+import { drawScene, setHud, field, bold, lapText, showBanner } from '../stage.ts';
 import { secs } from '../format.ts';
 import { StageReplay, countStatuses, drawStage, drawProgressStrip } from './show.ts';
 import type { Placed, ReplayRow } from './show.ts';
@@ -145,7 +145,7 @@ export function frame(frameNo: number): void {
 function drawWaiting(): void {
   drawScene(getTrainingTrack('warmup'));
   const count = racers.peek().length;
-  setHud(['<b>Финал курса</b>', count ? `участников <b>${count}</b>` : 'загрузите работы', calc.peek() ? '' : 'потом — «Посчитать финал»'].filter(Boolean));
+  setHud([bold('Финал курса'), count ? field('участников', count) : 'загрузите работы', calc.peek() ? '' : 'потом — «Посчитать финал»']);
 }
 
 function drawReplay(now: StageReplay): void {
@@ -160,12 +160,12 @@ function drawReplay(now: StageReplay): void {
   drawProgressStrip(order, { foundId });
   const count = countStatuses(order);
   setHud([
-    `<b>${stageLabel(stage.peek())}</b>`,
-    `время <b>${secs(tick)}</b>`,
+    bold(stageLabel(stage.peek())),
+    field('время', secs(tick)),
     target ? lapText(track, track.startS + target.car.progress * (track.finishS - track.startS)) : '',
-    `на трассе <b>${count.driving}</b>`,
-    `финиш <b>${count.finished}</b>`,
-    `сошли <b>${count.out}</b>`,
+    field('на трассе', count.driving),
+    field('финиш', count.finished),
+    field('сошли', count.out),
     speed.peek() > 1 ? `×${speed.peek()}` : '',
-  ].filter(Boolean));
+  ]);
 }

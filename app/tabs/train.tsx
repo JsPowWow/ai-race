@@ -5,8 +5,7 @@ import { mount } from '@reely/dommy';
 import { Car } from '../../engine/world/car.ts';
 import type { Track } from '../../engine/world/track.ts';
 import { state } from '../state.ts';
-import { canvas, drawScene, paintCar, trafficOn, carAt, setHud, lapText } from '../stage.ts';
-import { esc } from '../ui.ts';
+import { canvas, drawScene, paintCar, trafficOn, carAt, setHud, field, bold, lapText } from '../stage.ts';
 import { secs } from '../format.ts';
 import { element } from '../dom.ts';
 import { train } from './train-settings.ts';
@@ -58,7 +57,7 @@ function drawIdle(): void {
   const { track, car } = idleScene();
   drawScene(track, { traffic: trafficOn(track, 0) });
   paintCar(car, { color: state.profile.color });
-  setHud([`<b>${esc(track.name)}</b>`, state.champion ? `продолжим с поколения ${results().generation}` : 'нажми «Старт»']);
+  setHud([bold(track.name), state.champion ? `продолжим с поколения ${results().generation}` : 'нажми «Старт»']);
   showLeaderBrain(null);
   updateTrainFlaps(null, null, results().generation);
 }
@@ -84,10 +83,10 @@ function drawReplay(replay: Replay): void {
   showLeaderBrain(lead, driving);
   updateReplayFlaps(replay);
   setHud([
-    '<b>машина времени</b>',
-    `время <b>${secs(tick)}</b>`,
-    driving ? `едут <b>${riders.filter((r) => !r.car.done).length}</b>/${riders.length}` : 'заезд окончен — итог на табло',
-    `<b>${esc(track.name)}</b>`,
+    bold('машина времени'),
+    field('время', secs(tick)),
+    driving ? field('едут', `${riders.filter((r) => !r.car.done).length}/${riders.length}`) : 'заезд окончен — итог на табло',
+    bold(track.name),
   ]);
 }
 
@@ -122,13 +121,13 @@ export const trainTab = {
     showLeaderBrain(lead, isRunning());
     updateTrainFlaps(evo, lead, results().generation);
     setHud([
-      `поколение <b>${results().generation + 1}</b>`,
-      `едут <b>${evo.cars.filter((c) => !c.done).length}</b>/${evo.cars.length}`,
-      `доехали <b>${evo.cars.filter((c) => c.status === 'finished').length}</b>`,
-      `время <b>${secs(evo.tick)}</b>`,
+      field('поколение', results().generation + 1),
+      field('едут', `${evo.cars.filter((c) => !c.done).length}/${evo.cars.length}`),
+      field('доехали', evo.cars.filter((c) => c.status === 'finished').length),
+      field('время', secs(evo.tick)),
       lead ? lapText(track, lead.bestS) : '',
-      `<b>${esc(track.name)}</b>`,
-    ].filter(Boolean));
+      bold(track.name),
+    ]);
   },
 };
 

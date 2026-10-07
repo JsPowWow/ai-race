@@ -6,7 +6,7 @@
 import { mount } from '@reely/dommy';
 import { TRAFFIC_LEVELS, type TrafficLevel } from '../../engine/world/traffic.ts';
 import { state, persist } from '../state.ts';
-import { drawScene, paintCar, paintSensors, trafficOn, setHud } from '../stage.ts';
+import { drawScene, paintCar, paintSensors, trafficOn, setHud, field } from '../stage.ts';
 import { secs } from '../format.ts';
 import { element } from '../dom.ts';
 import { Seg, Select, type Choice } from '../components/controls.tsx';
@@ -90,7 +90,7 @@ export const raceTab = {
     if (leader && !leader.car.done) paintSensors(leader.car);
     // места, круги и отставания — на табло-флапах; над трассой — только время и что сейчас происходит
     setHud([
-      `время <b>${secs(race.tick)}</b>`,
+      field('время', secs(race.tick)),
       race.running ? `×${speed.peek()}` : race.finished ? 'финиш' : 'ждём старта',
     ]);
   },

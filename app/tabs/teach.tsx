@@ -14,7 +14,7 @@ import { state, thinkFn, on, emit } from '../state.ts';
 import { live } from '../student-code.ts';
 import { runs, addRun, type RunStatus } from '../runs.ts';
 import { steerWith } from '../manual-drive.ts';
-import { drawRide, trafficOn, setHud, lapText, showBanner } from '../stage.ts';
+import { drawRide, trafficOn, setHud, field, lapText, showBanner } from '../stage.ts';
 import { secs, pct, plural } from '../format.ts';
 import { element } from '../dom.ts';
 import { BrainLibrary } from '../components/brain-library.tsx';
@@ -118,12 +118,12 @@ function drive(): void {
   } : null);
   setHud([
     me ? (recording ? `<b class="rec">запись</b> ${recording.length}` : 'рулишь <b class="word">ты</b>') : 'рулит <b class="word">мозг</b>',
-    `скорость <b>${car.speed.toFixed(1)}</b>`,
+    field('скорость', car.speed.toFixed(1)),
     lapText(track, car.bestS),
-    `пройдено <b>${pct(carReport(car, track).progressPct)}</b>`,
-    `время <b>${secs(car.ticks)}</b>`,
+    field('пройдено', pct(carReport(car, track).progressPct)),
+    field('время', secs(car.ticks)),
     ghostGap(ghost),
-  ].filter(Boolean));
+  ]);
 }
 
 /** Машина на старт. Недоеханный заезд записываем как «прервал» */

@@ -6,8 +6,7 @@ import { getTrainingTrack } from '../../engine/world/track.ts';
 import { maxTicksFor, carReport } from '../../engine/world/car.ts';
 import type { Car } from '../../engine/world/car.ts';
 import { state } from '../state.ts';
-import { drawScene, paintCar, trafficOn, setHud, lapText } from '../stage.ts';
-import { esc } from '../ui.ts';
+import { drawScene, paintCar, trafficOn, setHud, field, bold, lapText } from '../stage.ts';
 import { secs, pct } from '../format.ts';
 import { element } from '../dom.ts';
 import { championCar, KNOWN_COUNT, UNKNOWN_COUNT } from './exam-run.ts';
@@ -57,7 +56,7 @@ export const examTab = {
   frame(): void {
     if (!replay) {
       drawScene(getTrainingTrack('warmup'));
-      setHud(['<b>Экзамен</b>', `чемпион проедет ${KNOWN_COUNT + UNKNOWN_COUNT} трасс`]);
+      setHud([bold('Экзамен'), `чемпион проедет ${KNOWN_COUNT + UNKNOWN_COUNT} трасс`]);
       return;
     }
     const { car, result } = replay;
@@ -69,12 +68,11 @@ export const examTab = {
     }
     drawScene(track, { traffic: trafficOn(track, car.ticks), tick: car.ticks });
     paintCar(car, { color: state.profile.color, sensors: true, number: 1 });
-    // табло — HTML-строки (app/stage.ts): имя трассы из seed — через esc()
     setHud([
-      `<b>${esc(result.title)}</b>`,
-      `время <b>${secs(car.ticks)}</b>`,
+      bold(result.title),
+      field('время', secs(car.ticks)),
       lapText(track, car.bestS),
-      `пройдено <b>${pct(carReport(car, track).progressPct)}</b>`,
+      field('пройдено', pct(carReport(car, track).progressPct)),
       `повтор ×${REPLAY_SPEED}`,
     ]);
   },

@@ -9,7 +9,7 @@ import type { Brain } from '../../engine/net/brain.ts';
 import { withTraffic } from '../../engine/world/traffic.ts';
 import { state, sizesOf, thinkFn } from '../state.ts';
 import { live } from '../student-code.ts';
-import { drawRide, trafficOn, setHud } from '../stage.ts';
+import { drawRide, trafficOn, setHud, field } from '../stage.ts';
 import { createBrainBoard, type BrainBoard } from '../brain-board/board.ts';
 import { SMOOTH, ANY_ACT } from '../brain-board/formula.ts';
 import { element } from '../dom.ts';
@@ -57,8 +57,8 @@ export const profileTab = {
     const front = car.sensors.count;
     setHud([
       car.brain ? `едет <b class="word">мозг</b>${draft.peek() ? ' · черновик' : ''}` : state.champion ? 'черновик: мозг не подходит — стоит' : 'мозг не обучен — машина стоит',
-      `вперёд <b>${readings.slice(0, front).join(' ')}</b>`,
-      ...(readings.length > front ? [`назад <b>${readings.slice(front).join(' ')}</b>`] : []),
+      field('вперёд', readings.slice(0, front).join(' ')),
+      readings.length > front && field('назад', readings.slice(front).join(' ')),
     ]);
   },
 };
