@@ -48,4 +48,4 @@
 
 ### Domain docs
 
-Один контекст: `CONTEXT.md` в корне и `docs/adr/`, по-русски. См. `docs/agents/domain.md`.
+Один контекст: `GLOSSARY.md` в корне и `docs/adr/`, по-русски. См. `docs/agents/domain.md`.

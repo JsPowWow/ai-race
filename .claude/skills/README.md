@@ -6,7 +6,7 @@
 
 | Откуда | Коммит | Лицензия | Скиллы |
 |---|---|---|---|
-| [mattpocock/skills](https://github.com/mattpocock/skills) — `engineering/`, `productivity/` | `c55ee46` | MIT | `codebase-design`, `improve-codebase-architecture`, `domain-modeling`, `tdd`, `diagnosing-bugs`, `code-review`, `prototype`, `research`, `implement`, `to-spec`, `to-tickets`, `triage`, `wayfinder`, `grill-with-docs`, `grill-me`, `grilling`, `handoff`, `teach`, `to-questionnaire`, `wait-what`, `writing-for-agents`, `resolving-merge-conflicts`, `wizard`, `ask-matt`, `setup-matt-pocock-skills` |
+| [mattpocock/skills](https://github.com/mattpocock/skills) — `engineering/`, `productivity/` (v1.3.1) | `24fe0ef` | MIT | `codebase-design`, `improve-codebase-architecture`, `domain-modeling`, `tdd`, `diagnosing-bugs`, `code-review`, `prototype`, `research`, `implement`, `implement-spec`, `pr`, `retro`, `to-spec`, `to-tickets`, `triage`, `wayfinder`, `grill-with-docs`, `grill-me`, `grilling`, `handoff`, `teach`, `to-questionnaire`, `wait-what`, `writing-for-agents`, `wizard`, `ask-matt`, `setup-matt-pocock-skills` |
 | [anthropics/skills](https://github.com/anthropics/skills) | `3337550` | Apache-2.0 (в папке) | `frontend-design` |
 | [addyosmani/web-quality-skills](https://github.com/addyosmani/web-quality-skills) | `afa8da9` | MIT | `core-web-vitals`, `performance`, `accessibility`, `best-practices`, `seo`, `web-quality-audit` |
 | [pbakaus/impeccable](https://github.com/pbakaus/impeccable) — `plugin/` (4.4.0) | `9d715cc` | Apache-2.0 | `impeccable` (24 команды: `/impeccable critique`, `audit`, `polish`, `shape`…) + агенты в `.claude/agents/impeccable-*.md` |
