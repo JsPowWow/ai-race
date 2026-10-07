@@ -3,11 +3,12 @@
 import { TRAINING_TRACKS } from '../../engine/world/track.ts';
 import { TRAFFIC_LEVELS, type TrafficLevel } from '../../engine/world/traffic.ts';
 import { state, persist } from '../state.ts';
+import { Seg, Select, type Choice } from '../components/controls.tsx';
 
 /** Кто рулит: 'me' — ты (заезд записывается), 'brain' — текущий мозг */
 export type Mode = 'me' | 'brain';
 
-type Choice = { id: string; title: string };
+const SEATS: Choice<Mode>[] = [{ id: 'me', title: 'Еду я' }, { id: 'brain', title: 'Едет мозг' }];
 const TRACKS: Choice[] = TRAINING_TRACKS.map(({ id, name }) => ({ id, title: name }));
 
 type DriveBarProps = {
@@ -19,26 +20,17 @@ type DriveBarProps = {
 
 export function DriveBar({ mode, onMode, onRestart }: DriveBarProps): Node {
   /** Выпадающий список настройки заезда: выбрали — запомнили и поехали заново */
-  const select = (id: string, key: 'trackId' | 'traffic', items: Choice[]) => (
-    <select id={id} onChange={(e) => {
-      const value = e.currentTarget.value; // одно из items ниже
-      if (key === 'traffic') state.drive.traffic = value as TrafficLevel;
+  const select = (id: string, key: 'trackId' | 'traffic', items: readonly Choice[]) => (
+    <Select id={id} items={items} value={() => state.drive[key]} pick={(value) => {
+      if (key === 'traffic') state.drive.traffic = value as TrafficLevel; // одно из items
       else state.drive.trackId = value;
       persist();
       onRestart();
-    }}>
-      {items.map((item) => <option value={item.id} selected={item.id === state.drive[key]}>{item.title}</option>)}
-    </select>
-  );
-  const seat = (who: Mode, id: string, label: string) => (
-    <button id={id} aria={{ ariaPressed: () => String(mode() === who) }} onClick={() => onMode(who)}>{label}</button>
+    }} />
   );
   return (
     <>
-      <div className="seg" aria={{ role: 'group', ariaLabel: 'Кто рулит' }}>
-        {seat('me', 'dMe', 'Еду я')}
-        {seat('brain', 'dBrain', 'Едет мозг')}
-      </div>
+      <Seg<Mode> label="Кто рулит" items={SEATS} value={mode} pick={onMode} />
       <button className="btn" id="dRestart" onClick={onRestart}>Заново</button>
       <label className="inline">Трасса {select('dTrack', 'trackId', TRACKS)}</label>
       <label className="inline">Машины {select('dTraffic', 'traffic', TRAFFIC_LEVELS)}</label>

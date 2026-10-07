@@ -8,6 +8,8 @@ import { state, sizesOf, emit, on } from '../state.ts';
 import type { Profile } from '../state.ts';
 import { garage, MAX_CARS, switchCar, newCar, copyCar, deleteCar, exportCar, importCar, chooseFolder, allowFolder, stopFolder } from '../garage.ts';
 import { CarDot } from '../components/car-dot.tsx';
+import { FileButton } from '../components/file-button.tsx';
+import { ErrorNote } from '../components/error-note.tsx';
 import { saveFile, safeFileName } from '../download.ts';
 import { fromEvents } from '../signals.ts';
 import { bytes } from '../format.ts';
@@ -89,10 +91,8 @@ async function exportToFile(): Promise<void> {
   await saveFile(`${safeFileName(name)}.garage.json`, text);
 }
 
-async function importFromFile(input: HTMLInputElement): Promise<void> {
-  const [file] = input.files ?? [];
-  input.value = ''; // тот же файл ещё раз — снова событие change
-  if (!file) return;
+/** Машина из файла: пересаживаемся в неё, если с черновиком всё решено */
+async function importFromFile([file]: File[]): Promise<void> {
   const text = await file.text();
   leave('row', () => importCar(text));
 }
@@ -249,7 +249,7 @@ function Disk(): Node {
           </>
         )}
       </Show>
-      <Show when={() => disk().note}>{() => <p className="error">{() => disk().note}</p>}</Show>
+      <ErrorNote text={() => disk().note} role="status" />
     </div>
   );
 }
@@ -277,10 +277,7 @@ export function Garage(): Node {
       <div className="row g-actions" id="gActions" hidden={() => ask.value?.at === 'row'}>
         <button className="btn small" id="gCopy" disabled={() => busy.value || full()} onClick={() => leave('row', copyCar)}>Скопировать</button>
         <button className="btn small" id="gExport" disabled={busy} onClick={() => act(exportToFile)}>Сохранить в файл</button>
-        <label className={() => (busy.value || full() ? 'btn small file off' : 'btn small file')}>
-          Открыть из файла
-          <input type="file" id="gImport" accept=".json,application/json" disabled={() => busy.value || full()} onChange={(e) => importFromFile(e.currentTarget)} />
-        </label>
+        <FileButton id="gImport" disabled={() => busy.value || full()} onFiles={importFromFile}>Открыть из файла</FileButton>
         <button className="btn small danger" id="gDelete" disabled={() => busy.value || shelf().cars.length <= 1}
           title={() => (shelf().cars.length <= 1 ? 'Последнюю машину удалить нельзя' : '')}
           onClick={() => (ask.value = { at: 'row', kind: 'delete', run: () => deleteCar(garage.id) })}>Удалить</button>
@@ -289,7 +286,7 @@ export function Garage(): Node {
         <Show when={asksRow('delete')}>{() => <DeleteQuestion />}</Show>
         <Show when={asksRow('draft')}>{() => <DraftQuestion />}</Show>
       </div>
-      <p className="error" id="gError" aria={{ role: 'alert' }} hidden={() => !shelf().error}>{() => shelf().error}</p>
+      <ErrorNote id="gError" text={() => shelf().error} />
       <Files />
       <Meter />
       <Disk />

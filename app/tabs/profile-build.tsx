@@ -7,6 +7,7 @@ import { LIMITS, inputCount, OUTPUTS } from '../../engine/net/brain.ts';
 import { BUDGET, PRICES, cost } from '../../engine/course/build.ts';
 import { state, sizesOf, on, thinkVariants } from '../state.ts';
 import { changeShape } from '../library.ts';
+import { ErrorNote } from '../components/error-note.tsx';
 import { fromEvents, variants, SHAPE_EVENTS, BRAIN_EVENTS } from '../signals.ts';
 
 export type Shape = typeof state.config;
@@ -192,7 +193,7 @@ function Budget(): Node {
         <span id="bBar" styles={{ width: () => `${Math.min(100, (spent() / BUDGET) * 100)}%` }} />
       </div>
       <p className="hint">Очки у всех одни. Больше глаз — дальше видно, больше нейронов — умнее, но рою дольше учиться. Всё сразу не купить: выбирай под трассу.</p>
-      <p className="error" id="bMsg" aria={{ role: 'status' }} hidden={() => !warning.value}>{warning}</p>
+      <ErrorNote id="bMsg" text={warning} role="status" />
     </section>
   );
 }

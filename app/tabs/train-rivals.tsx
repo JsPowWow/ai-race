@@ -1,12 +1,15 @@
 // «Учится само», соперники: боты и чужие машины едут рядом с роем — видно, догнал ли их рой.
 // В отборе они не участвуют: родители — только из роя (engine/learn/evolution.ts, rivals).
 // Список не сохраняем: соперники — на один вечер, а localStorage маленький.
-import { signal, For, Show } from '@reely/dommy';
+import { signal, For } from '@reely/dommy';
 import type { Rival } from '../../engine/learn/evolution.ts';
 import { fromCarFile } from '../car-file.ts';
 import { CAR_COLORS } from '../state.ts';
 import { BOTS } from '../generated/bots.js';
 import { CarDot } from '../components/car-dot.tsx';
+import { FileButton } from '../components/file-button.tsx';
+import { ErrorNote } from '../components/error-note.tsx';
+import { eachJsonFile } from '../files.ts';
 import { messageOf } from '@reely/basics';
 
 /** Соперник на странице: кто он и как выглядит; сам заезд — в rival */
@@ -46,20 +49,10 @@ function toggleBot(index: number, on: boolean): void {
 }
 
 /** Файлы машин — все сразу; плохие не добавятся, но и хорошим не помешают */
-async function addFiles(files: FileList | null): Promise<void> {
-  const list = [...(files ?? [])];
-  const texts = await Promise.all(list.map((f) => f.text()));
+async function addFiles(files: File[]): Promise<void> {
   const added: RivalEntry[] = [];
-  const failed: string[] = [];
-  texts.forEach((text, i) => {
-    try {
-      added.push(toRival(JSON.parse(text), `file-${++lastFileId}`));
-    } catch (e) {
-      failed.push(`${list[i].name}: ${messageOf(e)}`);
-    }
-  });
+  errors.value = await eachJsonFile(files, (json) => added.push(toRival(json, `file-${++lastFileId}`)));
   rivals.update((list) => [...list, ...added]);
-  errors.value = failed;
 }
 
 const remove = (id: string) => rivals.update((list) => list.filter((r) => r.id !== id));
@@ -90,16 +83,8 @@ export function Rivals(): Node {
           )}
         </For>
       </ul>
-      <label className="btn small file">
-        Загрузить .json
-        <input type="file" id="tRivalFiles" accept=".json,application/json" multiple onChange={(e) => {
-          addFiles(e.currentTarget.files);
-          e.currentTarget.value = ''; // тот же файл ещё раз — снова событие change
-        }} />
-      </label>
-      <Show when={() => errors.value.length > 0}>
-        {() => <div className="error entrants-error" aria={{ role: 'alert' }}>{() => errors.value.join('\n')}</div>}
-      </Show>
+      <FileButton id="tRivalFiles" multiple onFiles={addFiles}>Загрузить .json</FileButton>
+      <ErrorNote text={errors} />
     </section>
   );
 }

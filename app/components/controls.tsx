@@ -8,12 +8,12 @@ export type Choice<T extends string | number = string> = { id: T; title: string 
 
 type SegProps<T extends string | number> = { label: string; items: readonly Choice<T>[]; value: () => T; pick: (id: T) => void };
 
-/** Кнопки «одно из» (класс seg): нажата та, что выбрана сейчас */
+/** Кнопки «одно из» (класс seg): нажата та, что выбрана сейчас. data-value — чтобы найти кнопку в тестах */
 export function Seg<T extends string | number>({ label, items, value, pick }: SegProps<T>): Node {
   return (
     <div className="seg" aria={{ role: 'group', ariaLabel: label }}>
       {items.map(({ id, title }) => (
-        <button aria={{ ariaPressed: () => String(value() === id) }} onClick={() => pick(id)}>{title}</button>
+        <button data-value={String(id)} aria={{ ariaPressed: () => String(value() === id) }} onClick={() => pick(id)}>{title}</button>
       ))}
     </div>
   );

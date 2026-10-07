@@ -7,6 +7,7 @@ import { setBrain } from '../library.ts';
 import { showBanner } from '../stage.ts';
 import { secs, pct } from '../format.ts';
 import { BrainLibrary } from '../components/brain-library.tsx';
+import { ErrorNote } from '../components/error-note.tsx';
 import { train, setTrain } from './train-settings.ts';
 import { results, pickedCars, clearPicked, errorText, currentSwarm, trackForGeneration } from './train-swarm.ts';
 import { MILESTONES, moments, startReplay, stopReplay, currentReplay, type Latest } from './train-timeline.ts';
@@ -49,7 +50,7 @@ function Generation(): Node {
         <p id="pickedText">{pickedText}</p>
         <button className="btn small" id="pickedCancel" onClick={clearPicked}>Отменить выбор</button>
       </div>
-      <div className="error" id="tError" hidden={() => !errorText()}>{errorText}</div>
+      <ErrorNote id="tError" text={errorText} />
     </section>
   );
 }

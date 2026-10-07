@@ -9,6 +9,9 @@ import { showBanner, onTrackDrop } from '../stage.ts';
 import { CarDot } from '../components/car-dot.tsx';
 import { Review } from './race-review.tsx';
 import { canCross, childFile, crossNote } from './race-cross.ts';
+import { FileButton } from '../components/file-button.tsx';
+import { ErrorNote } from '../components/error-note.tsx';
+import { eachJsonFile, parseJson } from '../files.ts';
 import { messageOf } from '@reely/basics';
 
 /** Откуда участник */
@@ -59,22 +62,15 @@ function add(file: unknown, source: Source, inheritThink: Think | null = null): 
   }
 }
 
-/** Добавить из текста JSON; where — откуда текст (имя файла), чтобы было понятно, какой из файлов плохой */
-function addFromText(text: string, where = ''): string | null {
-  let file: unknown;
-  try {
-    file = JSON.parse(text);
-  } catch (e) {
-    return `${where ? `${where}: ` : ''}Не получилось прочитать JSON: ${messageOf(e)}`;
-  }
-  return add(file, 'file');
+/** Добавить файл или бросить ошибку: так его можно отдать в eachJsonFile */
+function addFile(file: unknown): void {
+  const error = add(file, 'file');
+  if (error) throw new Error(error);
 }
 
 /** Файлы участников — все сразу и по порядку; ошибки — по каждому плохому файлу, хорошие всё равно добавятся */
-async function addFiles(files: FileList | null): Promise<void> {
-  const list = [...(files ?? [])];
-  const texts = await Promise.all(list.map((f) => f.text()));
-  showErrors(texts.map((text, i) => addFromText(text, list[i].name)));
+async function addFiles(files: Iterable<File>): Promise<void> {
+  errors.value = await eachJsonFile(files, addFile);
 }
 
 /** Показать ошибки последнего действия (null — это действие удалось) */
@@ -166,7 +162,12 @@ function PasteJson(): Node {
   const text = signal('');
   const addPasted = () => {
     if (!text.value.trim()) return;
-    showErrors([addFromText(text.value.trim())]);
+    try {
+      addFile(parseJson(text.value.trim()));
+      showErrors([]);
+    } catch (e) {
+      showErrors([messageOf(e)]);
+    }
     text.value = '';
   };
   return (
@@ -198,13 +199,7 @@ export function Entrants(): Node {
       </ul>
       <div className="row">
         <button className="btn small" id="rAddMine" onClick={addMine}>+ Мой чемпион</button>
-        <label className="btn small file">
-          Загрузить .json
-          <input type="file" id="rFiles" accept=".json,application/json" multiple onChange={(e) => {
-            addFiles(e.currentTarget.files);
-            e.currentTarget.value = ''; // тот же файл ещё раз — снова событие change
-          }} />
-        </label>
+        <FileButton id="rFiles" multiple onFiles={addFiles}>Загрузить .json</FileButton>
         <button className="btn small" id="rCross" disabled={() => !crossable()} onClick={cross}>Скрестить</button>
       </div>
       <p className="hint" id="rCrossNote">{() => crossNote(picked()[0], picked()[1])}</p>
@@ -216,7 +211,7 @@ export function Entrants(): Node {
       </For>
       <PasteJson />
       <p className="hint">Файлы можно перетащить прямо на трассу.</p>
-      <div className="error entrants-error" id="rError" aria={{ role: 'alert' }} hidden={() => !errors.value.length}>{() => errors.value.join('\n')}</div>
+      <ErrorNote id="rError" text={errors} />
     </section>
   );
 }

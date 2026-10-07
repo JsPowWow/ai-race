@@ -146,7 +146,7 @@ test('«Я учу»: заезд с другими глазами виден, о�
   assert.match(await page.textContent('#teachThink'), /с «Ступенька» на «Плавный»/, 'заранее говорим, что вариант мозга сменится');
 
   await page.click('#teachGo');
-  await page.waitForFunction(() => document.querySelector('#dBrain').getAttribute('aria-pressed') === 'true', null, { timeout: 10000 });
+  await page.waitForFunction(() => document.querySelector('[aria-label="Кто рулит"] [data-value="brain"]').getAttribute('aria-pressed') === 'true', null, { timeout: 10000 });
   assert.match(await page.textContent('#banner'), /думает теперь «Плавный»/);
   assert.ok(await page.isHidden('#teachThink'), 'мозг уже плавный — предупреждать не о чем');
   assert.match(await page.textContent('#lrSummary'), /^Эпоха 20 · ошибка/);
@@ -577,8 +577,8 @@ test('«Гонка»: чужой код едет только после «Ра�
   assert.ok((await boardNames()).includes('Чужой'), 'после «Разрешить» — в таблице');
   assert.equal(await page.$('#rList .review-btn'), null);
 
-  await page.click('[data-rspeed="8"]');
-  assert.equal(await page.getAttribute('[data-rspeed="8"]', 'aria-pressed'), 'true');
+  await page.click('[aria-label="Скорость гонки"] [data-value="8"]');
+  assert.equal(await page.getAttribute('[aria-label="Скорость гонки"] [data-value="8"]', 'aria-pressed'), 'true');
   await page.click('#rStart');
   assert.equal((await page.textContent('#rStart')).trim(), 'Заново');
   await page.waitForSelector('#rAwards .award', { timeout: 60000 });

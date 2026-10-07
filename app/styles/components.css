@@ -35,6 +35,7 @@
 }
 .btn.file { position: relative; overflow: hidden; }
 .btn.file input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.btn.file:has(input:disabled) { opacity: 0.5; cursor: not-allowed; }
 
 /* Переключатель из нескольких кнопок — как у вкладок: выбранная приподнята */
 .seg { display: inline-flex; flex-wrap: wrap; max-inline-size: 100%; gap: 2px; padding: 3px; background: var(--bg-2); border-radius: var(--r-m); }
@@ -87,7 +88,7 @@ input[type="range"] { inline-size: 100%; min-block-size: 24px; accent-color: var
   display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; font-size: 13px;
   border: 1px dashed var(--warn); border-radius: var(--r-m); background: color-mix(in srgb, var(--warn) 6%, transparent);
 }
-.error { padding: 8px 10px; font-size: 13px; border-radius: var(--r-m); background: color-mix(in srgb, var(--bad) 10%, transparent); color: var(--ink); }
+.error { white-space: pre-line; padding: 8px 10px; font-size: 13px; border-radius: var(--r-m); background: color-mix(in srgb, var(--bad) 10%, transparent); color: var(--ink); } /* pre-line: по строке на каждый плохой файл */
 .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 
 .net { inline-size: 100%; block-size: 280px; display: block; cursor: default; }

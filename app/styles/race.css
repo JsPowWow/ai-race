@@ -27,5 +27,4 @@
 .board .res { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 .board .empty { background: transparent; color: var(--muted); grid-template-columns: 1fr; padding: 0; }
 .board .empty::before { content: none; }
-.entrants-error { white-space: pre-line; } /* по строке на каждый плохой файл */
 .awards { display: flex; flex-direction: column; gap: 6px; }

@@ -3,19 +3,13 @@
 import { For, Show } from '@reely/dommy';
 import type { ReelyNode } from '@reely/dommy';
 import { readFileList } from './entries.ts';
+import { FileButton } from '../components/file-button.tsx';
 import type { FinalEntry } from './entries.ts';
 import {
   pool, allowed, racers, keyNote, newKeysNote,
   loadFiles, chooseKey, makeNewKeys, toggleAllowed,
 } from './works.ts';
 import { calc, computing, progress, computeNote, secret, compute, troubles } from './calc.ts';
-
-/** Выбрали файлы в <input type="file">: читаем и очищаем поле — тот же выбор ещё раз снова даст change */
-function pick(input: HTMLInputElement, use: (files: FileList) => void): void {
-  const { files } = input;
-  if (files?.length) use(files);
-  input.value = '';
-}
 
 /** Раскрывающийся список замечаний: заголовок, пояснение и строки */
 function Notes<T>(props: { title: () => string; hint?: string; warn?: boolean; open?: boolean; items: () => T[]; by: (item: T) => string; children: (item: () => T) => ReelyNode }): Node {
@@ -96,15 +90,9 @@ function Works(): Node {
     <section className="block setup">
       <h2>1 · Работы</h2>
       <div className="row">
-        <label className="btn small file">Открыть папку
-          <input type="file" id="fFolder" webkitdirectory multiple onChange={(e) => pick(e.currentTarget, (files) => loadFiles(readFileList(files)))} />
-        </label>
-        <label className="btn small file">Файлы .json
-          <input type="file" id="fFiles" accept=".json,application/json" multiple onChange={(e) => pick(e.currentTarget, (files) => loadFiles(readFileList(files)))} />
-        </label>
-        <label className="btn small file">🔑 Секретный ключ
-          <input type="file" id="fKey" accept=".json,application/json" onChange={(e) => pick(e.currentTarget, ([file]) => chooseKey(file))} />
-        </label>
+        <FileButton id="fFolder" folder onFiles={(files) => loadFiles(readFileList(files))}>Открыть папку</FileButton>
+        <FileButton id="fFiles" multiple onFiles={(files) => loadFiles(readFileList(files))}>Файлы .json</FileButton>
+        <FileButton id="fKey" onFiles={([file]) => chooseKey(file)}>🔑 Секретный ключ</FileButton>
       </div>
       <p className={() => (keyNote.value.error ? 'note error' : 'note')} id="fKeyNote" aria={{ role: 'status' }}>{() => keyNote.value.text}</p>
       <p className="hint">Папка с работами: после <code>tools/collect-entries.mjs</code> или <code>gh classroom clone</code> — «ник/car.sealed.json». Можно перетащить её прямо на трассу. Запечатанные работы откроются, когда выберете секретный ключ курса.</p>

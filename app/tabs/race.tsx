@@ -9,13 +9,14 @@ import { state, persist } from '../state.ts';
 import { drawScene, paintCar, paintSensors, trafficOn, setHud } from '../stage.ts';
 import { secs } from '../format.ts';
 import { element } from '../dom.ts';
+import { Seg, Select, type Choice } from '../components/controls.tsx';
 import { Entrants } from './race-entrants.tsx';
 import { Board } from './race-board.tsx';
 import './race-flaps.tsx';
 import { race, prepare, start, tickRace, speed, started } from './race-run.ts';
 import { standings } from './race-results.ts';
 
-const SPEEDS = [1, 2, 4, 8];
+const SPEEDS: Choice<number>[] = [1, 2, 4, 8].map((x) => ({ id: x, title: `×${x}` }));
 
 function FinalLink(): Node {
   return (
@@ -45,9 +46,7 @@ function SecretTrack(): Node {
       </div>
       <div className="field wide">
         <label htmlFor="rTraffic">Машины</label>
-        <select id="rTraffic" onChange={(e) => change('traffic', e.currentTarget.value)}>
-          {TRAFFIC_LEVELS.map(({ id, title }) => <option value={id} selected={id === state.race.traffic}>{title}</option>)}
-        </select>
+        <Select id="rTraffic" items={TRAFFIC_LEVELS} value={() => state.race.traffic} pick={(id) => change('traffic', id)} />
       </div>
       <p className="hint">Один и тот же seed даёт одну и ту же трассу на любом компьютере. Объявите его в час X.</p>
     </section>
@@ -58,11 +57,7 @@ function Toolbar(): Node {
   return (
     <>
       <button className="btn primary" id="rStart" onClick={start}>{() => (started.value ? 'Заново' : 'Старт гонки')}</button>
-      <div className="seg" aria={{ role: 'group', ariaLabel: 'Скорость гонки' }}>
-        {SPEEDS.map((x) => (
-          <button data-rspeed={String(x)} aria={{ ariaPressed: () => String(speed.value === x) }} onClick={() => (speed.value = x)}>×{x}</button>
-        ))}
-      </div>
+      <Seg label="Скорость гонки" items={SPEEDS} value={speed} pick={(x) => (speed.value = x)} />
       <span className="note">Время считается в тиках: 60 тиков = 1 секунда, от мощности ноутбука не зависит</span>
     </>
   );

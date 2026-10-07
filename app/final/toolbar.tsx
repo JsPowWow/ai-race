@@ -1,11 +1,11 @@
 // Пульт шоу под трассой: этап, старт и пауза, скорость показа, камера и режим трансляции.
 import { signal } from '@reely/dommy';
-import type { Signal } from '@reely/dommy';
 import { stageLabel } from '../../engine/world/rally.ts';
 import { calc, STAGE_COUNT } from './calc.ts';
 import { stage, phase, speed, camera, watched, play, selectStage } from './stream.ts';
 import type { CameraMode } from './stream.ts';
 import { listen } from '@reely/dommy-kit';
+import { Seg, type Choice } from '../components/controls.tsx';
 
 // ── режим трансляции: только трасса и таблица, на весь экран ──
 
@@ -29,16 +29,8 @@ listen(document, 'keydown', (e) => {
 
 // ── кнопки ──
 
-/** Группа кнопок-переключателей: нажата та, чьё значение сейчас выбрано */
-function Seg<T extends string | number>({ label, value, options }: { label: string; value: Signal<T>; options: [T, string][] }): Node {
-  return (
-    <div className="seg" aria={{ role: 'group', ariaLabel: label }}>
-      {options.map(([option, text]) => (
-        <button aria={{ ariaPressed: () => String(value.value === option) }} onClick={() => (value.value = option)}>{text}</button>
-      ))}
-    </div>
-  );
-}
+const SHOW_SPEEDS: Choice<number>[] = [1, 2, 4].map((x) => ({ id: x, title: `×${x}` }));
+const CAMERAS: Choice<CameraMode>[] = [{ id: 'follow', title: 'За лидером' }, { id: 'fit', title: 'Вся трасса' }];
 
 function playText(): string {
   switch (phase.value) {
@@ -62,8 +54,8 @@ export function Toolbar(): Node {
         ))}
       </div>
       <button className="btn primary" id="fPlay" disabled={() => !calc.value || phase.value === 'counting'} onClick={play}>{playText}</button>
-      <Seg label="Скорость показа" value={speed} options={[[1, '×1'], [2, '×2'], [4, '×4']]} />
-      <Seg<CameraMode> label="Камера" value={camera} options={[['follow', 'За лидером'], ['fit', 'Вся трасса']]} />
+      <Seg label="Скорость показа" items={SHOW_SPEEDS} value={speed} pick={(x) => (speed.value = x)} />
+      <Seg<CameraMode> label="Камера" items={CAMERAS} value={camera} pick={(x) => (camera.value = x)} />
       <button className="btn" id="fBroadcast" aria={{ ariaPressed: () => String(broadcast.value) }} onClick={() => setBroadcast(!broadcast.peek())}>Трансляция</button>
     </>
   );
