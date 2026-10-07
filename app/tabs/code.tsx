@@ -63,7 +63,7 @@ const editor = withOwner(() => textarea({
   onScroll: () => syncGutter(),
   onKeyDown: (e) => onKey(e),
 }));
-const gutter = pre({ className: 'gutter', id: 'codeGutter', aria: { ariaHidden: 'true' } });
+const gutter = pre({ className: 'gutter', id: 'codeGutter', aria: { ariaHidden: true } });
 /** Номера строк: у строки с ошибкой — красная плашка */
 const lineNumbers = () => Array.from({ length: text.value.split('\n').length }, (_, i) => i + 1);
 mount(gutter, () => (
@@ -202,8 +202,8 @@ function FileTabs(): Node {
   return (
     <div className="filetabs" id="fileTabs" role="tablist" aria={{ ariaLabel: 'Файлы студента' }}>
       {FILES.map((meta) => (
-        <button role="tab" aria={{ ariaSelected: () => String(file.value === meta) }} onClick={() => openFile(meta)}>
-          <span className={() => `dot ${worst(resultsOf(meta.id))}`} aria={{ ariaHidden: 'true' }} />
+        <button role="tab" aria={{ ariaSelected: () => file.value === meta }} onClick={() => openFile(meta)}>
+          <span className={() => `dot ${worst(resultsOf(meta.id))}`} aria={{ ariaHidden: true }} />
           {meta.file}
           {() => (checks.value[meta.id]?.edited ? ' •' : '')}
         </button>

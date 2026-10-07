@@ -50,7 +50,7 @@ export function Tries({ source, empty, control, duel }: {
       <Show when={waiting}>
         {(offer) => (
           <div className="offer" aria={{ role: 'group', ariaLabel: 'Новый вариант лучше твоего мозга' }}>
-            <span className="try-mark" data-mark="better" aria={{ ariaHidden: 'true' }} />
+            <span className="try-mark" data-mark="better" aria={{ ariaHidden: true }} />
             <p className="offer-text">
               <b>Новый вариант лучше твоего мозга: {() => offer().attempt.text}</b>
               <span className="offer-note">{() => `${offer().attempt.label} · контрольный: ${offer().attempt.result} · ${control()}`}</span>

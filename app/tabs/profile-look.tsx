@@ -28,7 +28,7 @@ export function Look(): Node {
       <div className="colors" id="pColors" aria={{ role: 'radiogroup', ariaLabel: 'Цвет машины' }}>
         {CAR_COLORS.map((color) => (
           <button data-color={color} styles={{ background: color }} onClick={() => setColor(color)}
-            aria={{ role: 'radio', ariaLabel: `Цвет ${color}`, ariaChecked: () => String(profile().color === color) }} />
+            aria={{ role: 'radio', ariaLabel: `Цвет ${color}`, ariaChecked: () => profile().color === color }} />
         ))}
         <label className={() => (custom() ? 'custom-color on' : 'custom-color')} title="Свой цвет"
           styles={{ background: () => (custom() ? profile().color : '') }}>

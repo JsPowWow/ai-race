@@ -17,7 +17,7 @@ import { openCarStore, bytes } from './car-store.ts';
 import { runs, setRuns, legacyRuns } from './runs.ts';
 import { diskSupported, savedFolder, pickFolder, folderAccess, forgetFolder, diskStore } from './car-disk.ts';
 import { load, save, remove, compactJson, usedBytes } from './storage.ts';
-import { listen } from '@reely/dommy-kit';
+import { debounced, listen } from '@reely/dommy-kit';
 import { messageOf } from '@reely/basics';
 
 export const MAX_CARS = 12;
@@ -117,7 +117,7 @@ function toCar(car: CarJson | null, versions: unknown, runList: unknown): FullCa
 
 // ── запись выбранной машины ──
 
-let dirty = false, timer = 0, writing = Promise.resolve();
+let dirty = false, writing = Promise.resolve();
 const written = new Map<string, Partial<Files>>(); // что уже лежит в файлах машины — одинаковое не переписываем
 
 async function writeFiles(id: string, files: Files): Promise<void> {
@@ -244,7 +244,7 @@ async function afterFolder(): Promise<void> {
 
 /** Записать выбранную машину сейчас (ждать не обязательно: записи идут по очереди) */
 export function flush(): Promise<void> {
-  clearTimeout(timer);
+  flushSoon.cancel();
   if (!dirty || !store || !garage.id) return writing;
   dirty = false;
   const id = garage.id;
@@ -262,10 +262,11 @@ export function flush(): Promise<void> {
   return writing;
 }
 
+/** Перемены идут пачкой (рой, «Учить на заездах») — пишем один раз, когда они на миг утихнут */
+const flushSoon = debounced(() => void flush(), 300);
 on('save', () => {
   dirty = true;
-  clearTimeout(timer);
-  timer = setTimeout(flush, 300);
+  flushSoon();
 });
 
 // Закрыли вкладку или перезагрузили страницу: Worker могут остановить раньше, чем он допишет файл.

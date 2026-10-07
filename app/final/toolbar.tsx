@@ -47,7 +47,7 @@ export function Toolbar(): Node {
     <>
       <div className="seg" id="fStages" aria={{ role: 'group', ariaLabel: 'Этап' }}>
         {stages.map((i) => (
-          <button data-fstage={String(i)} disabled={() => !calc.value} aria={{ ariaPressed: () => String(stage.value === i) }}
+          <button data-fstage={String(i)} disabled={() => !calc.value} aria={{ ariaPressed: () => stage.value === i }}
             onClick={() => selectStage(i)}>
             {() => `${stageLabel(i)}${watched.value.has(i) ? ' ✓' : ''}`}
           </button>
@@ -56,7 +56,7 @@ export function Toolbar(): Node {
       <button className="btn primary" id="fPlay" disabled={() => !calc.value || phase.value === 'counting'} onClick={play}>{playText}</button>
       <Seg label="Скорость показа" items={SHOW_SPEEDS} value={speed} pick={(x) => (speed.value = x)} />
       <Seg<CameraMode> label="Камера" items={CAMERAS} value={camera} pick={(x) => (camera.value = x)} />
-      <button className="btn" id="fBroadcast" aria={{ ariaPressed: () => String(broadcast.value) }} onClick={() => setBroadcast(!broadcast.peek())}>Трансляция</button>
+      <button className="btn" id="fBroadcast" aria={{ ariaPressed: broadcast }} onClick={() => setBroadcast(!broadcast.peek())}>Трансляция</button>
     </>
   );
 }

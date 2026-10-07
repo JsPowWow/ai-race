@@ -12,8 +12,7 @@ import type { Brain } from '../engine/net/brain.ts';
 import { getTrainingTrack, pointAt } from '../engine/world/track.ts';
 import { parseCarFile } from '../engine/course/car-file.ts';
 import { thinkVariants, feedForward } from '../student/think.js';
-import { liveSize } from './ui.ts';
-import { listen } from '@reely/dommy-kit';
+import { hold, size } from '@reely/dommy-kit';
 
 const PERIOD = 2400; // через сколько px прямая повторяется: кратно секции (150) и паре блоков бордюра (32)
 const HOME = 1150; // место на «Разминке», где стоит машина: длинная прямая напротив старта
@@ -49,7 +48,7 @@ export function createStand(canvas: HTMLCanvasElement, file: { color: string }):
   const view = { x: 0, y: 0, angle: 0 };
   const car = new Car(track, { brain: bot.brain, think: null, sensors: bot.sensors });
   const cam = new Camera();
-  const size = liveSize(canvas);
+  const box = size(canvas);
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('холст стенда без 2d');
   const pressed = new Set<number>();
@@ -86,7 +85,7 @@ export function createStand(canvas: HTMLCanvasElement, file: { color: string }):
 
   function draw(): void {
     if (!ctx) return;
-    const dpr = fitCanvas(canvas, size);
+    const dpr = fitCanvas(canvas, box.value);
     cam.mode = 'follow';
     cam.update(canvas, track, view, dpr * 0.85); // чуть мельче, чем на «Я учу»: дорога с бордюрами целиком по высоте
     clear(ctx, canvas);
@@ -138,22 +137,12 @@ export function createStand(canvas: HTMLCanvasElement, file: { color: string }):
   }
 
   // сенсор можно зажать и прямо на стенде: ближайший к пальцу
-  let holding: { id: number; i: number } | null = null;
-  listen(canvas, 'pointerdown', (e) => {
-    const i = sensorAt(e);
-    if (i < 0) return;
-    holding = { id: e.pointerId, i };
+  hold(canvas, (down) => {
+    const i = sensorAt(down);
+    if (i < 0) return; // мимо сенсоров — не наше нажатие
     pressed.add(i);
-    canvas.setPointerCapture(e.pointerId);
+    return { up: () => pressed.delete(i) };
   });
-  const release = (e: PointerEvent) => {
-    if (holding?.id !== e.pointerId) return;
-    pressed.delete(holding.i);
-    holding = null;
-  };
-  listen(canvas, 'pointerup', release);
-  listen(canvas, 'pointercancel', release);
-  listen(canvas, 'lostpointercapture', release); // палец увёл другой элемент — тоже отпустили
 
   return {
     brain: bot.brain,

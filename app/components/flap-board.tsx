@@ -75,7 +75,7 @@ export function FlapText({ text, width, align = 'start' }: { text: () => string;
   return (
     <span className={`flap-text ${align}`}>
       {/* не влезло — полный текст во всплывающей подсказке */}
-      <span className="flap-tiles" title={() => ([...text()].length > width ? text() : null)} aria={{ ariaHidden: 'true' }}>{tiles}</span>
+      <span className="flap-tiles" title={() => ([...text()].length > width ? text() : null)} aria={{ ariaHidden: true }}>{tiles}</span>
       <span className="sr-only">{() => text().trim()}</span>
     </span>
   );
@@ -104,11 +104,11 @@ export function FlapBoard<Key extends string>({ title, columns, rows, label, fil
   };
   return (
     <div className="flap-board-inner" aria={{ role: 'table', ariaLabel: label }} styles={{ '--flap-row': `${FLAP_ROW_PX}px` }}>
-      <div className="flap-title" aria={{ ariaHidden: 'true' }}>
+      <div className="flap-title" aria={{ ariaHidden: true }}>
         <FlapText text={title} width={titleWidth} />
       </div>
       <div className="flap-row flap-head" aria={{ role: 'row' }}>
-        <span className="flap-dot" aria={{ ariaHidden: 'true' }} />
+        <span className="flap-dot" aria={{ ariaHidden: true }} />
         {columns.map((c) => <span className={`flap-cell ${c.align ?? 'start'}`} styles={{ '--w': String(c.width) }} aria={{ role: 'columnheader' }}>{c.title}</span>)}
       </div>
       <For each={slots} by={(s) => s.slot}>
@@ -118,7 +118,7 @@ export function FlapBoard<Key extends string>({ title, columns, rows, label, fil
             // пустая строка — только для глаз: читалке экрана незачем перечислять пустые места
             <div className={() => (row().you ? 'flap-row you' : 'flap-row')} data-rank={() => String(row().rank ?? '')}
               aria={{ role: 'row', ariaHidden: () => (slot().empty ? 'true' : null) }}>
-              <span className="flap-dot" styles={{ '--dot': () => row().color }} aria={{ ariaHidden: 'true' }} />
+              <span className="flap-dot" styles={{ '--dot': () => row().color }} aria={{ ariaHidden: true }} />
               {columns.map((c) => (
                 <span className="flap-cell" data-col={c.key} styles={{ '--w': String(c.width) }} data-tone={() => row().tones?.[c.key] ?? null} aria={{ role: 'cell' }}>
                   <FlapText text={() => row().cells[c.key]} width={c.width} align={c.align} />

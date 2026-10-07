@@ -13,7 +13,7 @@ export function Seg<T extends string | number>({ label, items, value, pick }: Se
   return (
     <div className="seg" aria={{ role: 'group', ariaLabel: label }}>
       {items.map(({ id, title }) => (
-        <button data-value={String(id)} aria={{ ariaPressed: () => String(value() === id) }} onClick={() => pick(id)}>{title}</button>
+        <button data-value={String(id)} aria={{ ariaPressed: () => value() === id }} onClick={() => pick(id)}>{title}</button>
       ))}
     </div>
   );

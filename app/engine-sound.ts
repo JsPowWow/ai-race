@@ -2,6 +2,7 @@
 // Мотор — «пила» и квадрат октавой ниже через фильтр, с пульсацией «тук-тук» цилиндров. Чужие машины — такие же
 // моторы, только тише и глуше; громкость — по расстоянию, слева/справа — по стороне. Тон и громкость считает
 // engine/sound/motor.ts, здесь — только провода. Браузер даёт звук лишь после касания: включается кнопкой.
+import { debounced } from '@reely/dommy-kit';
 import { toneOf, heard } from '../engine/sound/motor.ts';
 import type { Point } from '../engine/world/track.ts';
 
@@ -22,7 +23,6 @@ let audio: AudioContext | null = null;
 let master: GainNode;
 let mine: Motor;
 const others: Motor[] = [];
-let idle = 0; // таймер: кадры перестали приходить (ушли с вкладки, свернули окно) — засыпаем
 
 function motor(ctx: AudioContext, out: AudioNode): Motor {
   const saw = new OscillatorNode(ctx, { type: 'sawtooth' });
@@ -74,8 +74,7 @@ export function hearFrame(frame: Hearing | null): void {
   if (!audio) return;
   if (!frame) { sleep(); return; }
   if (audio.state === 'suspended') void audio.resume();
-  clearTimeout(idle);
-  idle = window.setTimeout(sleep, 300);
+  sleepSoon(); // кадры перестали приходить (ушли с вкладки, свернули окно) — заснём
   const { me } = frame;
   const t = toneOf(me.speed, me.gas);
   tune(mine, audio, t.freq, t.cutoff, me.done ? 0 : t.gain * 0.5, 0);
@@ -95,9 +94,11 @@ export function hearFrame(frame: Hearing | null): void {
 /** Притушить и усыпить: звук не тратит процессор, пока не нужен */
 function sleep(): void {
   if (!audio || audio.state !== 'running') return;
-  clearTimeout(idle);
+  sleepSoon.cancel();
   glide(mine.gain.gain, 0, audio);
   for (const m of others) glide(m.gain.gain, 0, audio);
   const ctx = audio;
   window.setTimeout(() => { if (ctx.state === 'running' && mine.gain.gain.value < 0.01) void ctx.suspend(); }, 250);
 }
+/** Уснуть, если кадры со звуком не приходят 0,3 с */
+const sleepSoon = debounced(sleep, 300);

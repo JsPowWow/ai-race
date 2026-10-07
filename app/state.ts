@@ -6,6 +6,7 @@ import { CAR_COLORS } from '../engine/course/car-file.ts';
 import { DEFAULT_PARTS } from '../engine/learn/recipes.ts';
 import type { GenerationEntry } from '../engine/learn/evolution.ts';
 import type { TrafficLevel } from '../engine/world/traffic.ts';
+import { debounced } from '@reely/dommy-kit';
 import { load, save } from './storage.ts';
 import { live, type ThinkVariant } from './student-code.ts';
 
@@ -122,11 +123,8 @@ export function persist(): void {
   emit('save');
 }
 
-let saveTimer = 0;
-export function persistSoon(): void {
-  clearTimeout(saveTimer);
-  saveTimer = setTimeout(persist, 400);
-}
+/** Сохранить чуть позже: десять правок подряд — одна запись */
+export const persistSoon = debounced(persist, 400);
 
 // ── производные значения ──
 

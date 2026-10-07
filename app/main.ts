@@ -96,7 +96,7 @@ listen(document, 'click', (e) => {
 });
 // Файл, брошенный мимо «Гонки» и финала, браузер открыл бы вместо сайта — и всё несохранённое пропало бы.
 // Там, где файлы ждут, их ловят свои обработчики раньше (они сами отменяют действие браузера)
-for (const type of ['dragover', 'drop'] as const) listen(window, type, (e) => e.preventDefault());
+listen(window, ['dragover', 'drop'], (e) => e.preventDefault());
 
 onStorageFull(() => showBanner('Память браузера переполнена: новое не сохранится. Удали лишние заезды на вкладке «Я учу».', 6000));
 

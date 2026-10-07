@@ -9,14 +9,14 @@ import { trafficAt, type TrafficSpot } from '../engine/world/traffic.ts';
 import { lapOf, type Track } from '../engine/world/track.ts';
 import type { Point } from '../engine/world/turtle.ts';
 import { clamp } from '../engine/core/utils.ts';
-import { liveSize, calm, phone, field } from './ui.ts';
+import { calm, phone, field } from './ui.ts';
 import { element } from './dom.ts';
 import { effect } from '@reely/dommy';
-import { listen } from '@reely/dommy-kit';
+import { listen, size } from '@reely/dommy-kit';
 
 export const canvas = element<HTMLCanvasElement>('#stage');
 const ctx = context2d(canvas);
-const canvasSize = liveSize(canvas);
+const canvasSize = size(canvas);
 const cam = new Camera();
 let dpr = 1;
 
@@ -30,7 +30,7 @@ function context2d(el: HTMLCanvasElement): CanvasRenderingContext2D {
 }
 
 export function beginFrame(): void {
-  dpr = fitCanvas(canvas, canvasSize);
+  dpr = fitCanvas(canvas, canvasSize.value);
 }
 
 /** Положение машин трафика на тике tick (или null, если трафика нет) */

@@ -3,6 +3,7 @@
 // Проверка на GitHub — подсказка против опечаток: если GitHub недоступен или кончился лимит, она не мешает.
 import { signal, untracked, Show } from '@reely/dommy';
 import { retry } from '@reely/async';
+import { debounced } from '@reely/dommy-kit';
 import { GITHUB_LOGIN } from '../../engine/course/seal.ts';
 import { state, persist } from '../state.ts';
 
@@ -39,11 +40,11 @@ function remember(value: string): void {
   persist();
 }
 
-let timer = 0;
+/** Спросить GitHub, когда перестали печатать: не на каждую букву */
+const checkSoon = debounced(() => void checkLogin(), CHECK_DELAY_MS);
 function onType(value: string): void {
   remember(value);
-  clearTimeout(timer);
-  timer = window.setTimeout(checkLogin, CHECK_DELAY_MS);
+  checkSoon();
 }
 
 async function askGitHub(login: string): Promise<Check> {

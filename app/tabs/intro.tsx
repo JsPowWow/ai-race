@@ -12,7 +12,7 @@ import { createStand } from '../brain-stand.ts';
 import { createBrainBoard } from '../brain-board/board.js';
 import { seedTrack } from '../tracks.ts';
 import { BOTS } from '../generated/bots.js';
-import { liveSize } from '../ui.ts';
+import { size } from '@reely/dommy-kit';
 import { element } from '../dom.ts';
 import { onLook } from '../look.ts';
 import { bytes, plural } from '../format.ts';
@@ -30,7 +30,7 @@ const demoDriver = { brain: bot.brain, sensors: bot.sensors, think: thinkVariant
 // ── демо: бот едет по трассе, которую видит впервые ──
 
 const canvas = element<HTMLCanvasElement>('#introCanvas');
-const canvasSize = liveSize(canvas);
+const canvasSize = size(canvas);
 const ctx = canvas.getContext('2d');
 const cam = new Camera();
 cam.mode = 'fit';
@@ -49,7 +49,7 @@ function drawDemo(): void {
     }
   }
   if (!ctx) return;
-  const dpr = fitCanvas(canvas, canvasSize);
+  const dpr = fitCanvas(canvas, canvasSize.value);
   cam.update(canvas, track, null, dpr);
   clear(ctx, canvas);
   cam.apply(ctx, canvas);

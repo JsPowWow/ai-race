@@ -122,7 +122,7 @@ function Layers(): Node {
           const n = () => layer().i + 1;
           return (
             <>
-              <span className="arrow" aria={{ ariaHidden: 'true' }}>→</span>
+              <span className="arrow" aria={{ ariaHidden: true }}>→</span>
               <span className="layer">
                 Слой {n}
                 <button aria={{ ariaLabel: () => `Меньше нейронов в слое ${n()}` }} onClick={() => setLayer(layer().i, 'minus')}>−</button>
@@ -134,7 +134,7 @@ function Layers(): Node {
           );
         }}
       </For>
-      <span className="arrow" aria={{ ariaHidden: 'true' }}>→</span>
+      <span className="arrow" aria={{ ariaHidden: true }}>→</span>
       <span className="layer fixed" title="4 кнопки пульта и заметки">Выходы <b>{OUTPUTS}</b></span>
     </div>
   );
@@ -185,7 +185,7 @@ function Budget(): Node {
         <b id="bSpent">{spent}</b> из <span id="bBudget">{BUDGET}</span> очков{' '}
         <span className="note" id="bLeft">{() => (spent() < BUDGET ? `· свободно ${BUDGET - spent()}` : '· всё потрачено')}</span>
       </p>
-      <div className="budget-bar" aria={{ ariaHidden: 'true' }}>
+      <div className="budget-bar" aria={{ ariaHidden: true }}>
         <span id="bBar" styles={{ width: () => `${Math.min(100, (spent() / BUDGET) * 100)}%` }} />
       </div>
       <p className="hint">Очки у всех одни. Больше глаз — дальше видно, больше нейронов — умнее, но рою дольше учиться. Всё сразу не купить: выбирай под трассу.</p>

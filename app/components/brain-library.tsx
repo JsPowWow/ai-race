@@ -33,7 +33,7 @@ function VersionRow({ version }: { version: () => Version }): Node {
   const pinLabel = () => (version().pinned ? 'Открепить' : 'Закрепить навсегда');
   return (
     <li className={() => (version().pinned ? 'pinned' : null)}>
-      <button className="pin" title={pinLabel} aria={{ ariaLabel: pinLabel, ariaPressed: () => String(version().pinned) }}
+      <button className="pin" title={pinLabel} aria={{ ariaLabel: pinLabel, ariaPressed: () => version().pinned }}
         onClick={() => togglePin(version().id)}>
         <PinIcon />
       </button>

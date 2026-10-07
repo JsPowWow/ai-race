@@ -17,22 +17,6 @@ export const field = (label: string, value: string | number): string => `${esc(l
 /** Жирное слово на табло: название трассы, этап */
 export const bold = (text: string | number): string => `<b>${esc(text)}</b>`;
 
-/**
- * CSS-размер элемента, который обновляется сам, когда элемент меняет размер.
- * Читать clientWidth в каждом кадре дорого: браузер каждый раз пересчитывает вёрстку.
- * Не size() из dommy-kit: тот до первого замера отдаёт 0 × 0, а холсту нужен размер с первого кадра.
- * Холсты живут всё время, пока открыта страница, — следить за размером перестанем вместе с ней.
- */
-export function liveSize(el: Element): { width: number; height: number } {
-  const size = { width: el.clientWidth, height: el.clientHeight };
-  new ResizeObserver(([entry]) => {
-    if (!entry) return;
-    size.width = entry.contentRect.width;
-    size.height = entry.contentRect.height;
-  }).observe(el);
-  return size;
-}
-
 /** Человек печатает в поле — клавиши не наши */
 export const isTyping = (el: EventTarget | null): boolean =>
   el instanceof HTMLElement && (['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName) || el.isContentEditable);

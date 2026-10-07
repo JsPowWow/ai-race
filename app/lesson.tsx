@@ -76,13 +76,13 @@ function Step({ tab }: { tab: LessonTab }): Node {
   const isDone = () => doneSteps(tab).has(step());
   return (
     <div className={() => (isDone() ? 'lesson-step is-done' : 'lesson-step')}>
-      <span className="step-num" aria={{ ariaHidden: 'true' }}>{() => step() + 1}</span>
+      <span className="step-num" aria={{ ariaHidden: true }}>{() => step() + 1}</span>
       <p className="step-text">
         <span className="step-action"><TextWithCode text={() => task().action} /></span>
         {' '}
         <span className="step-detail" hidden={() => !task().detail}><TextWithCode text={() => task().detail} /></span>
       </p>
-      <button type="button" className="btn step-done" aria={{ ariaPressed: () => String(isDone()) }}
+      <button type="button" className="btn step-done" aria={{ ariaPressed: isDone }}
         onClick={() => toggleDone(tab, step())}>
         {() => (isDone() ? 'Сделано' : 'Готово')}
       </button>

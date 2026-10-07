@@ -6,7 +6,7 @@
 //    поворачивается вместе с машиной — видно, где у неё «вперёд».
 // Он не рулит машиной сам: наклон превращается в те же стрелки, что на клавиатуре, — их ловит handleKey() студента.
 // Виден только при пальце вместо мыши (pointer: coarse), иначе — кнопки пульта (стили — app/styles/teach.css).
-import { listen } from '@reely/dommy-kit';
+import { hold } from '@reely/dommy-kit';
 import { element } from './dom.ts';
 import { press, touchPad } from './manual-drive.ts';
 
@@ -48,7 +48,7 @@ function aimKeys(dx: number, dy: number, r: number, ahead: number): Set<Key> {
 const zone = element('#stick');
 const base = element('#stickBase');
 const knob = element('#stickKnob');
-let finger: number | null = null; // какой палец держит стик: второй палец не перехватывает
+let steering = false; // стик держат пальцем (второй палец его не перехватит — hold держит одно нажатие)
 let held = new Set<Key>();
 let heading: number | null = null; // куда смотрит машина на экране; null — вид из машины, там «вперёд» всегда вверх
 let tilt = { dx: 0, dy: 0, r: 1 }; // где ручка: машина поворачивает и под неподвижным пальцем
@@ -65,11 +65,11 @@ export function aimStick(ahead: number | null): void {
   heading = ahead;
   if (marks) marks.style.rotate = ahead === null ? '' : `${(ahead + Math.PI / 2).toFixed(3)}rad`;
   if (modeChanged) hints.forEach((h, i) => (h.textContent = HINTS[ahead === null ? 'axes' : 'aim'][i]));
-  if (finger !== null) hold(stickKeys(tilt.dx, tilt.dy, tilt.r));
+  if (steering) pressKeys(stickKeys(tilt.dx, tilt.dy, tilt.r));
 }
 
 /** Отжать то, что отпустили, и нажать новое — в handleKey() только перемены, как у клавиатуры */
-function hold(next: Set<Key>): void {
+function pressKeys(next: Set<Key>): void {
   for (const key of held) if (!next.has(key)) press(key, false);
   for (const key of next) if (!held.has(key)) press(key, true);
   held = next;
@@ -91,30 +91,24 @@ function moveKnob(x: number, y: number): void {
   if (d > reach) { dx *= reach / d; dy *= reach / d; }
   knob.style.transform = `translate(${dx}px, ${dy}px)`;
   tilt = { dx, dy, r: reach };
-  hold(stickKeys(dx, dy, reach));
+  pressKeys(stickKeys(dx, dy, reach));
 }
 
 function release(): void {
-  finger = null;
+  steering = false;
   zone.classList.remove('on');
   knob.style.transform = '';
   base.style.left = ''; base.style.top = ''; // основание — обратно на место по умолчанию
-  hold(new Set());
+  pressKeys(new Set());
 }
 
-listen(zone, 'pointerdown', (e) => {
-  if (finger !== null) return;
-  e.preventDefault();
-  finger = e.pointerId;
-  zone.setPointerCapture(e.pointerId);
+// палец на стике: основание встаёт под палец, ручка ходит за ним, отпустил — всё на место
+hold(zone, (down) => {
+  down.preventDefault();
+  steering = true;
   zone.classList.add('on');
   touchPad();
-  placeBase(e.clientX, e.clientY);
-  moveKnob(e.clientX, e.clientY);
+  placeBase(down.clientX, down.clientY);
+  moveKnob(down.clientX, down.clientY);
+  return { move: (e) => moveKnob(e.clientX, e.clientY), up: release };
 });
-listen(zone, 'pointermove', (e) => {
-  if (e.pointerId === finger) moveKnob(e.clientX, e.clientY);
-});
-for (const type of ['pointerup', 'pointercancel', 'lostpointercapture'] as const) {
-  listen(zone, type, (e) => { if (e.pointerId === finger) release(); });
-}

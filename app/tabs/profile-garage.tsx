@@ -138,11 +138,11 @@ function Tile({ car, biggest }: { car: () => Summary; biggest: () => number }): 
     <Show when={() => ask.value?.at === id}
       fallback={() => (
         <button className="g-tile" data-car={id} disabled={busy}
-          aria={{ ariaPressed: () => String(id === shelf().id) }}
+          aria={{ ariaPressed: () => id === shelf().id }}
           onClick={() => id !== garage.id && leave(id, () => switchCar(id))}>
           <span className="g-name"><CarDot look={() => car().profile} /><b>{() => nameOf(car().profile)}</b></span>
           <span className="g-meta"><span className="g-shape">{() => car().shape}</span> {() => progress(car())}</span>
-          <span className="g-bar" aria={{ ariaHidden: 'true' }} styles={{ '--w': () => `${Math.max(4, (total(car()) / biggest()) * 100)}%` }}>
+          <span className="g-bar" aria={{ ariaHidden: true }} styles={{ '--w': () => `${Math.max(4, (total(car()) / biggest()) * 100)}%` }}>
             {/* «[]» — пустой файл: такие части не рисуем */}
             {PARTS.map(([kind, key]) => <i className={kind} hidden={() => part(key) <= 2} styles={{ flex: () => String(part(key)) }} />)}
           </span>
@@ -207,7 +207,7 @@ function Meter(): Node {
     <div className="g-meter" id="gMeter">
       <p>Занято <b>{() => bytes(used())}</b><span className="note">{() => (shelf().quota ? ` · браузер даёт сайту до ${bytes(shelf().quota)}` : '')}</span></p>
       <Show when={() => shelf().quota}>
-        {() => <span className="g-track" aria={{ ariaHidden: 'true' }}><i styles={{ inlineSize: () => `${share()}%` }} /></span>}
+        {() => <span className="g-track" aria={{ ariaHidden: true }}><i styles={{ inlineSize: () => `${share()}%` }} /></span>}
       </Show>
       <p className={() => (safe() ? 'note g-safe' : 'note')}>{where}</p>
     </div>
@@ -261,7 +261,7 @@ export function Garage(): Node {
     <section className="block garage" aria={{ ariaLabelledby: 'gTitle' }}>
       <h2 id="gTitle">Гараж</h2>
       <p className="hint">У каждой машины свой облик, сборка, мозг, «История» и заезды. Учишь, проверяешь и сдаёшь ту, что выбрана, — она жёлтая.</p>
-      <div className="g-shelf" id="gShelf" aria={{ role: 'group', ariaLabel: 'Машины гаража', ariaBusy: () => String(busy.value) }}>
+      <div className="g-shelf" id="gShelf" aria={{ role: 'group', ariaLabel: 'Машины гаража', ariaBusy: busy }}>
         <Show when={() => shelf().ready} fallback={() => <p className="note">Открываю гараж…</p>}>
           {() => (
             <>
@@ -271,7 +271,7 @@ export function Garage(): Node {
           )}
         </Show>
       </div>
-      <p className="g-legend" aria={{ ariaHidden: 'true' }}>
+      <p className="g-legend" aria={{ ariaHidden: true }}>
         <span><i />мозг и сборка</span><span><i className="h" />«История»</span><span><i className="r" />мои заезды</span>
       </p>
       <div className="row g-actions" id="gActions" hidden={() => ask.value?.at === 'row'}>

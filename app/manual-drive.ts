@@ -4,7 +4,7 @@ import { live } from './student-code.ts';
 import { showBanner } from './stage.ts';
 import { $$, isTyping } from './ui.ts';
 import type { Controls } from '../engine/world/car.ts';
-import { listen } from '@reely/dommy-kit';
+import { hold, listen } from '@reely/dommy-kit';
 import { messageOf } from '@reely/basics';
 
 let target: Controls | null = null; // пульт машины, которой рулят руками
@@ -50,12 +50,11 @@ for (const button of $$('.pad button')) {
     button.classList.remove('on');
     press(key, false);
   };
-  listen(button, 'pointerdown', (e) => {
-    e.preventDefault();
-    button.setPointerCapture(e.pointerId);
+  hold(button, (down) => {
+    down.preventDefault();
     button.classList.add('on');
     touchPad();
     press(key, true);
+    return { up: release };
   });
-  for (const type of ['pointerup', 'pointercancel', 'lostpointercapture'] as const) listen(button, type, release);
 }

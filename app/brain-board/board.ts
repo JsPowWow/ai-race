@@ -5,7 +5,7 @@
 import { effect, mount, signal } from '@reely/dommy';
 import { brainSizes, NOTES } from '../../engine/net/brain.ts';
 import type { Brain } from '../../engine/net/brain.ts';
-import { liveSize, calm } from '../ui.ts';
+import { calm } from '../ui.ts';
 import { layout, neuronAt, sensorAt } from './layout.ts';
 import type { Layout } from './layout.ts';
 import { labelsFor } from './labels.ts';
@@ -17,7 +17,7 @@ import { drawFire, readSkin } from './fire-skin.ts';
 import { FormulaCard } from './formula-card.tsx';
 import { ZoomButtons } from './zoom-buttons.tsx';
 import type { ZoomStep } from './zoom-buttons.tsx';
-import { listen } from '@reely/dommy-kit';
+import { hold, listen, size } from '@reely/dommy-kit';
 
 const MAX_ZOOM = 4;
 const FORMULA_MS = 100; // формула под указателем обновляется 10 раз в секунду, как числа у узлов
@@ -52,7 +52,7 @@ export type BrainBoard = {
 export function createBrainBoard({ canvas, card, zoomBar = null, brain, act = SMOOTH, onSensor = null }: BrainBoardOptions): BrainBoard {
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('холст табло не рисует 2D');
-  const size: { width: number; height: number } = liveSize(canvas);
+  const box = size(canvas);
   let sizes = brainSizes(brain), labels = labelsFor(sizes, act), glow = createGlow(sizes);
   let skin = readSkin();
   let lastLayout: Layout | null = null;
@@ -76,8 +76,9 @@ export function createBrainBoard({ canvas, card, zoomBar = null, brain, act = SM
   function zoomAt(factor: number, cx: number, cy: number): void {
     const s = Math.max(1, Math.min(MAX_ZOOM, view.s * factor));
     view.x = cx - ((cx - view.x) * s) / view.s; view.y = cy - ((cy - view.y) * s) / view.s; view.s = s;
-    view.x = Math.min(0, Math.max(size.width - size.width * s, view.x));
-    view.y = Math.min(0, Math.max(size.height - size.height * s, view.y));
+    const { width, height } = box.value;
+    view.x = Math.min(0, Math.max(width - width * s, view.x));
+    view.y = Math.min(0, Math.max(height - height * s, view.y));
     canvas.style.touchAction = s > 1 ? 'none' : 'pan-y'; // приближено — палец двигает схему, а не страницу
     zoom.value = s;
     formulaAt = -Infinity; // карточка переезжает вслед за нейроном
@@ -85,7 +86,7 @@ export function createBrainBoard({ canvas, card, zoomBar = null, brain, act = SM
   if (zoomBar) {
     const factor: Record<ZoomStep, () => number> = { in: () => 1.5, out: () => 1 / 1.5, reset: () => 1 / view.s };
     zoomBar.replaceChildren(); // кнопки рисует табло: старая разметка с готовыми кнопками тоже подойдёт
-    mount(zoomBar, () => ZoomButtons({ zoom, max: MAX_ZOOM, onZoom: (how) => zoomAt(factor[how](), size.width / 2, size.height / 2) }));
+    mount(zoomBar, () => ZoomButtons({ zoom, max: MAX_ZOOM, onZoom: (how) => zoomAt(factor[how](), box.value.width / 2, box.value.height / 2) }));
   }
 
   listenPointer();
@@ -100,7 +101,6 @@ export function createBrainBoard({ canvas, card, zoomBar = null, brain, act = SM
     const touches = new Map<number, Spot>();
     let drag: { at: Spot; x: number; y: number } | null = null;
     let pinch: { d: number; s: number } | null = null;
-    let holding: { id: number; i: number } | null = null;
     /** Два пальца: расстояние между ними и середина */
     const spread = () => {
       const [a, b] = [...touches.values()];
@@ -108,12 +108,20 @@ export function createBrainBoard({ canvas, card, zoomBar = null, brain, act = SM
     };
 
     canvas.style.touchAction = 'pan-y';
+    // держишь кружок сенсора — он «видит» стену, пока не отпустишь
+    const pressesSensor = (e: PointerEvent) => !!onSensor && sensorUnder(local(e)) >= 0;
+    if (onSensor) {
+      const press = onSensor;
+      hold(canvas, (down) => {
+        const i = sensorUnder(local(down));
+        if (i < 0) return; // мимо сенсоров: это рука двигает или зумит схему (ниже)
+        press(i, true);
+        return { up: () => press(i, false) };
+      });
+    }
     listen(canvas, 'pointerdown', (e) => {
+      if (pressesSensor(e)) return;
       const m = local(e);
-      const i = sensorUnder(m);
-      if (onSensor && i >= 0) { // держишь кружок сенсора — он «видит» стену, пока не отпустишь
-        holding = { id: e.pointerId, i }; onSensor(i, true); canvas.setPointerCapture(e.pointerId); return;
-      }
       mouse = m; formulaAt = -Infinity; // на телефоне наведения нет — нейрон выбирается касанием, и формула — сразу
       touches.set(e.pointerId, m);
       if (touches.size === 2) { pinch = { d: spread().d, s: view.s }; drag = null; }
@@ -132,15 +140,12 @@ export function createBrainBoard({ canvas, card, zoomBar = null, brain, act = SM
         zoomAt(1, 0, 0); // масштаб тот же — только не выпустить схему за края
       }
     });
-    const up = (e: PointerEvent) => {
-      if (holding?.id === e.pointerId) { onSensor?.(holding.i, false); holding = null; return; }
+    // палец увёл другой элемент (lostpointercapture) — тоже отпустили
+    listen(canvas, ['pointerup', 'pointercancel', 'lostpointercapture'], (e) => {
       touches.delete(e.pointerId);
       if (touches.size < 2) pinch = null;
       if (!touches.size) drag = null;
-    };
-    listen(canvas, 'pointerup', up);
-    listen(canvas, 'pointercancel', up);
-    listen(canvas, 'lostpointercapture', up); // палец увёл другой элемент — тоже отпустили
+    });
     listen(canvas, 'pointerleave', (e) => { if (e.pointerType === 'mouse') { mouse = null; formula.value = null; } });
     // колесо зумит только с Ctrl/⌘ — иначе страница перестанет прокручиваться
     listen(canvas, 'wheel', (e) => {
@@ -158,7 +163,7 @@ export function createBrainBoard({ canvas, card, zoomBar = null, brain, act = SM
     formula.value = hit && neuronFormula(brain, trace, hit.k, hit.i, { inputNames: labels.inputs, outNames: labels.outputs, act });
     if (!hit) return;
     // в карточке уже новый текст (dommy обновляет сразу) — можно мерить
-    const cw = card.offsetWidth, ch = card.offsetHeight, W = size.width, H = size.height;
+    const cw = card.offsetWidth, ch = card.offsetHeight, { width: W, height: H } = box.value;
     const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
     const toScreen = (x: number) => x * view.s + view.x;
     const [nx, ny] = lay.pos[hit.k][hit.i];
@@ -177,7 +182,7 @@ export function createBrainBoard({ canvas, card, zoomBar = null, brain, act = SM
 
   return {
     frame(trace, pressed, dtSec) {
-      const W = size.width, H = size.height;
+      const { width: W, height: H } = box.value;
       if (!visible || W === 0 || trace.length !== sizes.length) return; // не видно — не рисуем; trace другой формы — не от этого мозга
       const now = performance.now();
       stepGlow(glow, brain, trace, Math.min(0.05, dtSec), now, !calm.value);
