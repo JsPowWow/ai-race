@@ -34,7 +34,7 @@ test('следы — на асфальте, в размер машинки: ко
       assert.equal(skid.wear.length, left.length - 1, 'потёртость — у каждого кусочка следа');
       left.forEach((a, i) => assert.ok(Math.abs(Math.hypot(right[i].x - a.x, right[i].y - a.y) - GAUGE) < 1.5, `${track.id}: колея ровная`));
       for (const q of [...left, ...right]) assert.ok(fromCenter(track, q) < track.width / 2 - 8, `${track.id}: след за разметкой края`);
-      const len = lengthOf(left);
+      const len = Math.max(lengthOf(left), lengthOf(right));
       assert.ok(len >= CAR.length * 0.6 && len <= CAR.length * 5, `${track.id}: след ${len.toFixed(0)} px`);
       assert.ok(skid.wear.every((w) => w >= 0 && w <= 1));
       assert.ok(skid.wear.some((w) => w === 0) || len < 60, 'длинный след полустёрт: местами его нет');
@@ -55,3 +55,27 @@ test('следы — там, где тормозят и газуют: у кру�
     if (cornersOf(track.roads[0]).length) assert.ok(skids.some((s) => s.kind === 'brake'), `${track.id}: перед поворотом тормозили`);
   }
 });
+
+test('в зоне дорожных работ следов нет: там асфальт перекрыт конусами', () => {
+  for (const track of tracks) {
+    for (const isl of track.islands) {
+      const [from, to] = isl.zone.map((s) => pointAt(track, s));
+      for (const skid of skidsOf(track)) {
+        for (const q of skid.wheels[0]) {
+          const s = nearestS(track, q);
+          assert.ok(s < isl.zone[0] - 1 || s > isl.zone[1] + 1, `${track.id}: след в зоне работ у (${q.x}, ${q.y}), ${from.x}..${to.x}`);
+        }
+      }
+    }
+  }
+});
+
+/** Где на круге ближе всего точка q — перебором кольца с шагом 2 px */
+function nearestS(track, q) {
+  let best = Infinity, at = 0;
+  for (let s = 0; s < track.lap; s += 2) {
+    const p = pointAt(track, s), d = Math.hypot(p.x - q.x, p.y - q.y);
+    if (d < best) { best = d; at = s; }
+  }
+  return at;
+}

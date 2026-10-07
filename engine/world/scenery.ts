@@ -256,6 +256,21 @@ export function sceneryOf(track: Track): Scenery {
   return scenery;
 }
 
+/**
+ * Закрывает ли что-то щит в виде сверху: стоит ближе к зрителю (y больше) и своей высотой
+ * заходит на доску. Грубо, с запасом: лучше лишний щит не будет живым, чем живой ляжет поверх дерева
+ */
+function covered(o: Extract<Prop, { kind: 'billboard' }>, trees: Tree[], bushes: Tree[], houses: House[], props: Prop[]): boolean {
+  const { w, h, z } = SIZE.boards[o.size];
+  const half = (Math.abs(Math.cos(o.angle)) * w) / 2;
+  const top = o.y - (z + h) * RISE, bottom = o.y + (Math.abs(Math.sin(o.angle)) * w) / 2;
+  const hits = (x: number, y: number, r: number, tall: number): boolean =>
+    y > o.y && Math.abs(x - o.x) < half + r && y - tall * RISE - r < bottom && y + r > top;
+  return [...trees, ...bushes].some((t) => hits(t.x, t.y, t.r, t.h)) ||
+    houses.some((H) => hits(H.x, H.y, houseRadius(H), wallsOf(H) + roofOf(H))) ||
+    props.some((p) => p !== o && p.kind !== 'pond' && p.kind !== 'bed' && hits(p.x, p.y, 12, 40));
+}
+
 function place(track: Track): Scenery {
   const rand = mulberry32(hashString(`${track.id}|scenery`));
   // у нового декора свой seed: домики и лес остались там же, где стояли до него
@@ -371,7 +386,7 @@ function place(track: Track): Scenery {
       const at = beside(s0 + k * (w + 6), edge + off, side);
       if (Math.abs(Math.cos(at.angle)) < 0.7) break;
       const first = ad(ADS);
-      const live = ads() < 0.35 ? { ads: [first, ad(ADS), ad(ADS)], phase: Math.floor(ads() * AD_CYCLE) } : undefined;
+      const live = ads() < 0.55 ? { ads: [first, ad(ADS), ad(ADS)], phase: Math.floor(ads() * AD_CYCLE) } : undefined;
       if (!put({ kind: 'billboard', x: at.x, y: at.y, angle: Math.cos(at.angle) < 0 ? at.angle + Math.PI : at.angle, ad: first, size, ...(live && { live }) })) break; // надпись читается слева направо
       n++;
     }
@@ -510,6 +525,8 @@ function place(track: Track): Scenery {
     }
   }
   grow(rand3, trees, houses, room);
+  // живой щит сверху рисуется поверх готовой картинки — если перед ним что-то стоит, оно бы оказалось под щитом
+  for (const o of props) if (o.kind === 'billboard' && o.live && covered(o, trees, bushes, houses, props)) delete o.live;
   return { trees, houses, bushes, props };
 
   function addTree(tree: Tree): void {

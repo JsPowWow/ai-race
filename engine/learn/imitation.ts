@@ -34,7 +34,7 @@ export const worthLearning = ({ x, y }: Sample, sensorCount = sensorsOf(x.length
 
 export const MIN_RUN = 30;          // заезды короче полсекунды не записываем
 export const DROP_BEFORE_CRASH = 60; // перед аварией последнюю секунду не учим: это и есть ошибка
-export const EARLY_CRASH = 30;       // авария раньше 30% круга — учить почти нечему
+export const EARLY_CRASH = 10;       // авария раньше 10% заезда (трети первого из трёх кругов) — учить почти нечему
 
 /**
  * Чему учиться из заезда человека. Сеть повторит всё, что ей покажут, — и ошибки тоже,

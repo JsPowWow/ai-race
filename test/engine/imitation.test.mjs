@@ -61,6 +61,7 @@ const ticks = (n) => Array.from({ length: n }, (_, i) => ({ x: [i], y: [1, 0, 0,
 test('из заезда учимся только на удачном: финиш, «Заново» и долгая авария без её конца', () => {
   assert.equal(keptFromRun(ticks(300), 'finished', 100).length, 300);
   assert.equal(keptFromRun(ticks(300), 'stopped', 40).length, 300); // сам нажал «Заново» — ехал нормально
+  assert.equal(keptFromRun(ticks(300), 'crashed', 29).length, 300 - DROP_BEFORE_CRASH); // почти весь первый круг — есть чему учиться
   const crash = keptFromRun(ticks(300), 'crashed', 60);
   assert.equal(crash.length, 300 - DROP_BEFORE_CRASH);
   assert.equal(crash.at(-1).x[0], 300 - DROP_BEFORE_CRASH - 1); // отрезан именно хвост — секунда перед ударом
@@ -68,7 +69,7 @@ test('из заезда учимся только на удачном: фини�
 
 test('неудачный заезд не записываем — и говорим почему', () => {
   for (const [samples, status, pct] of [
-    [ticks(300), 'crashed', 20], // авария в начале
+    [ticks(300), 'crashed', 5], // авария в начале: прогресс — от всего заезда, 5% — шестая часть первого круга
     [ticks(300), 'stalled', 70], // заглох: научит «стой»
     [ticks(300), 'timeout', 90], // время вышло
     [ticks(10), 'finished', 100], // слишком короткий

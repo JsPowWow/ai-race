@@ -35,6 +35,7 @@ function place(track: Track): Skid[] {
   const between = (a: number, b: number): number => a + rand() * (b - a);
   const skids: Skid[] = [];
   const add = (kind: Skid['kind'], s0: number, len: number, side: (t: number) => number, fresh: (t: number) => number): void => {
+    if (inWorks(track, s0, len)) return; // где дорожные работы, асфальт перекрыт — там не тормозят и не газуют
     skids.push(trail(track, rand, kind, s0, len, side, fresh));
   };
   // тормоз: темнеет, пока колёса блокируются, к концу чуть бледнее — отпустили педаль
@@ -69,6 +70,18 @@ function place(track: Track): Skid[] {
   return skids;
 }
 
+/** Задевает ли отрезок кольца от s0 длиной len зону дорожных работ (zone — в s на круге) */
+function inWorks(track: Track, s0: number, len: number): boolean {
+  const lap = track.lap;
+  return track.islands.some(({ zone: [from, to] }) => {
+    for (let s = s0; s <= s0 + len + STEP; s += STEP) {
+      const at = ((s % lap) + lap) % lap;
+      if (at >= from && at <= to) return true;
+    }
+    return false;
+  });
+}
+
 /**
  * Один след вдоль кольца: от s0 длиной len, side(t) — где середина машины поперёк дороги (t от 0 до 1),
  * fresh(t) — насколько след тёмный на этом месте. Сверху — потёртость: где светлее, где стёрт совсем
@@ -92,7 +105,9 @@ function trail(track: Track, rand: Random, kind: Skid['kind'], s0: number, len: 
     if (gap > 0 || rand() < 0.08) { gap = gap > 0 ? gap - 1 : Math.floor(rand() * 2); return 0; }
     return Math.round(age * fresh((i + 0.5) / n) * noise * 100) / 100;
   });
-  if (len >= 60 && !wear.includes(0)) wear[1 + Math.floor(rand() * (n - 2))] = 0; // длинный след где-то да стёрт
+  // длинный след где-то да стёрт; длину меряем по колесу: на внешней стороне поворота след длиннее, чем по середине дороги
+  const long = Math.max(...[left, right].map((w) => w.slice(1).reduce((sum, q, i) => sum + Math.hypot(q.x - w[i].x, q.y - w[i].y), 0)));
+  if (long >= 60 && !wear.includes(0)) wear[1 + Math.floor(rand() * (n - 2))] = 0;
   return { kind, wheels: [left, right], wear };
 }
 
