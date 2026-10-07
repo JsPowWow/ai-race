@@ -80,5 +80,3 @@ function showBrain(): void {
   const thinkId = shown().think;
   board.show({ brain, inputs: car.lastInputs, think: thinkFn(thinkId), thinkId });
 }
-
-export const redrawProfileBrain = (): void => board.readColors();

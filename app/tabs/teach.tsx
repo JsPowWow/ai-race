@@ -17,6 +17,7 @@ import { steerWith } from '../manual-drive.ts';
 import { drawRide, trafficOn, setHud, field, lapText, showBanner } from '../stage.ts';
 import { secs, pct, plural } from '../format.ts';
 import { element } from '../dom.ts';
+import { onLook } from '../look.ts';
 import { BrainLibrary } from '../components/brain-library.tsx';
 import { DriveBar } from './teach-toolbar.tsx';
 import type { Mode } from './teach-toolbar.tsx';
@@ -79,8 +80,12 @@ export const teachTab = {
   },
 };
 
-export { redrawLoss };
-export const renderNetwork = () => microscope.render();
+// облик поменялся — схема сети и график ошибки перерисовываются (на скрытой вкладке холсты без размера — ждём)
+onLook(() => {
+  if (state.tab !== 'teach') return;
+  microscope.render();
+  redrawLoss();
+});
 
 // ── машина ──
 

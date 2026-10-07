@@ -5,6 +5,7 @@ import type { Think } from '../../engine/world/car.ts';
 import { live } from '../student-code.ts';
 import { element } from '../dom.ts';
 import { phone } from '../ui.ts';
+import { onLook } from '../look.ts';
 import { createBrainBoard, type BrainBoard } from './board.ts';
 import { SMOOTH, ANY_ACT } from './formula.ts';
 
@@ -16,8 +17,6 @@ export type LiveBrain = {
   isOpen(): boolean;
   /** Кадр табло. running = false — пауза: импульсы стоят, как на стоп-кадре */
   show(thought: Thought, running?: boolean): void;
-  /** Сменилась тема или размер — перечитать цвета */
-  readColors(): void;
 };
 
 /** fold — селектор блока <details>; внутри — холст canvas, карточка формулы card и кнопки .zoom */
@@ -27,6 +26,7 @@ export function liveBrain({ fold, canvas, card }: { fold: string; canvas: string
   if (phone.value) details.open = false;
   let board: BrainBoard | null = null;
   let at = performance.now();
+  onLook(() => board?.readColors());
   return {
     isOpen: () => details.open,
     show({ brain, inputs, think, thinkId }, running = true) {
@@ -42,6 +42,5 @@ export function liveBrain({ fold, canvas, card }: { fold: string; canvas: string
       if (trace) board.frame(trace, [], running ? (now - at) / 1000 : 0);
       at = now;
     },
-    readColors: () => board?.readColors(),
   };
 }

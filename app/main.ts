@@ -2,7 +2,6 @@
 import './dev.ts';
 import { isString, messageOf } from '@reely/basics';
 import { readPalette } from '../engine/draw/render.ts';
-import { drawChart } from '../engine/draw/netviz.ts';
 import { checkBrain, type Brain } from '../engine/net/brain.ts';
 import { state, on, persist, sizesOf, brainTitle, type TabId } from './state.ts';
 import { restoreEdits, endCodeStartup } from './student-code.ts';
@@ -16,13 +15,14 @@ import { $$ } from './ui.ts';
 import { secs, pct } from './format.ts';
 import { element } from './dom.ts';
 import { initTheme } from './theme.ts';
-import { trainTab, updateTraining, isTraining, redrawLeaderBrain } from './tabs/train.tsx';
+import { lookChanged } from './look.ts';
+import { trainTab, updateTraining, isTraining } from './tabs/train.tsx';
 import { codeTab, runAllTests } from './tabs/code.tsx';
 import { examTab } from './tabs/exam.tsx';
 import { raceTab } from './tabs/race.tsx';
-import { introTab, redrawIntro } from './tabs/intro.tsx';
-import { teachTab, redrawLoss, renderNetwork } from './tabs/teach.tsx';
-import { profileTab, redrawProfileBrain } from './tabs/profile.tsx';
+import { introTab } from './tabs/intro.tsx';
+import { teachTab } from './tabs/teach.tsx';
+import { profileTab } from './tabs/profile.tsx';
 import { listen } from '@reely/dommy-kit';
 
 /** Вкладка: enter() — её открыли, frame() — нарисовать кадр (зовётся, пока она открыта) */
@@ -142,21 +142,10 @@ function frame(): void {
   requestAnimationFrame(frame);
 }
 
-// Холсты с графиками перерисовываем при смене размера, темы и после загрузки шрифтов
-function redrawCharts(): void {
-  readPalette();
-  if (state.tab === 'intro') redrawIntro();
-  if (state.tab === 'train') redrawLeaderBrain();
-  if (state.tab === 'profile') redrawProfileBrain();
-  if (state.tab === 'teach') {
-    renderNetwork();
-    redrawLoss();
-  }
-  if (state.tab === 'train') drawChart(element<HTMLCanvasElement>('#chart'), state.history);
-}
-new ResizeObserver(redrawCharts).observe(document.body);
-initTheme(redrawCharts);
-document.fonts.ready.then(redrawCharts);
+// Сменились размер, тема или догрузились шрифты — холсты перерисуются сами (app/look.ts)
+new ResizeObserver(() => lookChanged()).observe(document.body);
+initTheme(lookChanged);
+document.fonts.ready.then(lookChanged);
 
 // ── старт ──
 

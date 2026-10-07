@@ -21,7 +21,6 @@ import { Tries } from '../components/tries.tsx';
 import { controlNames } from '../variants.ts';
 
 export { isRunning as isTraining, updateTraining } from './train-swarm.ts';
-export { redrawLeaderBrain } from './train-leader.ts';
 
 mount(element('.toolbar[data-for="train"]'), () => <TrainToolbar />);
 mount(element('#swarmNow'), () => <SwarmNow />);

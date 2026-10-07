@@ -2,7 +2,7 @@
 import { For, Show } from '@reely/dommy';
 import { cloneBrain, checkBrain } from '../../engine/net/brain.ts';
 import { drawChart } from '../../engine/draw/netviz.ts';
-import { sizesOf } from '../state.ts';
+import { state, sizesOf } from '../state.ts';
 import { setBrain } from '../library.ts';
 import { showBanner } from '../stage.ts';
 import { secs, pct } from '../format.ts';
@@ -15,6 +15,7 @@ import type { HallEntry, HistoryEntry } from '../state.ts';
 import { Recipe } from './train-recipe.tsx';
 import { Rivals } from './train-rivals.tsx';
 import { element } from '../dom.ts';
+import { onLook } from '../look.ts';
 
 // ── поколение ──
 
@@ -59,6 +60,8 @@ function Generation(): Node {
 
 let chart: HTMLCanvasElement | null = null;
 let drawnHistory: HistoryEntry[] | null = null;
+// облик поменялся — график заново (на скрытой вкладке холст без размера — ждём)
+onLook(() => state.tab === 'train' && drawSwarmChart(true));
 
 /** Нарисовать график, если пришли новые поколения (force — всё равно: сменились размер или тема). Зовёт кадр вкладки */
 export function drawSwarmChart(force = false): void {

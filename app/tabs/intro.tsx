@@ -14,6 +14,7 @@ import { seedTrack } from '../tracks.ts';
 import { BOTS } from '../generated/bots.js';
 import { liveSize } from '../ui.ts';
 import { element } from '../dom.ts';
+import { onLook } from '../look.ts';
 import { bytes, plural } from '../format.ts';
 
 const DEMO_SEED = 'витрина';
@@ -126,4 +127,4 @@ export const introTab = {
 };
 
 /** После смены темы: табло берёт цвета из токенов */
-export const redrawIntro = () => board.readColors();
+onLook(() => board.readColors());

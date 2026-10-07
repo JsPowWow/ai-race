@@ -29,6 +29,3 @@ export function showLeaderBrain(lead: Car | null, running = true): void {
   board.show({ brain, inputs, think, thinkId: state.config.think }, running);
   shown = true;
 }
-
-/** Сменилась тема или размер — табло перечитывает цвета */
-export const redrawLeaderBrain = (): void => board.readColors();
