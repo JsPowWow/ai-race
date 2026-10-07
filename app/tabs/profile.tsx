@@ -8,15 +8,12 @@ import { checkBrain, createBrain } from '../../engine/net/brain.ts';
 import type { Brain } from '../../engine/net/brain.ts';
 import { withTraffic } from '../../engine/world/traffic.ts';
 import { state, sizesOf, thinkFn } from '../state.ts';
-import { live } from '../student-code.ts';
 import { drawRide, trafficOn, setHud, field } from '../stage.ts';
-import { createBrainBoard, type BrainBoard } from '../brain-board/board.ts';
-import { SMOOTH, ANY_ACT } from '../brain-board/formula.ts';
+import { liveBrain } from '../brain-board/live.ts';
 import { element } from '../dom.ts';
 import { Garage } from './profile-garage.tsx';
 import { Look } from './profile-look.tsx';
 import { Build, draft, shown, champion } from './profile-build.tsx';
-import { phone } from '../ui.ts';
 
 mount(element('#profilePanel'), () => (
   <>
@@ -67,14 +64,12 @@ export const profileTab = {
 
 const BRAIN_TRAINED = 'Горит то, что мозг видит и жмёт прямо сейчас. Меняешь сенсоры или слои — табло меняется сразу.';
 const BRAIN_EMPTY = 'Так выглядит сеть с этой сборкой. Мозг под неё ещё не обучен: все связи — нули, горят только входы. Научи его на «Я учу» или «Учится само».';
-const fold = element<HTMLDetailsElement>('.profile-brain');
+const board = liveBrain({ fold: '.profile-brain', canvas: '#profileBoard', card: '#profileFormula' });
 const hint = element('#profileBrainHint');
 const emptyBrains = new Map<string, Brain>(); // форма → пустой мозг (чтобы не создавать каждый кадр)
-let board: BrainBoard | null = null;
-let boardAt = performance.now();
 
 function showBrain(): void {
-  if (!fold.open || !car.lastInputs) return; // свёрнуто или машина ещё не посмотрела вокруг
+  if (!board.isOpen() || !car.lastInputs) return; // свёрнуто или машина ещё не посмотрела вокруг
   const sizes = sizesOf(shown());
   const key = sizes.join('-');
   let empty = emptyBrains.get(key);
@@ -82,17 +77,8 @@ function showBrain(): void {
   const brain = fittingBrain() ?? empty;
   const text = brain === state.champion ? BRAIN_TRAINED : BRAIN_EMPTY;
   if (hint.textContent !== text) hint.textContent = text;
-  const act = shown().think === 'smooth' ? SMOOTH : ANY_ACT;
-  board ??= createBrainBoard({ canvas: element<HTMLCanvasElement>('#profileBoard'), card: element('#profileFormula'), zoomBar: element<HTMLElement>('.profile-brain .zoom'), brain, act });
-  board.setBrain(brain, act);
-  const feed = live.think.feedForward;
-  feed.lastTrace = null;
-  thinkFn(shown().think)(car.lastInputs, brain); // feedForward запишет, что посчитал каждый слой
-  const trace = feed.lastTrace as number[][] | null; // TypeScript не знает, что вызов выше его поменял
-  const now = performance.now();
-  if (trace) board.frame(trace, [], (now - boardAt) / 1000);
-  boardAt = now;
+  const thinkId = shown().think;
+  board.show({ brain, inputs: car.lastInputs, think: thinkFn(thinkId), thinkId });
 }
 
-export const redrawProfileBrain = () => board?.readColors();
-if (phone.value) fold.open = false;
+export const redrawProfileBrain = (): void => board.readColors();
