@@ -40,7 +40,9 @@ const LIGHT = { x: -0.55, y: -0.83 }; // свет сверху слева, ка�
 
 // ── плоское: считается один раз на трассу ──
 
-type Ground = { road: Flat[]; marks: Flat[]; checker: Flat[]; kerbs: KerbRun[] };
+/** Лента вдоль дороги: два края с одинаковыми номерами точек (асфальт — от левого края до правого, сплошная — её два края) */
+type Ribbon = { a: Point[]; b: Point[] };
+type Ground = { road: Ribbon[]; edges: Ribbon[]; marks: Flat[]; checker: Flat[]; kerbs: KerbRun[] };
 /** Блоков бордюра в одном куске: длиннее — меньше заливок, но кусок дольше спорит по глубине с деревом рядом */
 const RUN = 6;
 const grounds = new WeakMap<Track, Ground>();
@@ -69,13 +71,10 @@ function along(pts: Point[], cum: Float64Array, s: number, from: number): { p: P
 function groundOf(track: Track): Ground {
   let g = grounds.get(track);
   if (g) return g;
-  g = { road: [], marks: [], checker: [], kerbs: [] };
+  g = { road: [], edges: [], marks: [], checker: [], kerbs: [] };
   for (const road of track.roads) {
     const { left, right } = road;
-    for (let i = 0; i < left.length - 1; i++) {
-      const pts = [left[i], left[i + 1], right[i + 1], right[i]];
-      g.road.push({ pts, x: (left[i].x + right[i + 1].x) / 2, y: (left[i].y + right[i + 1].y) / 2 });
-    }
+    g.road.push({ a: left, b: right });
     for (const divider of road.dividers) {
       let i = 0;
       for (let s = 0; s + DASH < road.total; s += DASH + GAP) {
@@ -84,13 +83,11 @@ function groundOf(track: Track): Ground {
         g.marks.push(band(a.p, b.p, LINE));
       }
     }
-    const t = EDGE_INSET / track.width;
+    // сплошная у края: лента от EDGE_INSET − LINE/2 до EDGE_INSET + LINE/2 от края
+    const at = (from: Point[], to: Point[], d: number): Point[] =>
+      from.map((q, i) => ({ x: q.x + (to[i].x - q.x) * (d / track.width), y: q.y + (to[i].y - q.y) * (d / track.width) }));
     for (const [from, to] of [[left, right], [right, left]]) {
-      for (let i = 0; i < from.length - 1; i++) {
-        const a = { x: from[i].x + (to[i].x - from[i].x) * t, y: from[i].y + (to[i].y - from[i].y) * t };
-        const b = { x: from[i + 1].x + (to[i + 1].x - from[i + 1].x) * t, y: from[i + 1].y + (to[i + 1].y - from[i + 1].y) * t };
-        g.marks.push(band(a, b, LINE));
-      }
+      g.edges.push({ a: at(from, to, EDGE_INSET - LINE / 2), b: at(from, to, EDGE_INSET + LINE / 2) });
     }
   }
   // черта старта и финиша — клетками, как в виде сверху
@@ -157,6 +154,33 @@ const flat = (pts: Point[], z = 0): P3[] => pts.map((p) => ({ x: p.x, y: p.y, z 
 function fillFlats(ctx: Ctx, v: View, list: readonly Flat[], color: string, z = 0, pad = 30): void {
   const path = new Path2D();
   for (const piece of list) if (visible(v, piece.x, piece.y, pad) !== null) addPoly(path, clipNear(v, flat(piece.pts, z)));
+  ctx.fillStyle = color;
+  ctx.fill(path);
+}
+
+/**
+ * Ленты одной заливкой: видимые подряд кусочки — один многоугольник (по краю a вперёд, по краю b назад).
+ * Так у асфальта и сплошных не сотни заливок и стыков, а по одной на видимый отрезок дороги
+ */
+function fillRibbons(ctx: Ctx, v: View, list: readonly Ribbon[], color: string, z = 0, pad = 30): void {
+  const path = new Path2D();
+  for (const { a, b } of list) {
+    let from = -1;
+    const close = (to: number): void => {
+      if (from < 0) return;
+      const pts: P3[] = [];
+      for (let i = from; i <= to; i++) pts.push({ x: a[i].x, y: a[i].y, z });
+      for (let i = to; i >= from; i--) pts.push({ x: b[i].x, y: b[i].y, z });
+      addPoly(path, clipNear(v, pts));
+      from = -1;
+    };
+    for (let i = 0; i < a.length - 1; i++) {
+      const seen = visible(v, (a[i].x + b[i + 1].x) / 2, (a[i].y + b[i + 1].y) / 2, pad) !== null;
+      if (seen && from < 0) from = i;
+      if (!seen) close(i);
+    }
+    close(a.length - 1);
+  }
   ctx.fillStyle = color;
   ctx.fill(path);
 }
@@ -242,7 +266,7 @@ export function drawCockpit(ctx: Ctx, track: Track, v: View, scene: CockpitScene
   const { trees, houses, bushes, props } = sceneryOf(track);
   // плоское: пруды, площадки, клумбы — под дорогой их не бывает, порядок между ними не важен
   for (const o of props) drawFlatProp(ctx, v, o, p);
-  fillFlats(ctx, v, g.road, p.road, 0, 40);
+  fillRibbons(ctx, v, g.road, p.road, 0, 40);
   skidLevels(track).forEach((pieces, k) => { // следы шин — как сверху: под разметкой
     ctx.globalAlpha = (k + 1) / LEVELS;
     fillFlats(ctx, v, pieces, p.skid, 0, 10);
@@ -250,6 +274,7 @@ export function drawCockpit(ctx: Ctx, track: Track, v: View, scene: CockpitScene
   ctx.globalAlpha = 1;
   track.islands.forEach((island, i) => zone(ctx, v, track, island, freeSide(track, i, tick), p));
   fillFlats(ctx, v, g.marks, p.marking, 0.2);
+  fillRibbons(ctx, v, g.edges, p.marking, 0.2);
   fillFlats(ctx, v, g.checker.filter((c) => !c.dark), p.checkLight, 0.3);
   fillFlats(ctx, v, g.checker.filter((c) => c.dark), p.checkDark, 0.3);
   // туман у горизонта: дальняя дорога растворяется в столе
