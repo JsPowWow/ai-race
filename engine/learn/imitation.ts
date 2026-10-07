@@ -46,7 +46,7 @@ export const EARLY_CRASH = 10;       // авария раньше 10% заезд
 export function keptFromRun(samples: Sample[], end: Exclude<CarStatus, 'driving'> | 'stopped', progressPct: number): Sample[] | string {
   if (end === 'stalled') return 'Заезд не записан: машина стояла — такому не учим';
   if (end === 'timeout') return 'Заезд не записан: не успел доехать';
-  if (end === 'crashed' && progressPct < EARLY_CRASH) return 'Заезд не записан: авария в самом начале';
+  if (end === 'crashed' && progressPct < EARLY_CRASH) return 'Заезд не записан: проехал совсем мало';
   const kept = end === 'crashed' ? samples.slice(0, -DROP_BEFORE_CRASH) : samples;
   return kept.length < MIN_RUN ? 'Заезд не записан: слишком короткий' : kept;
 }

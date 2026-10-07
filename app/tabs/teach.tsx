@@ -12,7 +12,7 @@ import type { Trace } from '../../engine/draw/netviz.ts';
 import { cssColor } from '../../engine/draw/render.ts';
 import { state, thinkFn, on, emit } from '../state.ts';
 import { live } from '../student-code.ts';
-import { runs, addRun, sampleCount, MAX_SAMPLES, type RunStatus } from '../runs.ts';
+import { runs, addRun, type RunStatus } from '../runs.ts';
 import { steerWith } from '../manual-drive.ts';
 import { drawRide, trafficOn, setHud, lapText, showBanner } from '../stage.ts';
 import { secs, pct } from '../ui.ts';
@@ -156,7 +156,6 @@ function record(): void {
   if (!worthLearning(sample)) return; // стоишь и ничего не жмёшь — не учим
   recording ??= [];
   recording.push(sample);
-  if (sampleCount() + recording.length === MAX_SAMPLES) showBanner('Заездов много: при сохранении самые старые уйдут', 2400);
 }
 
 const RESULT_TEXT: Partial<Record<CarStatus, string>> = { crashed: 'Авария!', stalled: 'Заглох.', timeout: 'Время вышло.' };
@@ -172,7 +171,7 @@ function finishRun({ interrupted = false } = {}): void {
   if (interrupted) return;
   const head = car.status === 'finished' ? `Финиш! ${secs(car.finishTick ?? car.ticks)}.` : RESULT_TEXT[car.status] ?? '';
   const note = !saved ? '' : typeof saved === 'string' ? saved : `Заезд записан: ${saved.packed.length} примеров`;
-  showBanner(`${head} ${note}`.trim(), RESTART_DELAY + 400);
+  showBanner(note, RESTART_DELAY + 400, head);
 }
 
 // ── реакция на перемены ──

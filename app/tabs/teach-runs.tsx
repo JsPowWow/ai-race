@@ -3,7 +3,7 @@
 import { untracked, For, Show } from '@reely/dommy';
 import { sensorsOf } from '../../engine/net/brain.ts';
 import { state, sizesOf } from '../state.ts';
-import { runs, toggleRun, removeRun, type Run } from '../runs.ts';
+import { runs, toggleRun, removeRun, sampleCount, MAX_SAMPLES, type Run } from '../runs.ts';
 import { secs, pct } from '../ui.ts';
 import { fromEvents } from '../signals.ts';
 import { MIN_SAMPLES, lesson, epoch, stopped, canLearn, thinkSwitch, startTraining, LearnBox } from './teach-learn.tsx';
@@ -72,7 +72,9 @@ function status(): string {
   const samples = sampleTotal();
   if (samples < MIN_SAMPLES) return `Нужно хотя бы ${MIN_SAMPLES} примеров в отмеченных заездах (сейчас ${samples}) — это пара заездов по «Разминке».`;
   const count = used().length;
-  return `${count} ${plural(count, 'заезд', 'заезда', 'заездов')}, ${samples} примеров. ${trained() ? 'Мозг продолжит учиться с того, что уже умеет.' : 'Мозга ещё нет — начнём с нуля.'}`;
+  // про место — здесь, а не баннером поверх трассы: во время езды он мешал
+  const full = sampleCount() >= MAX_SAMPLES * 0.9 ? ' Места почти нет: новые заезды вытеснят самые старые.' : '';
+  return `${count} ${plural(count, 'заезд', 'заезда', 'заездов')}, ${samples} примеров. ${trained() ? 'Мозг продолжит учиться с того, что уже умеет.' : 'Мозга ещё нет — начнём с нуля.'}${full}`;
 }
 
 export function Runs(): Node {

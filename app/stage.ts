@@ -160,8 +160,13 @@ export function setHud(items: string[]): void {
 
 const banner = element('#banner');
 let bannerTimer = 0;
-export function showBanner(text: string, ms = 1800): void {
-  banner.textContent = text;
+/**
+ * Короткая надпись поверх трассы. head — первое слово крупным акцентом («Авария!», «Финиш!»).
+ * Встаёт сразу под табло (--below): на полосе «Я учу» она не закрывает ни машину, ни дорогу впереди
+ */
+export function showBanner(text: string, ms = 1800, head = ''): void {
+  banner.replaceChildren(...(head ? [Object.assign(document.createElement('b'), { textContent: head }), ' '] : []), text);
+  banner.style.setProperty('--below', `${hud.offsetTop + hud.offsetHeight + 8}px`);
   banner.hidden = false;
   clearTimeout(bannerTimer);
   if (ms) bannerTimer = setTimeout(hideBanner, ms);
