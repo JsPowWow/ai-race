@@ -5,7 +5,7 @@
 import { effect, mount, signal } from '@reely/dommy';
 import { brainSizes, NOTES } from '../../engine/net/brain.ts';
 import type { Brain } from '../../engine/net/brain.ts';
-import { liveSize } from '../ui.ts';
+import { liveSize, calm } from '../ui.ts';
 import { layout, neuronAt, sensorAt } from './layout.ts';
 import type { Layout } from './layout.ts';
 import { labelsFor } from './labels.ts';
@@ -21,7 +21,6 @@ import { listen } from '@reely/dommy-kit';
 
 const MAX_ZOOM = 4;
 const FORMULA_MS = 100; // формула под указателем обновляется 10 раз в секунду, как числа у узлов
-const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
 type Spot = [x: number, y: number];
 
@@ -181,7 +180,7 @@ export function createBrainBoard({ canvas, card, zoomBar = null, brain, act = SM
       const W = size.width, H = size.height;
       if (!visible || W === 0 || trace.length !== sizes.length) return; // не видно — не рисуем; trace другой формы — не от этого мозга
       const now = performance.now();
-      stepGlow(glow, brain, trace, Math.min(0.05, dtSec), now, !reduceMotion.matches);
+      stepGlow(glow, brain, trace, Math.min(0.05, dtSec), now, !calm.value);
       const dpr = Math.min(devicePixelRatio || 1, 2);
       if (canvas.width !== Math.round(W * dpr) || canvas.height !== Math.round(H * dpr)) { canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr); }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);

@@ -9,8 +9,9 @@ import { trafficAt, type TrafficSpot } from '../engine/world/traffic.ts';
 import { lapOf, type Track } from '../engine/world/track.ts';
 import type { Point } from '../engine/world/turtle.ts';
 import { clamp } from '../engine/core/utils.ts';
-import { liveSize } from './ui.ts';
+import { liveSize, calm, phone } from './ui.ts';
 import { element } from './dom.ts';
+import { effect } from '@reely/dommy';
 import { listen } from '@reely/dommy-kit';
 
 export const canvas = element<HTMLCanvasElement>('#stage');
@@ -20,9 +21,7 @@ const cam = new Camera();
 let dpr = 1;
 
 // Ветряк у трассы крутится, только если человек не просил в системе меньше движения
-const calm = matchMedia('(prefers-reduced-motion: reduce)');
-setSceneryMotion(!calm.matches);
-listen(calm, 'change', () => setSceneryMotion(!calm.matches));
+effect(() => setSceneryMotion(!calm.value));
 
 function context2d(el: HTMLCanvasElement): CanvasRenderingContext2D {
   const found = el.getContext('2d');
@@ -39,11 +38,10 @@ export const trafficOn = (track: Track, tick: number): TrafficSpot[] | null => (
 
 // На телефоне «вся трасса» — холст по пропорциям трассы: иначе длинная трасса — тонкая полоска среди пустоты
 const viewport = element('#viewport');
-const phone = matchMedia('(max-width: 700px)');
 let viewportRatio = '';
 function fitViewport(track: Track, camera: string): void {
   const b = track.bbox;
-  const ratio = camera === 'fit' && phone.matches ? clamp((b.maxX - b.minX + 80) / ((b.maxY - b.minY + 80) * TILT), 0.9, 2.2).toFixed(2) : ''; // пол сжат наклоном
+  const ratio = camera === 'fit' && phone.value ? clamp((b.maxX - b.minX + 80) / ((b.maxY - b.minY + 80) * TILT), 0.9, 2.2).toFixed(2) : ''; // пол сжат наклоном
   if (ratio !== viewportRatio) viewport.style.aspectRatio = viewportRatio = ratio;
 }
 
@@ -98,7 +96,7 @@ export function drawRide(track: Track, scene: CockpitScene, view: RideView = 'to
   if (view === 'cockpit') {
     fitViewport(track, 'follow');
     setStageLabel('Трасса, вид из машины');
-    chase.follow(me.car, calm.matches ? CHASE.calm : CHASE.smooth); // меньше движения — камера поворачивает мягче
+    chase.follow(me.car, calm.value ? CHASE.calm : CHASE.smooth); // меньше движения — камера поворачивает мягче
     drawCockpit(ctx, track, viewOf(chase, canvas), { ...scene, dpr });
     return;
   }

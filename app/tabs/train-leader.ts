@@ -6,6 +6,7 @@ import { live } from '../student-code.ts';
 import { createBrainBoard, type BrainBoard } from '../brain-board/board.ts';
 import { SMOOTH, ANY_ACT } from '../brain-board/formula.ts';
 import { element } from '../dom.ts';
+import { phone } from '../ui.ts';
 
 const IDLE = 'Нажми «Старт» — здесь загорится мозг машины, которая едет впереди.';
 const LIVE = 'Горит то, что лидер видит и жмёт прямо сейчас. Пунктир — память.';
@@ -46,4 +47,4 @@ export function showLeaderBrain(lead: Car | null, running = true): void {
 export const redrawLeaderBrain = (): void => board?.readColors();
 
 // на телефоне табло большое: свёрнуто, чтобы график и настройки были ближе к кнопкам
-if (matchMedia('(max-width: 700px)').matches) fold.open = false;
+if (phone.value) fold.open = false;

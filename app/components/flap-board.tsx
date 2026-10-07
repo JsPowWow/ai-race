@@ -3,6 +3,7 @@
 // а меняются надписи на них: обогнал — имя переехало строкой выше, как на настоящем табло.
 import { effect, For } from '@reely/dommy';
 import { later } from '@reely/dommy-kit';
+import { calm } from '../ui.ts';
 
 /** Колонка табло: заголовок, сколько плиток, по какому краю прижать текст. Колонка с ключом place красится по месту (1–3) */
 export type FlapColumn<Key extends string> = { key: Key; title: string; width: number; align?: 'start' | 'end' };
@@ -29,8 +30,6 @@ const STEPS = 2;
 const STEP_MS = 55;
 /** Волна: каждая следующая плитка строки начинает листаться чуть позже */
 const WAVE_MS = 18;
-
-const calm = matchMedia('(prefers-reduced-motion: reduce)');
 
 /** Текст ровно на width плиток: короткий дополняем пробелами, длинный обрезаем */
 function fit(text: string, width: number, align: 'start' | 'end'): string {
@@ -67,7 +66,7 @@ export function FlapText({ text, width, align = 'start' }: { text: () => string;
       const tile = tiles[i];
       if (!tile) return;
       // буква та же — но плитка могла не долистаться до неё, пока её не прервали: ставим сразу
-      if (before[i] === char || calm.matches) return void (tile.textContent !== char && (tile.textContent = char));
+      if (before[i] === char || calm.value) return void (tile.textContent !== char && (tile.textContent = char));
       for (let step = 0; step < STEPS; step++) later(i * WAVE_MS + step * STEP_MS, () => show(tile, char === ' ' ? ' ' : drumAfter(char, step)));
       later(i * WAVE_MS + STEPS * STEP_MS, () => show(tile, char));
     });

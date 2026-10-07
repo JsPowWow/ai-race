@@ -5,7 +5,7 @@ import { signal } from '@reely/dommy';
 import { listen } from '@reely/dommy-kit';
 import { stored } from '../storage.ts';
 import { state } from '../state.ts';
-import { isTyping } from '../ui.ts';
+import { isTyping, calm } from '../ui.ts';
 import { showBanner } from '../stage.ts';
 import { wakeSound } from '../engine-sound.ts';
 
@@ -23,12 +23,11 @@ function toggleSound(): void {
   if (sound.peek()) wakeSound();
 }
 
-const calm = matchMedia('(prefers-reduced-motion: reduce)');
 const warned = signal(false); // подсказку про укачивание показываем один раз
 
 export function toggleCockpit(): void {
   cockpit.update((on) => !on);
-  if (cockpit.peek() && calm.matches && !warned.peek()) {
+  if (cockpit.peek() && calm.value && !warned.peek()) {
     warned.value = true;
     showBanner('Если укачивает — нажми «Вид из машины» ещё раз или V: вернётся вид сверху', 3600);
   }

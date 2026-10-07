@@ -16,6 +16,7 @@ import { element } from '../dom.ts';
 import { Garage } from './profile-garage.tsx';
 import { Look } from './profile-look.tsx';
 import { Build, draft, shown, champion } from './profile-build.tsx';
+import { phone } from '../ui.ts';
 
 mount(element('#profilePanel'), () => (
   <>
@@ -94,4 +95,4 @@ function showBrain(): void {
 }
 
 export const redrawProfileBrain = () => board?.readColors();
-if (matchMedia('(max-width: 700px)').matches) fold.open = false;
+if (phone.value) fold.open = false;
