@@ -6,7 +6,8 @@
 import { mount } from '@reely/dommy';
 import { TRAFFIC_LEVELS, type TrafficLevel } from '../../engine/world/traffic.ts';
 import { state, persist } from '../state.ts';
-import { drawScene, paintCar, paintSensors, trafficOn, setHud, field } from '../stage.ts';
+import { drawScene, paintCar, paintSensors, trafficOn, setHud } from '../stage.ts';
+import { field } from '../ui.ts';
 import { secs } from '../format.ts';
 import { element } from '../dom.ts';
 import { Seg, Select, type Choice } from '../components/controls.tsx';

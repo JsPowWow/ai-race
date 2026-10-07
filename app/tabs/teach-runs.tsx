@@ -4,10 +4,9 @@ import { untracked, For, Show } from '@reely/dommy';
 import { sensorsOf } from '../../engine/net/brain.ts';
 import { state, sizesOf } from '../state.ts';
 import { runs, toggleRun, removeRun, sampleCount, MAX_SAMPLES, type Run } from '../runs.ts';
-import { secs, pct } from '../format.ts';
+import { secs, pct, plural } from '../format.ts';
 import { fromEvents, BRAIN_EVENTS } from '../signals.ts';
 import { MIN_SAMPLES, lesson, epoch, stopped, canLearn, thinkSwitch, startTraining, LearnBox } from './teach-learn.tsx';
-import { plural } from '../format.ts';
 
 /** Заезд в списке. fits — записан с теми же глазами, что сейчас: на других учить нельзя, у сети другие входы */
 type Row = Run & { fits: boolean };

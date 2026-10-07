@@ -14,6 +14,7 @@ import { pool, racers } from './works.ts';
 import { stage, replay, watched, boardOrder, query, found, live, boardRows } from './stream.ts';
 import type { FinalEntry } from './entries.ts';
 import { messageOf } from '@reely/basics';
+import { num } from '../format.ts';
 
 const LIVE_ROWS = 10; // в живой таблице — первая десятка (и найденный участник, если он ниже)
 
@@ -31,7 +32,7 @@ const racerLine = (entry: FinalEntry, place: number | null = null, value = '', m
   ({ kind: 'racer', key: entry.id, entry, place, move, value, short });
 
 /** Секунды коротко: 54.321 → «54,3» */
-const shortSecs = (s: number, digits = 1) => (Number.isFinite(s) ? s.toFixed(digits).replace('.', ',') : '—');
+const shortSecs = (s: number, digits = 1) => (Number.isFinite(s) ? num(s, digits) : '—');
 
 /** Результат заезда на плитки: время финиша или почему сошёл — не длиннее 6 знаков */
 const SHORT_STATUS: Record<string, string> = { crashed: 'АВАРИЯ', stalled: 'ЗАГЛОХ', timeout: 'ВРЕМЯ', hung: 'ЗАВИС', error: 'ОШИБКА' };

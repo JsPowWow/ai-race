@@ -9,7 +9,7 @@ import { trafficAt, type TrafficSpot } from '../engine/world/traffic.ts';
 import { lapOf, type Track } from '../engine/world/track.ts';
 import type { Point } from '../engine/world/turtle.ts';
 import { clamp } from '../engine/core/utils.ts';
-import { liveSize, calm, phone, esc } from './ui.ts';
+import { liveSize, calm, phone, field } from './ui.ts';
 import { element } from './dom.ts';
 import { effect } from '@reely/dommy';
 import { listen } from '@reely/dommy-kit';
@@ -143,12 +143,8 @@ export function carAt<C extends Point>(event: { clientX: number; clientY: number
 const hud = element('#hud');
 const HUD_EVERY_MS = 100; // цифры меняются 10 раз в секунду — их успеваешь прочитать, и они не дребезжат
 let hudAt = 0, hudCount = 0;
-/** Поле табло: подпись и значение жирным — «время <b>12,4 с</b>». Сам экранирует: сюда можно имя трассы из seed */
-export const field = (label: string, value: string | number): string => `${esc(label)} <b>${esc(value)}</b>`;
-/** Жирное слово на табло: название трассы, этап */
-export const bold = (text: string | number): string => `<b>${esc(text)}</b>`;
 /** «круг 2/3» для табло: какой круг едет машина, доехавшая до s */
-export const lapText = (track: Track, s: number): string => field('круг', `${lapOf(track, s)}/${track.laps}`);
+export const lapText = (track: Track, s: number): string => `${field('круг', lapOf(track, s))}/${track.laps}`;
 
 /**
  * Табло над трассой: по полю на строку. Поля — HTML-строки: field(), bold(), lapText()… — свой текст только через них или esc(). Пустые

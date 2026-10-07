@@ -1,6 +1,6 @@
 // Итоги финала в файлы: RESULTS.md (опубликовать в репозитории), CSV (таблица для баллов), JSON (всё подряд).
 import { STAGES, stageLabel, stageSeed, stageTime } from '../../engine/world/rally.ts';
-import { secs } from '../format.ts';
+import { num, secs } from '../format.ts';
 import type { StageResult } from '../../engine/world/rally.ts';
 import type { Calc } from './calc.ts';
 
@@ -19,8 +19,10 @@ export function resultText(result: StageResult | null | undefined): string {
 }
 
 const BOM = String.fromCharCode(0xfeff);
-const num = (x: number) => (Number.isFinite(x) ? x.toFixed(2) : '—');
-const ruNum = (x: number) => num(x).replace('.', ',');
+/** Для CSV — с точкой: таблицы читают её как число */
+const csvNum = (x: number) => (Number.isFinite(x) ? x.toFixed(2) : '—');
+/** Для людей (Markdown) — с запятой */
+const ruNum = (x: number) => (Number.isFinite(x) ? num(x, 2) : '—');
 const stageNumbers = (count: number) => Array.from({ length: count }, (_, i) => i);
 
 /** Строки итоговой таблицы: всё, что нужно файлам */
@@ -72,8 +74,8 @@ export function toCsv(calc: Calc): string {
   const head = ['place', 'github', 'car', ...stages.map((s) => `stage${s + 1}`), ...stages.map((s) => `stage${s + 1}_seconds`), 'total_seconds', 'superfinal', 'finished_stages', 'same_brain_as', 'own_code'];
   const rows = rowsOf(calc).map((r) => [
     r.place, r.author, r.name,
-    ...r.stages.map(resultText), ...r.stages.map((x) => num(stageTime(x))),
-    num(r.total), r.superfinal ? resultText(r.superfinal) : '', r.finished, r.twins > 1 ? r.twins - 1 : 0, r.code ? 'yes' : 'no',
+    ...r.stages.map(resultText), ...r.stages.map((x) => csvNum(stageTime(x))),
+    csvNum(r.total), r.superfinal ? resultText(r.superfinal) : '', r.finished, r.twins > 1 ? r.twins - 1 : 0, r.code ? 'yes' : 'no',
   ]);
   // BOM (U+FEFF) в начале — чтобы Excel узнал UTF-8 и не показал кириллицу кракозябрами
   return `${BOM}${[head, ...rows].map((row) => row.map(quote).join(',')).join('\n')}\n`;

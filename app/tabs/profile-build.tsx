@@ -8,6 +8,7 @@ import { BUDGET, PRICES, cost } from '../../engine/course/build.ts';
 import { state, sizesOf, on, thinkVariants } from '../state.ts';
 import { changeShape } from '../library.ts';
 import { ErrorNote } from '../components/error-note.tsx';
+import { Select } from '../components/controls.tsx';
 import { fromEvents, variants, SHAPE_EVENTS, BRAIN_EVENTS } from '../signals.ts';
 
 export type Shape = typeof state.config;
@@ -144,6 +145,7 @@ function Brain(): Node {
   const layerPrice = PRICES.layer + LIMITS.neuronsMin * PRICES.neuron;
   /** Вариант на экране: у черновика может быть вариант, которого уже нет в think.js */
   const think = () => (shown().think in variants() ? shown().think : config().think);
+  const thinkChoices = () => Object.entries(variants()).map(([id, v]) => ({ id, title: v.title || id }));
   return (
     <section className="block">
       <h2>Мозг</h2>
@@ -155,13 +157,7 @@ function Brain(): Node {
       </button>
       <div className="field wide">
         <label htmlFor="thinkSelect">Как думает</label>
-        <select id="thinkSelect" aria={{ ariaLabel: 'Вариант мозга' }} onChange={(e) => edit({ ...shown(), think: e.currentTarget.value })}>
-          <For each={() => Object.entries(variants())} by={([id]) => id}>
-            {(variant) => (
-              <option value={variant()[0]} selected={() => variant()[0] === think()}>{() => variant()[1].title || variant()[0]}</option>
-            )}
-          </For>
-        </select>
+        <Select id="thinkSelect" label="Вариант мозга" items={thinkChoices} value={think} pick={(id) => edit({ ...shown(), think: id })} />
       </div>
       <p className="hint" id="thinkHint">{() => variants()[think()]?.hint ?? ''}</p>
     </section>

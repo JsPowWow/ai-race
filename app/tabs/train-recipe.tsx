@@ -3,7 +3,7 @@
 import { FITNESS_PARTS, MUTATIONS } from '../../engine/learn/recipes.ts';
 import { state } from '../state.ts';
 import { changeShape } from '../library.ts';
-import { fromEvents, variants } from '../signals.ts';
+import { fromEvents, variants, SHAPE_EVENTS } from '../signals.ts';
 import { Seg, Select } from '../components/controls.tsx';
 import { train, setTrain } from './train-settings.ts';
 import { mutationId, setParents } from './train-swarm.ts';
@@ -45,7 +45,7 @@ function FitnessParts(): Node {
 const MUTATION_CHOICES = Object.entries(MUTATIONS).map(([id, { title }]) => ({ id, title }));
 
 /** Вариант мозга в машине: меняют и здесь, и в «Профиле» */
-const think = fromEvents(['config', 'car'], (): string => state.config.think);
+const think = fromEvents(SHAPE_EVENTS, (): string => state.config.think);
 /** Вариант на экране: такого в think.js уже нет — думает «Ступенька» (как thinkVariant() в state.js) */
 const shownThink = () => (think() in variants() ? think() : 'step');
 

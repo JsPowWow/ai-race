@@ -8,7 +8,7 @@ import { unpackSample } from '../../engine/learn/imitation.ts';
 import { state, thinkFn } from '../state.ts';
 import { bestRun } from '../runs.ts';
 import { num } from '../format.ts';
-import { field } from '../stage.ts';
+import { field } from '../ui.ts';
 import { cssColor } from '../../engine/draw/render.ts';
 
 /**

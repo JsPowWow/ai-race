@@ -6,6 +6,7 @@ export const num = (x: number, digits = 1): string => x.toFixed(digits).replace(
 
 /** Тики → «12,4 с» (60 тиков = 1 секунда) */
 export const secs = (ticks: number, digits = 1): string => `${num(ticks / 60, digits)} с`;
+/** Доля в процентах, целым числом: 37.6 → «38%» */
 export const pct = (value: number): string => `${Math.round(value)}%`;
 
 /** Байты по-человечески: 319 Б, 1,5 КБ, 2,3 МБ, 1,1 ГБ */

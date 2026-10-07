@@ -29,7 +29,6 @@ const title = signal('Рой');
 /** Машина на табло: кто это и что писать */
 type Shown = { id: string; car: Car; name: string; color: string; you?: boolean };
 
-
 function resultOf(car: Car, track: Track): string {
   if (car.status === 'finished') return num((car.finishTick ?? car.ticks) / 60);
   if (car.status === 'crashed') return car.crashedInto === 'car' ? 'АВАРИЯ' : 'БОРДЮР';

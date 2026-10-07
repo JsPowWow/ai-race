@@ -12,6 +12,10 @@ export const $$ = <T extends Element = HTMLElement>(selector: string, root: Pare
 /** Безопасно вставить текст в HTML-строку — нужно только для табло над трассой (setHud). В JSX текст и так вставляется как текст */
 const ENTITIES: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 export const esc = (s: unknown): string => String(s).replace(/[&<>"']/g, (c) => ENTITIES[c] ?? c);
+/** Поле табло: подпись и значение жирным — «время <b>12,4 с</b>». Сам экранирует: сюда можно имя трассы из seed */
+export const field = (label: string, value: string | number): string => `${esc(label)} <b>${esc(value)}</b>`;
+/** Жирное слово на табло: название трассы, этап */
+export const bold = (text: string | number): string => `<b>${esc(text)}</b>`;
 
 /**
  * CSS-размер элемента, который обновляется сам, когда элемент меняет размер.
