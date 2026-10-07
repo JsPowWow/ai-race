@@ -10,6 +10,7 @@ import { garage, MAX_CARS, switchCar, newCar, copyCar, deleteCar, exportCar, imp
 import { CarDot } from '../components/car-dot.tsx';
 import { saveFile, safeFileName } from '../download.ts';
 import { fromEvents } from '../signals.ts';
+import { bytes } from '../format.ts';
 import { draft, resets, applyDraft, dropDraft } from './profile-build.tsx';
 
 /** Сводка машины на полке (сама машина целиком лежит в её файлах) */
@@ -33,13 +34,6 @@ const busy = signal(false);
 const shelf = fromEvents(['garage', 'car', 'save', 'config', 'champion'], () => garage as Shelf);
 on('car', () => (ask.value = null));
 
-/** Байты по-человечески: 319 Б, 1,5 КБ, 2,3 МБ, 1,1 ГБ */
-function kb(n: number): string {
-  const units = ['Б', 'КБ', 'МБ', 'ГБ'];
-  let i = 0;
-  while (n >= 1024 && i < units.length - 1) [n, i] = [n / 1024, i + 1];
-  return `${i ? n.toFixed(1).replace('.', ',') : n} ${units[i]}`;
-}
 const total = (car: Summary) => car.bytes.car + car.bytes.history + (car.bytes.runs ?? 0);
 const progress = (car: Summary) => (!car.trained ? 'не обучена' : car.generation ? `поколение ${car.generation}` : 'обучена');
 const nameOf = (profile: Profile) => profile.name || 'Без имени';
@@ -152,7 +146,7 @@ function Tile({ car, biggest }: { car: () => Summary; biggest: () => number }): 
             {/* «[]» — пустой файл: такие части не рисуем */}
             {PARTS.map(([kind, key]) => <i className={kind} hidden={() => part(key) <= 2} styles={{ flex: () => String(part(key)) }} />)}
           </span>
-          <span className="g-size">{() => kb(total(car()))}</span>
+          <span className="g-size">{() => bytes(total(car()))}</span>
         </button>
       )}>
       {() => (
@@ -191,7 +185,7 @@ function Files(): Node {
       <summary>Файлы машины</summary>
       <ul className="g-files" id="gFiles">
         <For each={files} by={(file) => file.path}>
-          {(file) => <li><code>{() => file().path}</code><span>{() => kb(file().size)}</span></li>}
+          {(file) => <li><code>{() => file().path}</code><span>{() => bytes(file().size)}</span></li>}
         </For>
       </ul>
     </details>
@@ -211,7 +205,7 @@ function Meter(): Node {
   };
   return (
     <div className="g-meter" id="gMeter">
-      <p>Занято <b>{() => kb(used())}</b><span className="note">{() => (shelf().quota ? ` · браузер даёт сайту до ${kb(shelf().quota)}` : '')}</span></p>
+      <p>Занято <b>{() => bytes(used())}</b><span className="note">{() => (shelf().quota ? ` · браузер даёт сайту до ${bytes(shelf().quota)}` : '')}</span></p>
       <Show when={() => shelf().quota}>
         {() => <span className="g-track" aria={{ ariaHidden: 'true' }}><i styles={{ inlineSize: () => `${share()}%` }} /></span>}
       </Show>

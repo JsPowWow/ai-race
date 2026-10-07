@@ -14,6 +14,7 @@ import { seedTrack } from '../tracks.ts';
 import { BOTS } from '../generated/bots.js';
 import { liveSize } from '../ui.ts';
 import { element } from '../dom.ts';
+import { bytes, plural } from '../format.ts';
 
 const DEMO_SEED = 'витрина';
 const DEMO_SPEED = 3; // тиков за кадр
@@ -99,17 +100,9 @@ function preview(file: BotFile): string {
   ].join('\n');
 }
 
-/** 1 число, 2 числа, 5 чисел */
-function plural(n: number, one: string, few: string, many: string): string {
-  const mod10 = n % 10, mod100 = n % 100;
-  if (mod10 === 1 && mod100 !== 11) return one;
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
-  return many;
-}
-
 function BrainFile({ file }: { file: BotFile }): Node {
   const numbers = file.brain.layers.reduce((n, l) => n + l.biases.length + l.weights.flat().length, 0);
-  const size = `${(JSON.stringify(file).length / 1024).toFixed(1).replace('.', ',')} КБ`;
+  const size = bytes(JSON.stringify(file).length);
   return (
     <>
       <p>Весь «мозг» машины — это маленький файл: <b>{size}</b>, в нём <b>{`${numbers} ${plural(numbers, 'число', 'числа', 'чисел')}`}</b>. Обучение — это поиск правильных чисел. Этот файл вы и приносите на гонку.</p>

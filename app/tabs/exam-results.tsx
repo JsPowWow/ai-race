@@ -2,7 +2,7 @@
 import { signal, For, Show } from '@reely/dommy';
 import { state, on, emit } from '../state.ts';
 import { showBanner } from '../stage.ts';
-import { secs, pct } from '../ui.ts';
+import { secs, pct } from '../format.ts';
 import { runExam, verdict, KNOWN_COUNT, UNKNOWN_COUNT } from './exam-run.ts';
 import type { ExamResult } from './exam-run.ts';
 

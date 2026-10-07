@@ -3,7 +3,7 @@
 import { TRAINING_TRACKS } from '../../engine/world/track.ts';
 import type { Track } from '../../engine/world/track.ts';
 import { FITNESS_PARTS } from '../../engine/learn/recipes.ts';
-import { secs, pct } from '../ui.ts';
+import { secs, pct } from '../format.ts';
 import type { HistoryEntry } from '../state.ts';
 
 /** Столько поколений без улучшения — рой застрял */

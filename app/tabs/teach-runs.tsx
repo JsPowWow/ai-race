@@ -4,10 +4,10 @@ import { untracked, For, Show } from '@reely/dommy';
 import { sensorsOf } from '../../engine/net/brain.ts';
 import { state, sizesOf } from '../state.ts';
 import { runs, toggleRun, removeRun, sampleCount, MAX_SAMPLES, type Run } from '../runs.ts';
-import { secs, pct } from '../ui.ts';
-import { fromEvents } from '../signals.ts';
+import { secs, pct } from '../format.ts';
+import { fromEvents, BRAIN_EVENTS } from '../signals.ts';
 import { MIN_SAMPLES, lesson, epoch, stopped, canLearn, thinkSwitch, startTraining, LearnBox } from './teach-learn.tsx';
-import { plural } from './teach-words.ts';
+import { plural } from '../format.ts';
 
 /** Заезд в списке. fits — записан с теми же глазами, что сейчас: на других учить нельзя, у сети другие входы */
 type Row = Run & { fits: boolean };
@@ -22,7 +22,7 @@ const rows = fromEvents(['save', 'car', 'config'], (): Row[] => {
 });
 /** Сколько сенсоров у машины сейчас (заезд с другим числом не подходит) */
 const sensorsNow = () => sensorsOf(sizesOf()[0]);
-const trained = fromEvents(['champion', 'reset', 'car'], () => !!state.champion);
+const trained = fromEvents(BRAIN_EVENTS, () => !!state.champion);
 const carName = fromEvents(['save', 'car'], () => state.profile.name || 'Без имени');
 
 /** На чём будем учить: отмеченные заезды, которые подходят к сети */
@@ -74,7 +74,7 @@ function status(): string {
   const count = used().length;
   // про место — здесь, а не баннером поверх трассы: во время езды он мешал
   const full = sampleCount() >= MAX_SAMPLES * 0.9 ? ' Места почти нет: новые заезды вытеснят самые старые.' : '';
-  return `${count} ${plural(count, 'заезд', 'заезда', 'заездов')}, ${samples} примеров. ${trained() ? 'Мозг продолжит учиться с того, что уже умеет.' : 'Мозга ещё нет — начнём с нуля.'}${full}`;
+  return `${count} ${plural(count, 'заезд', 'заезда', 'заездов')}, ${samples} ${plural(samples, 'пример', 'примера', 'примеров')}. ${trained() ? 'Мозг продолжит учиться с того, что уже умеет.' : 'Мозга ещё нет — начнём с нуля.'}${full}`;
 }
 
 export function Runs(): Node {

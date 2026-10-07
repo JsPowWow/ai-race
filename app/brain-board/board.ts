@@ -141,6 +141,7 @@ export function createBrainBoard({ canvas, card, zoomBar = null, brain, act = SM
     };
     listen(canvas, 'pointerup', up);
     listen(canvas, 'pointercancel', up);
+    listen(canvas, 'lostpointercapture', up); // палец увёл другой элемент — тоже отпустили
     listen(canvas, 'pointerleave', (e) => { if (e.pointerType === 'mouse') { mouse = null; formula.value = null; } });
     // колесо зумит только с Ctrl/⌘ — иначе страница перестанет прокручиваться
     listen(canvas, 'wheel', (e) => {

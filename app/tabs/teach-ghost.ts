@@ -7,6 +7,7 @@ import type { TrafficSpot } from '../../engine/world/traffic.ts';
 import { unpackSample } from '../../engine/learn/imitation.ts';
 import { state, thinkFn } from '../state.ts';
 import { bestRun } from '../runs.ts';
+import { num } from '../format.ts';
 import { cssColor } from '../../engine/draw/render.ts';
 
 /**
@@ -63,6 +64,6 @@ export function ghostGap(ghost: Ghost | null): string {
   const { ghost: g, car: c } = ghost.trail;
   const now = c.length - 1, ahead = g[now] >= c[now];
   const behind = ahead ? tickAt(g, c[now]) : tickAt(c, g[now]);
-  const secs = ((now - behind) / 60).toFixed(1).replace('.', ',');
+  const secs = num((now - behind) / 60);
   return secs === '0,0' ? `${ghost.label} <b>рядом</b>` : `${ghost.label} ${ahead ? 'впереди' : 'сзади'} на <b>${secs} с</b>`;
 }

@@ -6,7 +6,7 @@ import { isSuperfinal, stageLabel, trafficSnapshot } from '../../engine/world/ra
 import { getTrainingTrack } from '../../engine/world/track.ts';
 import { startCountdown, stopCountdown, updateCountdown } from '../countdown.ts';
 import { drawScene, setHud, lapText, showBanner } from '../stage.ts';
-import { secs } from '../ui.ts';
+import { secs } from '../format.ts';
 import { StageReplay, countStatuses, drawStage, drawProgressStrip } from './show.ts';
 import type { Placed, ReplayRow } from './show.ts';
 import { calc } from './calc.ts';

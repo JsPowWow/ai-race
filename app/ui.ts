@@ -7,10 +7,6 @@ export const $$ = <T extends Element = HTMLElement>(selector: string, root: Pare
 const ENTITIES: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 export const esc = (s: unknown): string => String(s).replace(/[&<>"']/g, (c) => ENTITIES[c] ?? c);
 
-/** Тики → «12,4 с» (60 тиков = 1 секунда) */
-export const secs = (ticks: number): string => `${(ticks / 60).toFixed(1).replace('.', ',')} с`;
-export const pct = (value: number): string => `${Math.round(value)}%`;
-
 /**
  * CSS-размер элемента, который обновляется сам, когда элемент меняет размер.
  * Читать clientWidth в каждом кадре дорого: браузер каждый раз пересчитывает вёрстку.

@@ -15,7 +15,7 @@ import { live } from '../student-code.ts';
 import { runs, addRun, type RunStatus } from '../runs.ts';
 import { steerWith } from '../manual-drive.ts';
 import { drawRide, trafficOn, setHud, lapText, showBanner } from '../stage.ts';
-import { secs, pct } from '../ui.ts';
+import { secs, pct, plural } from '../format.ts';
 import { element } from '../dom.ts';
 import { BrainLibrary } from '../components/brain-library.tsx';
 import { DriveBar } from './teach-toolbar.tsx';
@@ -170,7 +170,7 @@ function finishRun({ interrupted = false } = {}): void {
   if (saved && typeof saved !== 'string' && runs.filter((r) => r.status === 'finished').length >= 2) emit('did', 'runs'); // 2 чистых заезда — шаг 1 урока
   if (interrupted) return;
   const head = car.status === 'finished' ? `Финиш! ${secs(car.finishTick ?? car.ticks)}.` : RESULT_TEXT[car.status] ?? '';
-  const note = !saved ? '' : typeof saved === 'string' ? saved : `Заезд записан: ${saved.packed.length} примеров`;
+  const note = !saved ? '' : typeof saved === 'string' ? saved : `Заезд записан: ${saved.packed.length} ${plural(saved.packed.length, 'пример', 'примера', 'примеров')}`;
   showBanner(note, RESTART_DELAY + 400, head);
 }
 

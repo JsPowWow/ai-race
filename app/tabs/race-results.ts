@@ -3,7 +3,7 @@
 import { carReport } from '../../engine/world/car.ts';
 import type { Car, CarReport } from '../../engine/world/car.ts';
 import type { Track } from '../../engine/world/track.ts';
-import { secs, pct } from '../ui.ts';
+import { secs, pct } from '../format.ts';
 
 /** Машина в заезде и тот, кто её привёз */
 export type Racer<Who extends { name: string } = { name: string }> = { entrant: Who; car: Car };

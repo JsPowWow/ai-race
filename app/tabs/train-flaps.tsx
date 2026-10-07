@@ -8,6 +8,7 @@ import { pickRows, type FlapColumn, type FlapRow } from '../components/flap-boar
 import { StageFlaps } from '../components/stage-flaps.tsx';
 import { state } from '../state.ts';
 import { element } from '../dom.ts';
+import { num } from '../format.ts';
 import { rivalInfo } from './train-rivals.tsx';
 import { isYours } from './train-swarm.ts';
 import type { Replay } from './train-timeline.ts';
@@ -28,10 +29,9 @@ const title = signal('Рой');
 /** Машина на табло: кто это и что писать */
 type Shown = { id: string; car: Car; name: string; color: string; you?: boolean };
 
-const short = (ticks: number) => (ticks / 60).toFixed(1).replace('.', ',');
 
 function resultOf(car: Car, track: Track): string {
-  if (car.status === 'finished') return short(car.finishTick ?? car.ticks);
+  if (car.status === 'finished') return num((car.finishTick ?? car.ticks) / 60);
   if (car.status === 'crashed') return car.crashedInto === 'car' ? 'АВАРИЯ' : 'БОРДЮР';
   if (car.status !== 'driving') return 'СОШЁЛ';
   return `${Math.floor(carReport(car, track).progressPct)}%`;

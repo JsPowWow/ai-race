@@ -1,5 +1,6 @@
 // Итоги финала в файлы: RESULTS.md (опубликовать в репозитории), CSV (таблица для баллов), JSON (всё подряд).
 import { STAGES, stageLabel, stageSeed, stageTime } from '../../engine/world/rally.ts';
+import { secs } from '../format.ts';
 import type { StageResult } from '../../engine/world/rally.ts';
 import type { Calc } from './calc.ts';
 
@@ -8,7 +9,7 @@ export function resultText(result: StageResult | null | undefined): string {
   if (!result) return '—';
   const percent = `${Math.floor(result.progress * 100)}%`;
   switch (result.status) {
-    case 'finished': return `${((result.finishTick ?? result.ticks) / 60).toFixed(2).replace('.', ',')} с`;
+    case 'finished': return secs(result.finishTick ?? result.ticks, 2);
     case 'crashed': return `${result.crashedInto === 'car' ? 'авария' : 'бордюр'} на ${percent}`;
     case 'stalled': return `заглох на ${percent}`;
     case 'timeout': return `не успел: ${percent}`;

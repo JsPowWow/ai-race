@@ -2,9 +2,14 @@
 // Вкладки на dommy не перерисовывают себя целиком: пришло событие — сигнал перечитал данные,
 // и страница обновила ровно те узлы, что от них зависят.
 import { signal } from '@reely/dommy';
-import { on, type AppEvent } from './state.ts';
+import { on, thinkVariants, type AppEvent, type ThinkVariant } from './state.ts';
 
 export type { AppEvent };
+
+/** Мозг сменился: обучили, сбросили или пересели в другую машину (про `car` легко забыть) */
+export const BRAIN_EVENTS: AppEvent[] = ['champion', 'reset', 'car'];
+/** Сборка сменилась: форма сети, вариант мозга, другая машина или поправили think.js */
+export const SHAPE_EVENTS: AppEvent[] = ['config', 'car', 'code'];
 
 /**
  * Значение из общего состояния, которое само обновляется по событиям: read() перечитывается,
@@ -18,3 +23,6 @@ export function fromEvents<T>(events: AppEvent[], read: () => T): () => T {
   for (const event of events) on(event, () => (value.value = read()));
   return value;
 }
+
+/** Варианты мозга из student/think.js: поправили код — список другой */
+export const variants = fromEvents<Record<string, ThinkVariant>>(['code'], thinkVariants);

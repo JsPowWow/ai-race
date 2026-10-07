@@ -2,9 +2,8 @@
 // Новый рецепт действует со следующего поколения: рой перечитывает его в начале каждого (train-swarm.ts).
 import { FITNESS_PARTS, MUTATIONS } from '../../engine/learn/recipes.ts';
 import { state } from '../state.ts';
-import { live } from '../student-code.ts';
 import { changeShape } from '../library.ts';
-import { fromEvents } from '../signals.ts';
+import { fromEvents, variants } from '../signals.ts';
 import { Seg, Select } from '../components/controls.tsx';
 import { train, setTrain } from './train-settings.ts';
 import { mutationId, setParents } from './train-swarm.ts';
@@ -45,9 +44,6 @@ function FitnessParts(): Node {
 
 const MUTATION_CHOICES = Object.entries(MUTATIONS).map(([id, { title }]) => ({ id, title }));
 
-type Variants = Record<string, { title?: string; hint?: string }>;
-/** Варианты мозга из student/think.js: поправили код — список другой */
-const variants = fromEvents(['code'], (): Variants => live.think.thinkVariants ?? {});
 /** Вариант мозга в машине: меняют и здесь, и в «Профиле» */
 const think = fromEvents(['config', 'car'], (): string => state.config.think);
 /** Вариант на экране: такого в think.js уже нет — думает «Ступенька» (как thinkVariant() в state.js) */

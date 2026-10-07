@@ -84,7 +84,7 @@ export function SwarmNow(): Node {
     <>
       <ol className="swarm-cycle" aria={{ ariaLabel: 'Как учится рой: одно поколение' }}>
         {PHASES.map(({ phase, title, text }, i) => (
-          <li className={() => (phase === 'drive' && isRunning() ? 'on' : '')}
+          <li className={() => (phase === 'drive' && isRunning() ? 'on' : null)}
             elementRef={(li) => phase !== 'drive' && flashing.push(li)}>
             <span className="n">{i + 1}</span>
             <span><b>{title}</b>{text}</span>

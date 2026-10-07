@@ -7,7 +7,7 @@ import { mount } from '@reely/dommy';
 import { TRAFFIC_LEVELS, type TrafficLevel } from '../../engine/world/traffic.ts';
 import { state, persist } from '../state.ts';
 import { drawScene, paintCar, paintSensors, trafficOn, setHud } from '../stage.ts';
-import { secs } from '../ui.ts';
+import { secs } from '../format.ts';
 import { element } from '../dom.ts';
 import { Entrants } from './race-entrants.tsx';
 import { Board } from './race-board.tsx';

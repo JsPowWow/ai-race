@@ -7,6 +7,7 @@ import type { TrafficLevel } from '../../engine/world/traffic.ts';
 import { lapOf, type Track } from '../../engine/world/track.ts';
 import { state, emit } from '../state.ts';
 import { seedTrack } from '../tracks.ts';
+import { num } from '../format.ts';
 import { startCountdown, stopCountdown, updateCountdown } from '../countdown.ts';
 import { trafficOn, showBanner } from '../stage.ts';
 import { entrants } from './race-entrants.tsx';
@@ -136,7 +137,8 @@ function publishBoard(): void {
 // ── табло-флапы ──
 
 /** Тики → «12,4» (без «с»: на табло каждая плитка на счету) */
-const short = (ticks: number) => (ticks / 60).toFixed(1).replace('.', ',');
+/** Тики → «12,4» без «с»: в табло секунды и так понятны */
+const short = (ticks: number) => num(ticks / 60);
 
 /** Когда лидер впервые доехал до s: первый тик, где leaderAt ≥ s (leaderAt только растёт — ищем делением пополам) */
 function tickLeaderPassed(s: number): number {

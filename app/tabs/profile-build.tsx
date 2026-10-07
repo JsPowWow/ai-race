@@ -5,27 +5,23 @@ import { signal, For } from '@reely/dommy';
 import { rays, rayCount, BACK_SPREAD } from '../../engine/world/car.ts';
 import { LIMITS, inputCount, OUTPUTS } from '../../engine/net/brain.ts';
 import { BUDGET, PRICES, cost } from '../../engine/course/build.ts';
-import { state, sizesOf, on } from '../state.ts';
-import { live } from '../student-code.ts';
+import { state, sizesOf, on, thinkVariants } from '../state.ts';
 import { changeShape } from '../library.ts';
-import { fromEvents } from '../signals.ts';
+import { fromEvents, variants, SHAPE_EVENTS, BRAIN_EVENTS } from '../signals.ts';
 
 export type Shape = typeof state.config;
 type SensorKey = 'count' | 'spread' | 'length' | 'back' | 'backLength' | 'backSpread';
 
-/** Варианты мозга из think.js: поправили код — список другой */
-const variants = fromEvents(['code'], (): Record<string, { title?: string; hint?: string }> => live.think.thinkVariants ?? {});
-
 /** Сборка машины. Если её варианта мозга больше нет (поправили think.js) — берём «Ступеньку» */
 function currentShape(): Shape {
-  const all = live.think.thinkVariants ?? {};
+  const all = thinkVariants();
   if (!all[state.config.think]) state.config.think = all.step ? 'step' : Object.keys(all)[0];
   return state.config;
 }
 /** Сборка в машине (вариант мозга на «Учится само» тоже меняют через changeShape — придёт config) */
-export const config = fromEvents(['config', 'car', 'code'], currentShape);
+export const config = fromEvents(SHAPE_EVENTS, currentShape);
 /** Обученный мозг (или null) */
-export const champion = fromEvents(['champion', 'car', 'reset'], () => state.champion);
+export const champion = fromEvents(BRAIN_EVENTS, () => state.champion);
 
 // ── черновик ──
 

@@ -8,21 +8,20 @@ import type { Brain } from '../../engine/net/brain.ts';
 import { trainEpoch, agreement, TEACH_THINK } from '../../engine/learn/imitation.ts';
 import type { Sample } from '../../engine/learn/imitation.ts';
 import { drawSeries } from '../../engine/draw/netviz.ts';
-import { state, sizesOf, brainTitle, thinkVariant, on } from '../state.ts';
+import { state, sizesOf, brainTitle, thinkVariant, thinkVariants, on } from '../state.ts';
 import { stored } from '../storage.ts';
-import { live } from '../student-code.ts';
 import { bestRun, trainingSamples } from '../runs.ts';
 import { propose, yourLessonLeg } from '../variants.ts';
 import { getTrainingTrack, type Track } from '../../engine/world/track.ts';
 import { withTraffic } from '../../engine/world/traffic.ts';
-import { fromEvents } from '../signals.ts';
-import { plural } from './teach-words.ts';
+import { fromEvents, SHAPE_EVENTS } from '../signals.ts';
+import { plural, num } from '../format.ts';
 import { Seg, type Choice } from '../components/controls.tsx';
 
 /** Трасса урока — та, где ты ездишь: на ней (и ещё на одной) вариант едет контрольный заезд */
 export const lessonTrack = (): Track => withTraffic(getTrainingTrack(state.drive.trackId), state.drive.traffic);
 
-const sec = (s: number) => `${s.toFixed(1).replace('.', ',')} с`;
+const sec = (s: number) => `${num(s)} с`;
 
 /**
  * Ты против мозга на трассе урока: твой лучший финиш из «Моих заездов» (та же трасса и те же машины)
@@ -78,7 +77,7 @@ const open = signal(false);
 
 // ── вариант «думания»: обучение на примерах работает только с «Плавным» (см. engine/learn/imitation.ts) ──
 
-const think = fromEvents(['config', 'car', 'code'], () => ({ now: state.config.think, can: !!live.think.thinkVariants?.[TEACH_THINK] }));
+const think = fromEvents(SHAPE_EVENTS, () => ({ now: state.config.think, can: !!thinkVariants()[TEACH_THINK] }));
 const titleOf = (id: string) => thinkVariant(id)?.title ?? id;
 /** В think.js есть «Плавный» — без него учиться на примерах нельзя */
 export const canLearn = () => think().can;

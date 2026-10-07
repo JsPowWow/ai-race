@@ -5,7 +5,7 @@ import { drawChart } from '../../engine/draw/netviz.ts';
 import { sizesOf } from '../state.ts';
 import { setBrain } from '../library.ts';
 import { showBanner } from '../stage.ts';
-import { secs, pct } from '../ui.ts';
+import { secs, pct } from '../format.ts';
 import { BrainLibrary } from '../components/brain-library.tsx';
 import { train, setTrain } from './train-settings.ts';
 import { results, pickedCars, clearPicked, errorText, currentSwarm, trackForGeneration } from './train-swarm.ts';

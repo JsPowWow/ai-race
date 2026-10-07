@@ -14,7 +14,7 @@ import { state, type HistoryEntry, type HallEntry, persist, persistSoon, sizesOf
 import { propose } from '../variants.ts';
 import { live, errorLine } from '../student-code.ts';
 import { seedTrack } from '../tracks.ts';
-import { fromEvents } from '../signals.ts';
+import { fromEvents, BRAIN_EVENTS } from '../signals.ts';
 import { train, setTrain } from './train-settings.ts';
 import type { TrainSettings } from './train-settings.ts';
 import { rivals } from './train-rivals.tsx';
@@ -62,7 +62,7 @@ export const generationsShown = (): number => shownEnds.value;
  * Итоги роя в машине: график, рекорды, «Машина времени», номер поколения и есть ли мозг вообще. Меняются в конце поколения
  * (событие generation) и снаружи: сброс, другая машина гаража, «Взять».
  */
-export const results = fromEvents(['generation', 'champion', 'reset', 'car'], () => ({
+export const results = fromEvents(['generation', ...BRAIN_EVENTS], () => ({
   history: state.history,
   hall: state.hall,
   timeline: state.timeline,

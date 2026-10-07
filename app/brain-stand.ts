@@ -153,6 +153,7 @@ export function createStand(canvas: HTMLCanvasElement, file: { color: string }):
   };
   listen(canvas, 'pointerup', release);
   listen(canvas, 'pointercancel', release);
+  listen(canvas, 'lostpointercapture', release); // палец увёл другой элемент — тоже отпустили
 
   return {
     brain: bot.brain,
