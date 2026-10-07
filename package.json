@@ -30,7 +30,7 @@
     "@reely/basics": "0.1.4",
     "@reely/colors": "0.0.9",
     "@reely/dommy": "0.6.2",
-    "@reely/dommy-kit": "0.2.2",
+    "@reely/dommy-kit": "0.2.3",
     "@reely/logger": "0.0.5",
     "@reely/signals": "0.2.0",
     "@reely/strings": "0.0.10"

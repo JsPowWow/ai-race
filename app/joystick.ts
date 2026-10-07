@@ -104,11 +104,10 @@ function release(): void {
 
 // палец на стике: основание встаёт под палец, ручка ходит за ним, отпустил — всё на место
 hold(zone, (down) => {
-  down.preventDefault();
   steering = true;
   zone.classList.add('on');
   touchPad();
   placeBase(down.clientX, down.clientY);
   moveKnob(down.clientX, down.clientY);
   return { move: (e) => moveKnob(e.clientX, e.clientY), up: release };
-});
+}, { prevent: true });

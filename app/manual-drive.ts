@@ -50,11 +50,10 @@ for (const button of $$('.pad button')) {
     button.classList.remove('on');
     press(key, false);
   };
-  hold(button, (down) => {
-    down.preventDefault();
+  hold(button, () => {
     button.classList.add('on');
     touchPad();
     press(key, true);
     return { up: release };
-  });
+  }, { prevent: true });
 }
